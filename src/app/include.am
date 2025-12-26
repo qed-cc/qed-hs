@@ -1,0 +1,36 @@
+
+bin_PROGRAMS+= src/app/qed-hs
+
+if COVERAGE_ENABLED
+noinst_PROGRAMS+= src/app/qed-hs-cov
+endif
+
+noinst_HEADERS += \
+	src/app/main/ntmain.h
+
+src_app_qed_hs_SOURCES = src/app/main/qed_hs_main.c
+
+# -L flags need to go in LDFLAGS. -l flags need to go in LDADD.
+# This seems to matter nowhere but on windows, but I assure you that it
+# matters a lot there, and is quite hard to debug if you forget to do it.
+
+src_app_qed_hs_LDFLAGS = @QED_HS_LDFLAGS_zlib@ $(QED_HS_LDFLAGS_CRYPTLIB) \
+	@QED_HS_LDFLAGS_libevent@ @QED_HS_STATIC_LDFLAGS@
+src_app_qed_hs_LDADD = libqed_hs.a \
+	@QED_HS_ZLIB_LIBS@ @QED_HS_LIB_MATH@ @QED_HS_LIBEVENT_LIBS@ $(QED_HS_LIBS_CRYPTLIB) \
+	@QED_HS_LIB_WS32@ @QED_HS_LIB_IPHLPAPI@ @QED_HS_LIB_SHLWAPI@ @QED_HS_LIB_GDI@ @QED_HS_LIB_USERENV@ \
+	@CURVE25519_LIBS@ @QED_HS_SYSTEMD_LIBS@ \
+	@QED_HS_LZMA_LIBS@ @QED_HS_ZSTD_LIBS@ @QED_HS_TRACE_LIBS@
+
+if COVERAGE_ENABLED
+src_app_qed_hs_cov_SOURCES = $(src_app_qed_hs_SOURCES)
+src_app_qed_hs_cov_CPPFLAGS = $(AM_CPPFLAGS) $(TEST_CPPFLAGS)
+src_app_qed_hs_cov_CFLAGS = $(AM_CFLAGS) $(TEST_CFLAGS)
+src_app_qed_hs_cov_LDFLAGS = @QED_HS_LDFLAGS_zlib@ $(QED_HS_LDFLAGS_CRYPTLIB) \
+	@QED_HS_LDFLAGS_libevent@ @QED_HS_STATIC_LDFLAGS@
+src_app_qed_hs_cov_LDADD = src/test/libqed_hs-testing.a \
+	@QED_HS_ZLIB_LIBS@ @QED_HS_LIB_MATH@ @QED_HS_LIBEVENT_LIBS@ $(QED_HS_LIBS_CRYPTLIB) \
+	@QED_HS_LIB_WS32@ @QED_HS_LIB_IPHLPAPI@ @QED_HS_LIB_SHLWAPI@ @QED_HS_LIB_GDI@ \
+	@CURVE25519_LIBS@ @QED_HS_SYSTEMD_LIBS@ \
+	@QED_HS_LZMA_LIBS@ @QED_HS_ZSTD_LIBS@ @QED_HS_TRACE_LIBS@
+endif

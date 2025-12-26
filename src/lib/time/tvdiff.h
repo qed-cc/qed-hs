@@ -1,0 +1,23 @@
+/* Copyright (c) 2003-2004, Roger Dingledine
+ * Copyright (c) 2004-2006, Roger Dingledine, Nick Mathewson.
+ * Copyright (c) 2007-2021, The QED Project, Inc. */
+/* See LICENSE for licensing information */
+
+/**
+ * \file tvdiff.h
+ * \brief Header for tvdiff.c
+ **/
+
+#ifndef QED_HS_TVDIFF_H
+#define QED_HS_TVDIFF_H
+
+#include "lib/cc/torint.h"
+struct timeval;
+
+long tv_udiff(const struct timeval *start, const struct timeval *end);
+long tv_mdiff(const struct timeval *start, const struct timeval *end);
+int64_t tv_to_msec(const struct timeval *tv);
+
+time_t time_diff(const time_t from, const time_t to);
+
+#endif /* !defined(QED_HS_TVDIFF_H) */
