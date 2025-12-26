@@ -89,19 +89,19 @@ circuit_purpose_is_correct_for_rend(unsigned int circ_purpose,
 
 /** Create and return a crypt path for the final hop of a v3 prop224 rendezvous
  * circuit. Initialize the crypt path crypto using the output material from the
- * ntor key exchange at <b>nqed_hs_key_seed</b>.
+ * ntor key exchange at <b>ntor_key_seed</b>.
  *
  * If <b>is_service_side</b> is set, we are the hidden service and the final
  * hop of the rendezvous circuit is the client on the other side. */
 static crypt_path_t *
-create_rend_cpath(const uint8_t *nqed_hs_key_seed, size_t seed_len,
+create_rend_cpath(const uint8_t *ntor_key_seed, size_t seed_len,
                   int is_service_side)
 {
-  uint8_t keys[HS_NQED_HS_KEY_EXPANSION_KDF_OUT_LEN];
+  uint8_t keys[HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN];
   crypt_path_t *cpath = NULL;
 
   /* Do the key expansion */
-  if (hs_nqed_hs_circuit_key_expansion(nqed_hs_key_seed, seed_len,
+  if (hs_ntor_circuit_key_expansion(ntor_key_seed, seed_len,
                                     keys, sizeof(keys)) < 0) {
     goto err;
   }
@@ -176,7 +176,7 @@ register_intro_circ(const hs_service_intro_point_t *ip,
  * is matching its identity key. */
 static unsigned int
 count_opened_desc_intro_point_circuits(const hs_service_t *service,
-                                       const hs_service_descripqed_hs_t *desc)
+                                       const hs_service_descriptor_t *desc)
 {
   unsigned int count = 0;
 
@@ -210,7 +210,7 @@ STATIC hs_ident_circuit_t *
 create_rp_circuit_identifier(const hs_service_t *service,
                              const uint8_t *rendezvous_cookie,
                              const curve25519_public_key_t *server_pk,
-                             const hs_nqed_hs_rend_cell_keys_t *keys)
+                             const hs_ntor_rend_cell_keys_t *keys)
 {
   hs_ident_circuit_t *ident;
   uint8_t handshake_info[CURVE25519_PUBKEY_LEN + DIGEST256_LEN];
@@ -235,11 +235,11 @@ create_rp_circuit_identifier(const hs_service_t *service,
              sizeof(handshake_info));
   memcpy(ident->rendezvous_handshake_info, handshake_info,
          sizeof(ident->rendezvous_handshake_info));
-  /* Finally copy the NQED_HS_KEY_SEED for e2e encryption on the circuit. */
-  qed_hs_assert(sizeof(ident->rendezvous_nqed_hs_key_seed) ==
-             sizeof(keys->nqed_hs_key_seed));
-  memcpy(ident->rendezvous_nqed_hs_key_seed, keys->nqed_hs_key_seed,
-         sizeof(ident->rendezvous_nqed_hs_key_seed));
+  /* Finally copy the NTOR_KEY_SEED for e2e encryption on the circuit. */
+  qed_hs_assert(sizeof(ident->rendezvous_ntor_key_seed) ==
+             sizeof(keys->ntor_key_seed));
+  memcpy(ident->rendezvous_ntor_key_seed, keys->ntor_key_seed,
+         sizeof(ident->rendezvous_ntor_key_seed));
   return ident;
 }
 
@@ -407,13 +407,13 @@ launch_rendezvous_point_circuit,(const hs_service_t *service,
 
   /* Create circuit identifier and key material. */
   {
-    hs_nqed_hs_rend_cell_keys_t keys;
+    hs_ntor_rend_cell_keys_t keys;
     curve25519_keypair_t ephemeral_kp;
     /* No need for extra strong, this is only for this circuit life time. This
      * key will be used for the RENDEZVOUS1 cell that will be sent on the
      * circuit once opened. */
     curve25519_keypair_generate(&ephemeral_kp, 0);
-    if (hs_nqed_hs_service_get_rendezvous1_keys(ip_auth_pubkey,
+    if (hs_ntor_service_get_rendezvous1_keys(ip_auth_pubkey,
                                              ip_enc_key_kp,
                                              &ephemeral_kp,
                                              &rdv_data->client_pk,
@@ -1086,7 +1086,7 @@ hs_circ_launch_intro_point(hs_service_t *service,
 int
 hs_circ_service_intro_has_opened(hs_service_t *service,
                                  hs_service_intro_point_t *ip,
-                                 const hs_service_descripqed_hs_t *desc,
+                                 const hs_service_descriptor_t *desc,
                                  origin_circuit_t *circ)
 {
   int ret = 0;
@@ -1206,8 +1206,8 @@ hs_circ_service_rp_has_opened(const hs_service_t *service,
 
   /* Setup end-to-end rendezvous circuit between the client and us. */
   if (hs_circuit_setup_e2e_rend_circ(circ,
-                       circ->hs_ident->rendezvous_nqed_hs_key_seed,
-                       sizeof(circ->hs_ident->rendezvous_nqed_hs_key_seed),
+                       circ->hs_ident->rendezvous_ntor_key_seed,
+                       sizeof(circ->hs_ident->rendezvous_ntor_key_seed),
                        1) < 0) {
     log_warn(LD_GENERAL, "Failed to setup circ");
 
@@ -1399,7 +1399,7 @@ hs_circ_handle_introduce2(const hs_service_t *service,
 }
 
 /** Circuit <b>circ</b> just finished the rend ntor key exchange. Use the key
- * exchange output material at <b>nqed_hs_key_seed</b> and setup <b>circ</b> to
+ * exchange output material at <b>ntor_key_seed</b> and setup <b>circ</b> to
  * serve as a rendezvous end-to-end circuit between the client and the
  * service. If <b>is_service_side</b> is set, then we are the hidden service
  * and the other side is the client.
@@ -1407,7 +1407,7 @@ hs_circ_handle_introduce2(const hs_service_t *service,
  * Return 0 if the operation went well; in case of error return -1. */
 int
 hs_circuit_setup_e2e_rend_circ(origin_circuit_t *circ,
-                               const uint8_t *nqed_hs_key_seed, size_t seed_len,
+                               const uint8_t *ntor_key_seed, size_t seed_len,
                                int is_service_side)
 {
   if (BUG(!circuit_purpose_is_correct_for_rend(TO_CIRCUIT(circ)->purpose,
@@ -1415,7 +1415,7 @@ hs_circuit_setup_e2e_rend_circ(origin_circuit_t *circ,
     return -1;
   }
 
-  crypt_path_t *hop = create_rend_cpath(nqed_hs_key_seed, seed_len,
+  crypt_path_t *hop = create_rend_cpath(ntor_key_seed, seed_len,
                                         is_service_side);
   if (!hop) {
     log_warn(LD_REND, "Couldn't get v3 %s cpath!",

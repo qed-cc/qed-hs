@@ -1020,7 +1020,7 @@ circuit_initial_package_window(void)
 static void
 init_circuit_base(circuit_t *circ)
 {
-  qed_hs_gettimeofday(&circ->timestamp_created);
+  tor_gettimeofday(&circ->timestamp_created);
 
   // Gets reset when we send CREATE_FAST.
   // circuit_expire_building() expects these to be equal

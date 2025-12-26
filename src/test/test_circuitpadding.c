@@ -2744,9 +2744,9 @@ helper_create_ender_machine(void)
 
 static time_t mocked_timeofday;
 /** Set timeval to a mock date and time. This is necessary
- * to make qed_hs_gettimeofday() mockable. */
+ * to make tor_gettimeofday() mockable. */
 static void
-mock_qed_hs_gettimeofday(struct timeval *timeval)
+mock_tor_gettimeofday(struct timeval *timeval)
 {
   timeval->tv_sec = mocked_timeofday;
   timeval->tv_usec = 0;
@@ -2767,7 +2767,7 @@ test_circuitpadding_manage_circuit_lifetime(void *arg)
   client_side = (circuit_t *)origin_circuit_new();
   client_side->purpose = CIRCUIT_PURPOSE_C_GENERAL;
   monotime_enable_test_mocking();
-  MOCK(qed_hs_gettimeofday, mock_qed_hs_gettimeofday);
+  MOCK(tor_gettimeofday, mock_tor_gettimeofday);
   mocked_timeofday = 23;
 
   helper_create_ender_machine();
@@ -2863,7 +2863,7 @@ test_circuitpadding_manage_circuit_lifetime(void *arg)
   /* Test that we don't expire this circuit yet */
   client_side->timestamp_dirty = 0;
   client_side->state = CIRCUIT_STATE_OPEN;
-  qed_hs_gettimeofday(&client_side->timestamp_began);
+  tor_gettimeofday(&client_side->timestamp_began);
   TO_ORIGIN_CIRCUIT(client_side)->circuit_idle_timeout = 23;
   mocked_timeofday += 24;
   circuit_expire_old_circuits_clientside();
@@ -2911,7 +2911,7 @@ test_circuitpadding_manage_circuit_lifetime(void *arg)
   free_fake_origin_circuit(TO_ORIGIN_CIRCUIT(client_side));
   qed_hs_free(circ_client_machine.states);
   monotime_disable_test_mocking();
-  UNMOCK(qed_hs_gettimeofday);
+  UNMOCK(tor_gettimeofday);
 }
 
 /** Helper for the test_circuitpadding_hs_machines test:

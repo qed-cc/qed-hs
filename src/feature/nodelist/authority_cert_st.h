@@ -12,13 +12,13 @@
 #ifndef AUTHORITY_CERT_ST_H
 #define AUTHORITY_CERT_ST_H
 
-#include "feature/nodelist/signed_descripqed_hs_st.h"
+#include "feature/nodelist/signed_descriptor_st.h"
 
 /** Certificate for v3 directory protocol: binds long-term authority identity
  * keys to medium-term authority signing keys. */
 struct authority_cert_t {
   /** Information relating to caching this cert on disk and looking it up. */
-  signed_descripqed_hs_t cache_info;
+  signed_descriptor_t cache_info;
   /** This authority's long-term authority identity key. */
   crypto_pk_t *identity_key;
   /** This authority's medium-term signing key. */

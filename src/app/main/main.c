@@ -171,7 +171,7 @@ do_hup(void)
 
   /* retry appropriate downloads */
   router_reset_status_download_failures();
-  router_reset_descripqed_hs_download_failures();
+  router_reset_descriptor_download_failures();
   if (!net_is_disabled())
     update_networkstatus_downloads(time(NULL));
 

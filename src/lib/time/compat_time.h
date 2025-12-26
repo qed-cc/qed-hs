@@ -142,7 +142,7 @@
 #include "orconfig.h"
 #include "lib/cc/torint.h"
 
-#include "lib/wallclock/qed_hs_gettimeofday.h"
+#include "lib/wallclock/tor_gettimeofday.h"
 
 #ifdef _WIN32
 #undef HAVE_CLOCK_GETTIME

@@ -4,14 +4,14 @@
 /* See LICENSE for licensing information */
 
 /**
- * \file qed_hs_gettimeofday.c
+ * \file tor_gettimeofday.c
  * \brief Implementat gettimeofday() for windows, and other platforms without
  *   it.
  **/
 
 #include "orconfig.h"
 #include "lib/err/torerr.h"
-#include "lib/wallclock/qed_hs_gettimeofday.h"
+#include "lib/wallclock/tor_gettimeofday.h"
 #include "lib/cc/torint.h"
 
 #include <stddef.h>
@@ -39,7 +39,7 @@
  * (Same as gettimeofday(timeval,NULL), but never returns -1.)
  */
 MOCK_IMPL(void,
-qed_hs_gettimeofday, (struct timeval *timeval))
+tor_gettimeofday, (struct timeval *timeval))
 {
 #ifdef _WIN32
   /* Epoch bias copied from perl: number of units between windows epoch and

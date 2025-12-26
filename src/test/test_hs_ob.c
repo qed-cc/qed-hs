@@ -194,8 +194,8 @@ test_get_subcredentials(void *arg)
   service = qed_hs_malloc_zero(sizeof(hs_service_t));
   service->config = config;
   /* Setup the service descriptors */
-  service->desc_current = service_descripqed_hs_new();
-  service->desc_next = service_descripqed_hs_new();
+  service->desc_current = service_descriptor_new();
+  service->desc_next = service_descriptor_new();
 
   /* First try to compute subcredentials but with no OB keys. Make sure that
    * subcreds get NULLed. To do this check we first poison subcreds. */

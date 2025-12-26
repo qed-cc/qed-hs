@@ -5,7 +5,7 @@
 /* See LICENSE for licensing information */
 
 /**
- * @file qed_hs_version_st.h
+ * @file tor_version_st.h
  * @brief Parsed Tor version structure.
  **/
 

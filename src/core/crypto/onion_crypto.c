@@ -35,7 +35,7 @@
 #include "core/crypto/onion_crypto.h"
 #include "core/crypto/onion_fast.h"
 #include "core/crypto/onion_ntor.h"
-#include "core/crypto/onion_nqed_hs_v3.h"
+#include "core/crypto/onion_ntor_v3.h"
 #include "feature/relay/router.h"
 #include "lib/crypt_ops/crypto_dh.h"
 #include "lib/crypt_ops/crypto_util.h"
@@ -70,7 +70,7 @@ server_onion_keys_new(void)
   memcpy(keys->my_identity, router_get_my_id_digest(), DIGEST_LEN);
   ed25519_pubkey_copy(&keys->my_ed_identity, get_master_identity_key());
   dup_onion_keys(&keys->onion_key, &keys->last_onion_key);
-  keys->curve25519_key_map = construct_nqed_hs_key_map();
+  keys->curve25519_key_map = construct_ntor_key_map();
   keys->junk_keypair = qed_hs_malloc_zero(sizeof(curve25519_keypair_t));
   curve25519_keypair_generate(keys->junk_keypair, 0);
   return keys;
@@ -84,7 +84,7 @@ server_onion_keys_free_(server_onion_keys_t *keys)
 
   crypto_pk_free(keys->onion_key);
   crypto_pk_free(keys->last_onion_key);
-  nqed_hs_key_map_free(keys->curve25519_key_map);
+  ntor_key_map_free(keys->curve25519_key_map);
   qed_hs_free(keys->junk_keypair);
   memwipe(keys, 0, sizeof(server_onion_keys_t));
   qed_hs_free(keys);
@@ -103,10 +103,10 @@ onion_handshake_state_release(onion_handshake_state_t *state)
     state->u.fast = NULL;
     break;
   case ONION_HANDSHAKE_TYPE_NTOR:
-    nqed_hs_handshake_state_free(state->u.ntor);
+    ntor_handshake_state_free(state->u.ntor);
     state->u.ntor = NULL;
     break;
-  case ONION_HANDSHAKE_TYPE_NQED_HS_V3:
+  case ONION_HANDSHAKE_TYPE_NTOR_V3:
     ntor3_handshake_state_free(state->u.ntor3);
     break;
   default:
@@ -144,20 +144,20 @@ onion_skin_create(int type,
     r = CREATE_FAST_LEN;
     break;
   case ONION_HANDSHAKE_TYPE_NTOR:
-    if (onion_skin_out_maxlen < NQED_HS_ONIONSKIN_LEN)
+    if (onion_skin_out_maxlen < NTOR_ONIONSKIN_LEN)
       return -1;
    if (!extend_info_supports_ntor(node))
       return -1;
-    if (onion_skin_nqed_hs_create((const uint8_t*)node->identity_digest,
+    if (onion_skin_ntor_create((const uint8_t*)node->identity_digest,
                                &node->curve25519_onion_key,
                                &state_out->u.ntor,
                                onion_skin_out) < 0)
       return -1;
 
-    r = NQED_HS_ONIONSKIN_LEN;
+    r = NTOR_ONIONSKIN_LEN;
     break;
-  case ONION_HANDSHAKE_TYPE_NQED_HS_V3:
-    if (!extend_info_supports_nqed_hs_v3(node))
+  case ONION_HANDSHAKE_TYPE_NTOR_V3:
+    if (!extend_info_supports_ntor_v3(node))
       return -1;
     if (ed25519_public_key_is_zero(&node->ed_identity))
       return -1;
@@ -214,7 +214,7 @@ onion_skin_create(int type,
  * Returns -1 on parsing, parameter failure, or reply creation failure.
  */
 static int
-negotiate_v3_nqed_hs_server_circ_params(const uint8_t *param_request_msg,
+negotiate_v3_ntor_server_circ_params(const uint8_t *param_request_msg,
                                      size_t param_request_len,
                                      const circuit_params_t *our_ns_params,
                                      circuit_params_t *params_out,
@@ -286,16 +286,16 @@ onion_skin_server_handshake(int type,
     memcpy(rend_nonce_out, reply_out+DIGEST_LEN, DIGEST_LEN);
     break;
   case ONION_HANDSHAKE_TYPE_NTOR:
-    if (reply_out_maxlen < NQED_HS_REPLY_LEN)
+    if (reply_out_maxlen < NTOR_REPLY_LEN)
       return -1;
-    if (onionskin_len < NQED_HS_ONIONSKIN_LEN)
+    if (onionskin_len < NTOR_ONIONSKIN_LEN)
       return -1;
     {
       size_t keys_tmp_len = keys_out_len + DIGEST_LEN;
       qed_hs_assert(keys_tmp_len <= MAX_KEYS_TMP_LEN);
       uint8_t keys_tmp[MAX_KEYS_TMP_LEN];
 
-      if (onion_skin_nqed_hs_server_handshake(
+      if (onion_skin_ntor_server_handshake(
                                    onion_skin, keys->curve25519_key_map,
                                    keys->junk_keypair,
                                    keys->my_identity,
@@ -307,10 +307,10 @@ onion_skin_server_handshake(int type,
       memcpy(keys_out, keys_tmp, keys_out_len);
       memcpy(rend_nonce_out, keys_tmp+keys_out_len, DIGEST_LEN);
       memwipe(keys_tmp, 0, sizeof(keys_tmp));
-      r = NQED_HS_REPLY_LEN;
+      r = NTOR_REPLY_LEN;
     }
     break;
-  case ONION_HANDSHAKE_TYPE_NQED_HS_V3: {
+  case ONION_HANDSHAKE_TYPE_NTOR_V3: {
     size_t keys_tmp_len = keys_out_len + DIGEST_LEN;
     qed_hs_assert(keys_tmp_len <= MAX_KEYS_TMP_LEN);
     uint8_t keys_tmp[MAX_KEYS_TMP_LEN];
@@ -332,7 +332,7 @@ onion_skin_server_handshake(int type,
       return -1;
     }
 
-    if (negotiate_v3_nqed_hs_server_circ_params(client_msg,
+    if (negotiate_v3_ntor_server_circ_params(client_msg,
                                              client_msg_len,
                                              our_ns_params,
                                              params_out,
@@ -395,7 +395,7 @@ onion_skin_server_handshake(int type,
  * Returns -1 on parsing or insane params, 0 if success.
  */
 static int
-negotiate_v3_nqed_hs_client_circ_params(const uint8_t *param_response_msg,
+negotiate_v3_ntor_client_circ_params(const uint8_t *param_response_msg,
                                      size_t param_response_len,
                                      circuit_params_t *params_out)
 {
@@ -463,7 +463,7 @@ onion_skin_client_handshake(int type,
     memcpy(rend_authenticaqed_hs_out, reply+DIGEST_LEN, DIGEST_LEN);
     return 0;
   case ONION_HANDSHAKE_TYPE_NTOR:
-    if (reply_len < NQED_HS_REPLY_LEN) {
+    if (reply_len < NTOR_REPLY_LEN) {
       if (msg_out)
         *msg_out = "ntor reply was not of the correct length.";
       return -1;
@@ -471,7 +471,7 @@ onion_skin_client_handshake(int type,
     {
       size_t keys_tmp_len = keys_out_len + DIGEST_LEN;
       uint8_t *keys_tmp = qed_hs_malloc(keys_tmp_len);
-      if (onion_skin_nqed_hs_client_handshake(handshake_state->u.ntor,
+      if (onion_skin_ntor_client_handshake(handshake_state->u.ntor,
                                         reply,
                                         keys_tmp, keys_tmp_len, msg_out) < 0) {
         qed_hs_free(keys_tmp);
@@ -483,7 +483,7 @@ onion_skin_client_handshake(int type,
       qed_hs_free(keys_tmp);
     }
     return 0;
-  case ONION_HANDSHAKE_TYPE_NQED_HS_V3: {
+  case ONION_HANDSHAKE_TYPE_NTOR_V3: {
     size_t keys_tmp_len = keys_out_len + DIGEST_LEN;
     uint8_t *keys_tmp = qed_hs_malloc(keys_tmp_len);
     uint8_t *server_msg = NULL;
@@ -500,7 +500,7 @@ onion_skin_client_handshake(int type,
       return -1;
     }
 
-    if (negotiate_v3_nqed_hs_client_circ_params(server_msg,
+    if (negotiate_v3_ntor_client_circ_params(server_msg,
                                              server_msg_len,
                                              params_out) < 0) {
       qed_hs_free(keys_tmp);

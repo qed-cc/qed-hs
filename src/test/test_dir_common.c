@@ -96,7 +96,7 @@ dir_common_gen_routerstatus_for_v3ns(int idx, time_t now)
       vrs->published_on = now-1500;
       strlcpy(rs->nickname, "router2", sizeof(rs->nickname));
       memset(rs->identity_digest, TEST_DIR_ROUTER_ID_1, DIGEST_LEN);
-      memset(rs->descripqed_hs_digest, TEST_DIR_ROUTER_DD_1, DIGEST_LEN);
+      memset(rs->descriptor_digest, TEST_DIR_ROUTER_DD_1, DIGEST_LEN);
       qed_hs_addr_from_ipv4h(&rs->ipv4_addr, 0x99008801);
       rs->ipv4_orport = 443;
       rs->ipv4_dirport = 8000;
@@ -114,7 +114,7 @@ dir_common_gen_routerstatus_for_v3ns(int idx, time_t now)
       vrs->published_on = now-1000;
       strlcpy(rs->nickname, "router1", sizeof(rs->nickname));
       memset(rs->identity_digest, TEST_DIR_ROUTER_ID_2, DIGEST_LEN);
-      memset(rs->descripqed_hs_digest, TEST_DIR_ROUTER_DD_2, DIGEST_LEN);
+      memset(rs->descriptor_digest, TEST_DIR_ROUTER_DD_2, DIGEST_LEN);
       qed_hs_addr_from_ipv4h(&rs->ipv4_addr, 0x99009901);
       rs->ipv4_orport = 443;
       rs->ipv4_dirport = 0;
@@ -133,7 +133,7 @@ dir_common_gen_routerstatus_for_v3ns(int idx, time_t now)
       vrs->published_on = now-1000;
       strlcpy(rs->nickname, "router3", sizeof(rs->nickname));
       memset(rs->identity_digest, TEST_DIR_ROUTER_ID_3, DIGEST_LEN);
-      memset(rs->descripqed_hs_digest, TEST_DIR_ROUTER_DD_3, DIGEST_LEN);
+      memset(rs->descriptor_digest, TEST_DIR_ROUTER_DD_3, DIGEST_LEN);
       qed_hs_addr_from_ipv4h(&rs->ipv4_addr, 0xAA009901);
       rs->ipv4_orport = 400;
       rs->ipv4_dirport = 9999;
@@ -150,7 +150,7 @@ dir_common_gen_routerstatus_for_v3ns(int idx, time_t now)
       vrs->published_on = now-1000;
       strlcpy(rs->nickname, "router4", sizeof(rs->nickname));
       memset(rs->identity_digest, TEST_DIR_ROUTER_ID_4, DIGEST_LEN);
-      memset(rs->descripqed_hs_digest, TEST_DIR_ROUTER_DD_4, DIGEST_LEN);
+      memset(rs->descriptor_digest, TEST_DIR_ROUTER_DD_4, DIGEST_LEN);
       qed_hs_addr_from_ipv4h(&rs->ipv4_addr, 0xC0000203);
       rs->ipv4_orport = 500;
       rs->ipv4_dirport = 1999;
@@ -208,14 +208,14 @@ dir_common_generate_ri_from_rs(const vote_routerstatus_t *vrs)
   r = qed_hs_malloc_zero(sizeof(routerinfo_t));
   r->cert_expiration_time = TIME_MAX;
   memcpy(r->cache_info.identity_digest, rs->identity_digest, DIGEST_LEN);
-  memcpy(r->cache_info.signed_descripqed_hs_digest, rs->descripqed_hs_digest,
+  memcpy(r->cache_info.signed_descriptor_digest, rs->descriptor_digest,
          DIGEST_LEN);
   r->cache_info.do_not_cache = 1;
   r->cache_info.routerlist_index = -1;
-  r->cache_info.signed_descripqed_hs_body =
+  r->cache_info.signed_descriptor_body =
     qed_hs_strdup("123456789012345678901234567890123");
-  r->cache_info.signed_descripqed_hs_len =
-    strlen(r->cache_info.signed_descripqed_hs_body);
+  r->cache_info.signed_descriptor_len =
+    strlen(r->cache_info.signed_descriptor_body);
   r->exit_policy = smartlist_new();
   r->cache_info.published_on = ++published + time(NULL);
   if (rs->has_bandwidth) {

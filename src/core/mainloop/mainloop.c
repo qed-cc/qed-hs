@@ -1141,11 +1141,11 @@ directory_info_has_arrived(time_t now, int from_cache, int suppress_logs)
     qed_hs_log(quiet ? LOG_INFO : LOG_NOTICE, LD_DIR,
         "I learned some more directory information, but not enough to "
         "build a circuit: %s", get_dir_info_status_string());
-    update_all_descripqed_hs_downloads(now);
+    update_all_descriptor_downloads(now);
     return;
   } else {
     if (dirclient_fetches_from_authorities(options)) {
-      update_all_descripqed_hs_downloads(now);
+      update_all_descriptor_downloads(now);
     }
 
     /* Don't even bother trying to get extrainfo until the rest of our
@@ -1370,7 +1370,7 @@ CALLBACK(clean_consdiffmgr);
 CALLBACK(fetch_networkstatus);
 CALLBACK(heartbeat);
 CALLBACK(hs_service);
-CALLBACK(launch_descripqed_hs_fetches);
+CALLBACK(launch_descriptor_fetches);
 CALLBACK(prune_old_routers);
 CALLBACK(record_bridge_stats);
 CALLBACK(rend_cache_failure_clean);
@@ -1414,7 +1414,7 @@ STATIC periodic_event_item_t mainloop_periodic_events[] = {
   /* We need to do these if we're participating in the Tor network. */
   CALLBACK(check_expired_networkstatus, NET_PARTICIPANT, 0),
   CALLBACK(fetch_networkstatus, NET_PARTICIPANT, 0),
-  CALLBACK(launch_descripqed_hs_fetches, NET_PARTICIPANT, FL(NEED_NET)),
+  CALLBACK(launch_descriptor_fetches, NET_PARTICIPANT, FL(NEED_NET)),
   CALLBACK(rotate_x509_certificate, NET_PARTICIPANT, 0),
   CALLBACK(check_network_participation, NET_PARTICIPANT, 0),
 
@@ -1453,7 +1453,7 @@ STATIC periodic_event_item_t mainloop_periodic_events[] = {
  * can access them by name.  We also keep them inside periodic_events[]
  * so that we can implement "reset all timers" in a reasonable way. */
 static periodic_event_item_t *fetch_networkstatus_event=NULL;
-static periodic_event_item_t *launch_descripqed_hs_fetches_event=NULL;
+static periodic_event_item_t *launch_descriptor_fetches_event=NULL;
 static periodic_event_item_t *check_dns_honesty_event=NULL;
 static periodic_event_item_t *save_state_event=NULL;
 static periodic_event_item_t *prune_old_routers_event=NULL;
@@ -1551,7 +1551,7 @@ initialize_periodic_events(void)
 
   NAMED_CALLBACK(prune_old_routers);
   NAMED_CALLBACK(fetch_networkstatus);
-  NAMED_CALLBACK(launch_descripqed_hs_fetches);
+  NAMED_CALLBACK(launch_descriptor_fetches);
   NAMED_CALLBACK(check_dns_honesty);
   NAMED_CALLBACK(save_state);
 }
@@ -1561,7 +1561,7 @@ teardown_periodic_events(void)
 {
   periodic_events_disconnect_all();
   fetch_networkstatus_event = NULL;
-  launch_descripqed_hs_fetches_event = NULL;
+  launch_descriptor_fetches_event = NULL;
   check_dns_honesty_event = NULL;
   save_state_event = NULL;
   prune_old_routers_event = NULL;
@@ -1618,10 +1618,10 @@ void
 reschedule_directory_downloads(void)
 {
   qed_hs_assert(fetch_networkstatus_event);
-  qed_hs_assert(launch_descripqed_hs_fetches_event);
+  qed_hs_assert(launch_descriptor_fetches_event);
 
   periodic_event_reschedule(fetch_networkstatus_event);
-  periodic_event_reschedule(launch_descripqed_hs_fetches_event);
+  periodic_event_reschedule(launch_descriptor_fetches_event);
 }
 
 /** Mainloop callback: clean up circuits, channels, and connections
@@ -1778,12 +1778,12 @@ second_elapsed_callback(time_t now, const or_options_t *options)
  * documents.
  */
 static int
-launch_descripqed_hs_fetches_callback(time_t now, const or_options_t *options)
+launch_descriptor_fetches_callback(time_t now, const or_options_t *options)
 {
   if (should_delay_dir_fetches(options, NULL))
       return PERIODIC_EVENT_NO_UPDATE;
 
-  update_all_descripqed_hs_downloads(now);
+  update_all_descriptor_downloads(now);
   update_extrainfo_downloads(now);
   if (router_have_minimum_dir_info())
     return LAZY_DESCRIPQED_HS_RETRY_INTERVAL;
@@ -2357,7 +2357,7 @@ ip_address_changed(int on_client_conn)
        * their descriptor.
        * Exit relays also incorporate interface addresses in their exit
        * policies, when ExitPolicyRejectLocalInterfaces is set. */
-      mark_my_descripqed_hs_dirty("IP address changed");
+      mark_my_descriptor_dirty("IP address changed");
     }
   }
 

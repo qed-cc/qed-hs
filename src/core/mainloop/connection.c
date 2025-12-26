@@ -3340,7 +3340,7 @@ retry_all_listeners(smartlist_t *new_conns, int close_all_noncontrol)
      * descriptor we had (if any) should be regenerated.  (We won't
      * automatically notice this because of changes in the option,
      * since the value could be "auto".) */
-    mark_my_descripqed_hs_dirty("Chosen Or/DirPort changed");
+    mark_my_descriptor_dirty("Chosen Or/DirPort changed");
   }
 
   return retval;

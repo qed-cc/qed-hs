@@ -536,7 +536,7 @@ geoip_start_dirreq(uint64_t dirreq_id, size_t response_size,
     return;
   ent = qed_hs_malloc_zero(sizeof(dirreq_map_entry_t));
   ent->dirreq_id = dirreq_id;
-  qed_hs_gettimeofday(&ent->request_time);
+  tor_gettimeofday(&ent->request_time);
   ent->response_size = response_size;
   ent->type = type;
   dirreq_map_put_(ent, type, dirreq_id);
@@ -567,7 +567,7 @@ geoip_change_dirreq_state(uint64_t dirreq_id, dirreq_type_t type,
          new_state == DIRREQ_FLUSHING_DIR_CONN_FINISHED) ||
       (type == DIRREQ_TUNNELED &&
          new_state == DIRREQ_CHANNEL_BUFFER_FLUSHED)) {
-    qed_hs_gettimeofday(&ent->completion_time);
+    tor_gettimeofday(&ent->completion_time);
     ent->completed = 1;
   }
 }
@@ -686,7 +686,7 @@ geoip_get_dirreq_history(dirreq_type_t type)
   dirreq_map_entry_t **ptr, **next;
   struct timeval now;
 
-  qed_hs_gettimeofday(&now);
+  tor_gettimeofday(&now);
   dirreq_completed = smartlist_new();
   for (ptr = HT_START(dirreqmap, &dirreq_map); ptr; ptr = next) {
     dirreq_map_entry_t *ent = *ptr;

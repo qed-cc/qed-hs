@@ -7,7 +7,7 @@
 #include "feature/rend/rendparse.h"
 #include "lib/crypt_ops/crypto_ed25519.h"
 
-#include "feature/rend/rend_service_descripqed_hs_st.h"
+#include "feature/rend/rend_service_descriptor_st.h"
 
 #include "test/fuzz/fuzzing.h"
 
@@ -36,8 +36,8 @@ fuzz_cleanup(void)
 int
 fuzz_main(const uint8_t *data, size_t sz)
 {
-  rend_service_descripqed_hs_t *desc =
-    qed_hs_malloc_zero(sizeof(rend_service_descripqed_hs_t));
+  rend_service_descriptor_t *desc =
+    qed_hs_malloc_zero(sizeof(rend_service_descriptor_t));
   const char *str = (const char*) data;
   int r = rend_parse_introduction_points(desc, str, sz);
   if (r >= 0) {
@@ -45,6 +45,6 @@ fuzz_main(const uint8_t *data, size_t sz)
   } else {
     log_debug(LD_GENERAL, "Parsing failed");
   }
-  rend_service_descripqed_hs_free(desc);
+  rend_service_descriptor_free(desc);
   return 0;
 }

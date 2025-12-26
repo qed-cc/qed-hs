@@ -14,7 +14,7 @@
 
 #include <stdint.h>
 
-#include "ext/qed_hs_queue.h"
+#include "ext/tor_queue.h"
 
 /**
  * These types are aliases for subsystems, channels, and message IDs.

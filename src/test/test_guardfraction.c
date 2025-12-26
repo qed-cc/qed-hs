@@ -50,7 +50,7 @@ gen_vote_routerstatus_for_tests(const char *digest_in_hex, int is_guard)
   { /* Misc info (maybe not used in tests) */
     vrs->version = qed_hs_strdup("0.1.2.14");
     strlcpy(rs->nickname, "router2", sizeof(rs->nickname));
-    memset(rs->descripqed_hs_digest, 78, DIGEST_LEN);
+    memset(rs->descriptor_digest, 78, DIGEST_LEN);
     qed_hs_addr_from_ipv4h(&rs->ipv4_addr, 0x99008801);
     rs->ipv4_orport = 443;
     rs->ipv4_dirport = 8000;

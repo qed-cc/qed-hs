@@ -4,8 +4,8 @@
 /* See LICENSE for licensing information */
 
 /**
- * \file qed_hs_gettimeofday.h
- * \brief Header for qed_hs_gettimeofday.c
+ * \file tor_gettimeofday.h
+ * \brief Header for tor_gettimeofday.c
  **/
 
 #ifndef QED_HS_GETTIMEOFDAY_H
@@ -15,6 +15,6 @@
 
 struct timeval;
 
-MOCK_DECL(void, qed_hs_gettimeofday, (struct timeval *timeval));
+MOCK_DECL(void, tor_gettimeofday, (struct timeval *timeval));
 
 #endif /* !defined(QED_HS_GETTIMEOFDAY_H) */

@@ -134,15 +134,15 @@ typedef struct hs_service_intropoints_t {
  * times over the lifetime of the descriptor), or through periodic events. We
  * do this for elements like the descriptor revision counter and various
  * certificates. See refresh_service_descriptor() and
- * update_service_descripqed_hs_intro_points().
+ * update_service_descriptor_intro_points().
  */
-typedef struct hs_service_descripqed_hs_t {
+typedef struct hs_service_descriptor_t {
   /** Immutable: Client authorization ephemeral keypair. */
   curve25519_keypair_t auth_ephemeral_kp;
 
   /** Immutable: Descriptor cookie used to encrypt the descriptor, when the
    * client authorization is enabled */
-  uint8_t descripqed_hs_cookie[HS_DESC_DESCRIPQED_HS_COOKIE_LEN];
+  uint8_t descriptor_cookie[HS_DESC_DESCRIPQED_HS_COOKIE_LEN];
 
   /** Immutable: Descriptor signing keypair. */
   ed25519_keypair_t signing_kp;
@@ -161,7 +161,7 @@ typedef struct hs_service_descripqed_hs_t {
 
   /** Mutable: Decoded descriptor. This object is used for encoding when the
    * service publishes the descriptor. */
-  hs_descripqed_hs_t *desc;
+  hs_descriptor_t *desc;
 
   /** Mutable: When is the next time when we should upload the descriptor. */
   time_t next_upload_time;
@@ -180,7 +180,7 @@ typedef struct hs_service_descripqed_hs_t {
    *  is different from this list, this means we received new dirinfo and we
    *  need to reupload our descriptor. */
   smartlist_t *previous_hsdirs;
-} hs_service_descripqed_hs_t;
+} hs_service_descriptor_t;
 
 /** Service key material. */
 typedef struct hs_service_keys_t {
@@ -331,9 +331,9 @@ typedef struct hs_service_t {
   hs_service_config_t config;
 
   /** Current descriptor. */
-  hs_service_descripqed_hs_t *desc_current;
+  hs_service_descriptor_t *desc_current;
   /** Next descriptor. */
-  hs_service_descripqed_hs_t *desc_next;
+  hs_service_descriptor_t *desc_next;
 
   /** Metrics. */
   hs_service_metrics_t metrics;
@@ -435,7 +435,7 @@ STATIC hs_service_intro_point_t *service_intro_point_find_by_ident(
                                          const hs_ident_circuit_t *ident);
 
 MOCK_DECL(STATIC unsigned int, count_desc_circuit_established,
-          (const hs_service_descripqed_hs_t *desc));
+          (const hs_service_descriptor_t *desc));
 #endif /* defined(QED_HS_UNIT_TESTS) */
 
 /* Service accessors. */
@@ -457,8 +457,8 @@ STATIC hs_service_intro_point_t *service_intro_point_find(
                                  const hs_service_t *service,
                                  const ed25519_public_key_t *auth_key);
 /* Service descriptor functions. */
-STATIC hs_service_descripqed_hs_t *service_descripqed_hs_new(void);
-STATIC hs_service_descripqed_hs_t *service_desc_find_by_intro(
+STATIC hs_service_descriptor_t *service_descriptor_new(void);
+STATIC hs_service_descriptor_t *service_desc_find_by_intro(
                                          const hs_service_t *service,
                                          const hs_service_intro_point_t *ip);
 /* Helper functions. */
@@ -468,7 +468,7 @@ parse_authorized_client(const char *client_key_str);
 STATIC void get_objects_from_ident(const hs_ident_circuit_t *ident,
                                    hs_service_t **service,
                                    hs_service_intro_point_t **ip,
-                                   hs_service_descripqed_hs_t **desc);
+                                   hs_service_descriptor_t **desc);
 STATIC const node_t *
 get_node_from_intro_point(const hs_service_intro_point_t *ip);
 STATIC int can_service_launch_intro_circuit(hs_service_t *service,
@@ -479,25 +479,25 @@ STATIC void run_housekeeping_event(time_t now);
 STATIC void rotate_all_descriptors(time_t now);
 STATIC void build_all_descriptors(time_t now);
 STATIC void update_all_descriptors_intro_points(time_t now);
-STATIC void run_upload_descripqed_hs_event(time_t now);
+STATIC void run_upload_descriptor_event(time_t now);
 
-STATIC void service_descripqed_hs_free_(hs_service_descripqed_hs_t *desc);
-#define service_descripqed_hs_free(d) \
-  FREE_AND_NULL(hs_service_descripqed_hs_t, \
-                           service_descripqed_hs_free_, (d))
+STATIC void service_descriptor_free_(hs_service_descriptor_t *desc);
+#define service_descriptor_free(d) \
+  FREE_AND_NULL(hs_service_descriptor_t, \
+                           service_descriptor_free_, (d))
 
 STATIC int
 write_address_to_file(const hs_service_t *service, const char *fname_);
 
-STATIC void upload_descripqed_hs_to_all(const hs_service_t *service,
-                                     hs_service_descripqed_hs_t *desc);
+STATIC void upload_descriptor_to_all(const hs_service_t *service,
+                                     hs_service_descriptor_t *desc);
 
-STATIC void service_desc_schedule_upload(hs_service_descripqed_hs_t *desc,
+STATIC void service_desc_schedule_upload(hs_service_descriptor_t *desc,
                                          time_t now,
-                                         int descripqed_hs_changed);
+                                         int descriptor_changed);
 
 STATIC int service_desc_hsdirs_changed(const hs_service_t *service,
-                                const hs_service_descripqed_hs_t *desc);
+                                const hs_service_descriptor_t *desc);
 
 STATIC int service_authorized_client_config_equal(
                                          const hs_service_config_t *config1,

@@ -6,8 +6,8 @@
  * @brief Header for onion_ntor.c
  **/
 
-#ifndef QED_HS_ONION_NQED_HS_H
-#define QED_HS_ONION_NQED_HS_H
+#ifndef QED_HS_ONION_NTOR_H
+#define QED_HS_ONION_NTOR_H
 
 #include "lib/cc/torint.h"
 
@@ -17,23 +17,23 @@ struct curve25519_keypair_t;
 
 /** State to be maintained by a client between sending an ntor onionskin
  * and receiving a reply. */
-typedef struct nqed_hs_handshake_state_t nqed_hs_handshake_state_t;
+typedef struct ntor_handshake_state_t ntor_handshake_state_t;
 
 /** Length of an ntor onionskin, as sent from the client to server. */
-#define NQED_HS_ONIONSKIN_LEN 84
+#define NTOR_ONIONSKIN_LEN 84
 /** Length of an ntor reply, as sent from server to client. */
-#define NQED_HS_REPLY_LEN 64
+#define NTOR_REPLY_LEN 64
 
-void nqed_hs_handshake_state_free_(nqed_hs_handshake_state_t *state);
-#define nqed_hs_handshake_state_free(state) \
-  FREE_AND_NULL(nqed_hs_handshake_state_t, nqed_hs_handshake_state_free_, (state))
+void ntor_handshake_state_free_(ntor_handshake_state_t *state);
+#define ntor_handshake_state_free(state) \
+  FREE_AND_NULL(ntor_handshake_state_t, ntor_handshake_state_free_, (state))
 
-int onion_skin_nqed_hs_create(const uint8_t *router_id,
+int onion_skin_ntor_create(const uint8_t *router_id,
                            const struct curve25519_public_key_t *router_key,
-                           nqed_hs_handshake_state_t **handshake_state_out,
+                           ntor_handshake_state_t **handshake_state_out,
                            uint8_t *onion_skin_out);
 
-int onion_skin_nqed_hs_server_handshake(const uint8_t *onion_skin,
+int onion_skin_ntor_server_handshake(const uint8_t *onion_skin,
                            const struct di_digest256_map_t *private_keys,
                            const struct curve25519_keypair_t *junk_keypair,
                            const uint8_t *my_node_id,
@@ -41,18 +41,18 @@ int onion_skin_nqed_hs_server_handshake(const uint8_t *onion_skin,
                            uint8_t *key_out,
                            size_t key_out_len);
 
-int onion_skin_nqed_hs_client_handshake(
-                             const nqed_hs_handshake_state_t *handshake_state,
+int onion_skin_ntor_client_handshake(
+                             const ntor_handshake_state_t *handshake_state,
                              const uint8_t *handshake_reply,
                              uint8_t *key_out,
                              size_t key_out_len,
                              const char **msg_out);
 
-#ifdef ONION_NQED_HS_PRIVATE
+#ifdef ONION_NTOR_PRIVATE
 #include "lib/crypt_ops/crypto_curve25519.h"
 
 /** Storage held by a client while waiting for an ntor reply from a server. */
-struct nqed_hs_handshake_state_t {
+struct ntor_handshake_state_t {
   /** Identity digest of the router we're talking to. */
   uint8_t router_id[DIGEST_LEN];
   /** Onion key of the router we're talking to. */
@@ -65,6 +65,6 @@ struct nqed_hs_handshake_state_t {
   curve25519_public_key_t pubkey_X;
   /** @} */
 };
-#endif /* defined(ONION_NQED_HS_PRIVATE) */
+#endif /* defined(ONION_NTOR_PRIVATE) */
 
-#endif /* !defined(QED_HS_ONION_NQED_HS_H) */
+#endif /* !defined(QED_HS_ONION_NTOR_H) */

@@ -142,7 +142,7 @@ int control_event_descriptors_changed(smartlist_t *routers);
 int control_event_address_mapped(const char *from, const char *to,
                                  time_t expires, const char *error,
                                  const int cached, uint64_t stream_id);
-int control_event_my_descripqed_hs_changed(void);
+int control_event_my_descriptor_changed(void);
 int control_event_network_liveness_update(int liveness);
 int control_event_networkstatus_changed(smartlist_t *statuses);
 
@@ -188,36 +188,36 @@ void control_event_transport_launched(const char *mode,
 void control_event_pt_log(const char *log);
 void control_event_pt_status(const char *status);
 
-void control_event_hs_descripqed_hs_requested(const char *onion_address,
+void control_event_hs_descriptor_requested(const char *onion_address,
                                            rend_auth_type_t auth_type,
                                            const char *id_digest,
                                            const char *desc_id,
                                            const char *hsdir_index);
-void control_event_hs_descripqed_hs_created(const char *onion_address,
+void control_event_hs_descriptor_created(const char *onion_address,
                                          const char *desc_id,
                                          int replica);
-void control_event_hs_descripqed_hs_upload(const char *onion_address,
+void control_event_hs_descriptor_upload(const char *onion_address,
                                         const char *desc_id,
                                         const char *hs_dir,
                                         const char *hsdir_index);
-void control_event_hs_descripqed_hs_upload_end(const char *action,
+void control_event_hs_descriptor_upload_end(const char *action,
                                             const char *onion_address,
                                             const char *hs_dir,
                                             const char *reason);
-void control_event_hs_descripqed_hs_uploaded(const char *hs_dir,
+void control_event_hs_descriptor_uploaded(const char *hs_dir,
                                           const char *onion_address);
 /* Hidden service v3 HS_DESC specific. */
-void control_event_hsv3_descripqed_hs_failed(const char *onion_address,
+void control_event_hsv3_descriptor_failed(const char *onion_address,
                                           const char *desc_id,
                                           const char *hsdir_id_digest,
                                           const char *reason);
-void control_event_hsv3_descripqed_hs_received(const char *onion_address,
+void control_event_hsv3_descriptor_received(const char *onion_address,
                                             const char *desc_id,
                                             const char *hsdir_id_digest);
-void control_event_hs_descripqed_hs_upload_failed(const char *hs_dir,
+void control_event_hs_descriptor_upload_failed(const char *hs_dir,
                                                const char *onion_address,
                                                const char *reason);
-void control_event_hs_descripqed_hs_content(const char *onion_address,
+void control_event_hs_descriptor_content(const char *onion_address,
                                          const char *desc_id,
                                          const char *hsdir_fp,
                                          const char *content);

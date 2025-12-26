@@ -896,9 +896,9 @@ descbr_get_dl_by_digest_mock(const char *digest)
 static void
 setup_desc_mocks(void)
 {
-  MOCK(router_get_descripqed_hs_digests,
+  MOCK(router_get_descriptor_digests,
        descbr_get_digests_mock);
-  MOCK(router_get_dl_status_by_descripqed_hs_digest,
+  MOCK(router_get_dl_status_by_descriptor_digest,
        descbr_get_dl_by_digest_mock);
   reset_mocked_dl_statuses();
 }
@@ -906,8 +906,8 @@ setup_desc_mocks(void)
 static void
 clear_desc_mocks(void)
 {
-  UNMOCK(router_get_descripqed_hs_digests);
-  UNMOCK(router_get_dl_status_by_descripqed_hs_digest);
+  UNMOCK(router_get_descriptor_digests);
+  UNMOCK(router_get_dl_status_by_descriptor_digest);
 }
 
 static void
@@ -1673,9 +1673,9 @@ test_getinfo_helper_current_consensus_from_cache(void *arg)
 }
 
 /** Set timeval to a mock date and time. This is necessary
- * to make qed_hs_gettimeofday() mockable. */
+ * to make tor_gettimeofday() mockable. */
 static void
-mock_qed_hs_gettimeofday(struct timeval *timeval)
+mock_tor_gettimeofday(struct timeval *timeval)
 {
   timeval->tv_sec = 1523405073;
   timeval->tv_usec = 271645;
@@ -1693,9 +1693,9 @@ test_current_time(void *arg)
   (void)arg;
 
   /* We need these for storing the (mock) time. */
-  MOCK(qed_hs_gettimeofday, mock_qed_hs_gettimeofday);
+  MOCK(tor_gettimeofday, mock_tor_gettimeofday);
   struct timeval now;
-  qed_hs_gettimeofday(&now);
+  tor_gettimeofday(&now);
   char timebuf[ISO_TIME_LEN+1];
 
   /* Case 1 - local time */
@@ -1721,7 +1721,7 @@ test_current_time(void *arg)
   errmsg = NULL;
 
  done:
-  UNMOCK(qed_hs_gettimeofday);
+  UNMOCK(tor_gettimeofday);
   qed_hs_free(answer);
 
   return;

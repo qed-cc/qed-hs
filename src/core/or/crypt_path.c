@@ -134,7 +134,7 @@ cpath_assert_layer_ok(const crypt_path_t *cp)
  *
  * If <b>is_hs_v3</b> is set, this cpath will be used for next gen hidden
  * service circuits and <b>key_data</b> must be at least
- * HS_NQED_HS_KEY_EXPANSION_KDF_OUT_LEN bytes in length.
+ * HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN bytes in length.
  *
  * If <b>is_hs_v3</b> is not set, key_data must contain CPATH_KEY_MATERIAL_LEN
  * bytes, which are used as follows:

@@ -364,7 +364,7 @@ routerstatus_parse_entry_from_string(memarea_t *area,
   }
 
   if (flav == FLAV_NS) {
-    if (digest_from_base64(rs->descripqed_hs_digest, tok->args[2])) {
+    if (digest_from_base64(rs->descriptor_digest, tok->args[2])) {
       log_warn(LD_DIR, "Error decoding descriptor digest %s",
                escaped(tok->args[2]));
       goto err;
@@ -566,7 +566,7 @@ routerstatus_parse_entry_from_string(memarea_t *area,
     tok = find_opt_by_keyword(tokens, K_M);
     if (tok) {
       qed_hs_assert(tok->n_args);
-      if (digest256_from_base64(rs->descripqed_hs_digest, tok->args[0])) {
+      if (digest256_from_base64(rs->descriptor_digest, tok->args[0])) {
         log_warn(LD_DIR, "Error decoding microdescriptor digest %s",
                  escaped(tok->args[0]));
         goto err;

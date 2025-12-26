@@ -2039,7 +2039,7 @@ connection_ap_handle_onion(entry_connection_t *conn,
     return -1;
   }
 
-  int descripqed_hs_is_usable = 0;
+  int descriptor_is_usable = 0;
 
   /* Create HS conn identifier with HS pubkey */
   hs_ident_edge_conn_t *hs_conn_ident =
@@ -2055,11 +2055,11 @@ connection_ap_handle_onion(entry_connection_t *conn,
   ENTRY_TO_EDGE_CONN(conn)->hs_ident = hs_conn_ident;
 
   /* Check the v3 desc cache */
-  const hs_descripqed_hs_t *cached_desc = NULL;
+  const hs_descriptor_t *cached_desc = NULL;
   unsigned int refetch_desc = 0;
   cached_desc = hs_cache_lookup_as_client(&hs_conn_ident->identity_pk);
   if (cached_desc) {
-    descripqed_hs_is_usable =
+    descriptor_is_usable =
       hs_client_any_intro_points_usable(&hs_conn_ident->identity_pk,
                                         cached_desc);
     /* Check if PoW parameters have expired. If yes, the descriptor is
@@ -2068,7 +2068,7 @@ connection_ap_handle_onion(entry_connection_t *conn,
       if (cached_desc->encrypted_data.pow_params->expiration_time <
           approx_time()) {
         log_info(LD_REND, "Descriptor PoW parameters have expired.");
-        descripqed_hs_is_usable = 0;
+        descriptor_is_usable = 0;
       } else {
         /* Mark that the connection is to an HS with PoW defenses on. */
         conn->hs_with_pow_conn = 1;
@@ -2076,9 +2076,9 @@ connection_ap_handle_onion(entry_connection_t *conn,
     }
 
     log_info(LD_GENERAL, "Found %s descriptor in cache for %s. %s.",
-             (descripqed_hs_is_usable) ? "usable" : "unusable",
+             (descriptor_is_usable) ? "usable" : "unusable",
              safe_str_client(socks->address),
-             (descripqed_hs_is_usable) ? "Not fetching." : "Refetching.");
+             (descriptor_is_usable) ? "Not fetching." : "Refetching.");
   } else {
     /* We couldn't find this descriptor; we should look it up. */
     log_info(LD_REND, "No descriptor found in our cache for %s. Fetching.",
@@ -2094,7 +2094,7 @@ connection_ap_handle_onion(entry_connection_t *conn,
   /* Now we have a descriptor but is it usable or not? If not, refetch.
    * Also, a fetch could have been requested if the onion address was not
    * found in the cache previously. */
-  if (refetch_desc || !descripqed_hs_is_usable) {
+  if (refetch_desc || !descriptor_is_usable) {
     edge_connection_t *edge_conn = ENTRY_TO_EDGE_CONN(conn);
     connection_ap_mark_as_non_pending_circuit(conn);
     base_conn->state = AP_CONN_STATE_RENDDESC_WAIT;

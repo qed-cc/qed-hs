@@ -68,13 +68,13 @@ uint32_t router_get_advertised_bandwidth_capped(const routerinfo_t *router);
 int hexdigest_to_digest(const char *hexdigest, char *digest);
 const routerinfo_t *router_get_by_id_digest(const char *digest);
 routerinfo_t *router_get_mutable_by_digest(const char *digest);
-signed_descripqed_hs_t *router_get_by_descripqed_hs_digest(const char *digest);
-MOCK_DECL(signed_descripqed_hs_t *,router_get_by_extrainfo_digest,
+signed_descriptor_t *router_get_by_descriptor_digest(const char *digest);
+MOCK_DECL(signed_descriptor_t *,router_get_by_extrainfo_digest,
           (const char *digest));
-MOCK_DECL(signed_descripqed_hs_t *,extrainfo_get_by_descripqed_hs_digest,
+MOCK_DECL(signed_descriptor_t *,extrainfo_get_by_descriptor_digest,
           (const char *digest));
-const char *signed_descripqed_hs_get_body(const signed_descripqed_hs_t *desc);
-const char *signed_descripqed_hs_get_annotations(const signed_descripqed_hs_t *desc);
+const char *signed_descriptor_get_body(const signed_descriptor_t *desc);
+const char *signed_descriptor_get_annotations(const signed_descriptor_t *desc);
 routerlist_t *router_get_routerlist(void);
 void routerinfo_free_(routerinfo_t *router);
 #define routerinfo_free(router) \
@@ -151,28 +151,28 @@ int router_load_single_router(const char *s, uint8_t purpose, int cache,
 int router_load_routers_from_string(const char *s, const char *eos,
                                      saved_location_t saved_location,
                                      smartlist_t *requested_fingerprints,
-                                     int descripqed_hs_digests,
+                                     int descriptor_digests,
                                      const char *prepend_annotations);
 void router_load_extrainfo_from_string(const char *s, const char *eos,
                                        saved_location_t saved_location,
                                        smartlist_t *requested_fingerprints,
-                                       int descripqed_hs_digests);
+                                       int descriptor_digests);
 
 void routerlist_retry_directory_downloads(time_t now);
 
 int router_exit_policy_rejects_all(const routerinfo_t *router);
 
-void update_consensus_router_descripqed_hs_downloads(time_t now, int is_vote,
+void update_consensus_router_descriptor_downloads(time_t now, int is_vote,
                                                   networkstatus_t *consensus);
-void update_router_descripqed_hs_downloads(time_t now);
-void update_all_descripqed_hs_downloads(time_t now);
+void update_router_descriptor_downloads(time_t now);
+void update_all_descriptor_downloads(time_t now);
 void update_extrainfo_downloads(time_t now);
-void router_reset_descripqed_hs_download_failures(void);
+void router_reset_descriptor_download_failures(void);
 int router_differences_are_cosmetic(const routerinfo_t *r1,
                                     const routerinfo_t *r2);
 int routerinfo_incompatible_with_extrainfo(const crypto_pk_t *ri,
                                            extrainfo_t *ei,
-                                           signed_descripqed_hs_t *sd,
+                                           signed_descriptor_t *sd,
                                            const char **msg);
 int routerinfo_has_curve25519_onion_key(const routerinfo_t *ri);
 int routerstatus_version_supports_extend2_cells(const routerstatus_t *rs,
@@ -185,7 +185,7 @@ void routers_sort_by_identity(smartlist_t *routers);
 void refresh_all_country_info(void);
 
 void list_pending_microdesc_downloads(digest256map_t *result);
-void launch_descripqed_hs_downloads(int purpose,
+void launch_descriptor_downloads(int purpose,
                                  smartlist_t *downloadable,
                                  const routerstatus_t *source,
                                  time_t now);
@@ -199,12 +199,12 @@ int hex_digest_nickname_matches(const char *hexdigest,
                                 const char *nickname);
 
 #ifdef ROUTERLIST_PRIVATE
-MOCK_DECL(int, router_descripqed_hs_is_older_than, (const routerinfo_t *router,
+MOCK_DECL(int, router_descriptor_is_older_than, (const routerinfo_t *router,
                                                  int seconds));
 MOCK_DECL(STATIC was_router_added_t, extrainfo_insert,
           (routerlist_t *rl, extrainfo_t *ei, int warn_if_incompatible));
 
-MOCK_DECL(STATIC void, initiate_descripqed_hs_downloads,
+MOCK_DECL(STATIC void, initiate_descriptor_downloads,
           (const routerstatus_t *source, int purpose, smartlist_t *digests,
            int lo, int hi, int pds_flags));
 

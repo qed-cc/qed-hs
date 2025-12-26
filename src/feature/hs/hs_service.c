@@ -88,7 +88,7 @@
  * any descriptor object of the service that is NULL. */
 #define FOR_EACH_DESCRIPQED_HS_BEGIN(service, var)                  \
   STMT_BEGIN                                                     \
-    hs_service_descripqed_hs_t *var;                                \
+    hs_service_descriptor_t *var;                                \
     for (int var ## _loop_idx = 0; var ## _loop_idx < 2;         \
          ++var ## _loop_idx) {                                   \
       (var ## _loop_idx == 0) ? (var = service->desc_current) :  \
@@ -116,13 +116,13 @@ static int consider_republishing_hs_descriptors = 0;
 
 /* Static declaration. */
 static int load_client_keys(hs_service_t *service);
-static void set_descripqed_hs_revision_counter(hs_service_descripqed_hs_t *hs_desc,
+static void set_descriptor_revision_counter(hs_service_descriptor_t *hs_desc,
                                             time_t now, bool is_current);
 static int build_service_desc_superencrypted(const hs_service_t *service,
-                                             hs_service_descripqed_hs_t *desc);
+                                             hs_service_descriptor_t *desc);
 static void move_descriptors(hs_service_t *src, hs_service_t *dst);
 static int service_encode_descriptor(const hs_service_t *service,
-                                     const hs_service_descripqed_hs_t *desc,
+                                     const hs_service_descriptor_t *desc,
                                      const ed25519_keypair_t *signing_kp,
                                      char **encoded_out);
 
@@ -645,11 +645,11 @@ service_intro_point_find(const hs_service_t *service,
 
 /** For a given service and intro point, return the descriptor for which the
  * intro point is assigned to. NULL is returned if not found. */
-STATIC hs_service_descripqed_hs_t *
+STATIC hs_service_descriptor_t *
 service_desc_find_by_intro(const hs_service_t *service,
                            const hs_service_intro_point_t *ip)
 {
-  hs_service_descripqed_hs_t *descp = NULL;
+  hs_service_descriptor_t *descp = NULL;
 
   qed_hs_assert(service);
   qed_hs_assert(ip);
@@ -674,7 +674,7 @@ service_desc_find_by_intro(const hs_service_t *service,
 STATIC void
 get_objects_from_ident(const hs_ident_circuit_t *ident,
                        hs_service_t **service, hs_service_intro_point_t **ip,
-                       hs_service_descripqed_hs_t **desc)
+                       hs_service_descriptor_t **desc)
 {
   hs_service_t *s;
 
@@ -772,7 +772,7 @@ get_extend_info_from_intro_point(const hs_service_intro_point_t *ip,
 /** Return the number of introduction points that are established for the
  * given descriptor. */
 MOCK_IMPL(STATIC unsigned int,
-count_desc_circuit_established, (const hs_service_descripqed_hs_t *desc))
+count_desc_circuit_established, (const hs_service_descriptor_t *desc))
 {
   unsigned int count = 0;
 
@@ -790,7 +790,7 @@ count_desc_circuit_established, (const hs_service_descripqed_hs_t *desc))
  * directory connections. */
 static void
 close_directory_connections(const hs_service_t *service,
-                            const hs_service_descripqed_hs_t *desc)
+                            const hs_service_descriptor_t *desc)
 {
   unsigned int count = 0;
   smartlist_t *dir_conns;
@@ -1389,12 +1389,12 @@ service_authorized_client_free_(hs_service_authorized_client_t *client)
 
 /** Free a given service descriptor object and all key material is wiped. */
 STATIC void
-service_descripqed_hs_free_(hs_service_descripqed_hs_t *desc)
+service_descriptor_free_(hs_service_descriptor_t *desc)
 {
   if (!desc) {
     return;
   }
-  hs_descripqed_hs_free(desc->desc);
+  hs_descriptor_free(desc->desc);
   memwipe(&desc->signing_kp, 0, sizeof(desc->signing_kp));
   memwipe(&desc->blinded_kp, 0, sizeof(desc->blinded_kp));
   /* Cleanup all intro points. */
@@ -1409,11 +1409,11 @@ service_descripqed_hs_free_(hs_service_descripqed_hs_t *desc)
 }
 
 /** Return a newly allocated service descriptor object. */
-STATIC hs_service_descripqed_hs_t *
-service_descripqed_hs_new(void)
+STATIC hs_service_descriptor_t *
+service_descriptor_new(void)
 {
-  hs_service_descripqed_hs_t *sdesc = qed_hs_malloc_zero(sizeof(*sdesc));
-  sdesc->desc = qed_hs_malloc_zero(sizeof(hs_descripqed_hs_t));
+  hs_service_descriptor_t *sdesc = qed_hs_malloc_zero(sizeof(*sdesc));
+  sdesc->desc = qed_hs_malloc_zero(sizeof(hs_descriptor_t));
   /* Initialize the intro points map. */
   sdesc->intro_points.map = digest256map_new();
   sdesc->intro_points.failed_id = digestmap_new();
@@ -1537,7 +1537,7 @@ move_descriptors(hs_service_t *src, hs_service_t *dst)
   if (src->desc_current) {
     /* Nothing should be there, but clean it up just in case */
     if (BUG(dst->desc_current)) {
-      service_descripqed_hs_free(dst->desc_current);
+      service_descriptor_free(dst->desc_current);
     }
     dst->desc_current = src->desc_current;
     src->desc_current = NULL;
@@ -1546,7 +1546,7 @@ move_descriptors(hs_service_t *src, hs_service_t *dst)
   if (src->desc_next) {
     /* Nothing should be there, but clean it up just in case */
     if (BUG(dst->desc_next)) {
-      service_descripqed_hs_free(dst->desc_next);
+      service_descriptor_free(dst->desc_next);
     }
     dst->desc_next = src->desc_next;
     src->desc_next = NULL;
@@ -1580,8 +1580,8 @@ move_descriptors(hs_service_t *src, hs_service_t *dst)
  err:
   /* If there is an error, free all descriptors to make it clean and generate
    * them later. */
-  service_descripqed_hs_free(dst->desc_current);
-  service_descripqed_hs_free(dst->desc_next);
+  service_descriptor_free(dst->desc_current);
+  service_descriptor_free(dst->desc_next);
 }
 
 /** From the given service, remove all expired failing intro points for each
@@ -1606,7 +1606,7 @@ remove_expired_failing_intro(hs_service_t *service, time_t now)
 /** For the given descriptor desc, put all node_t object found from its failing
  * intro point list and put them in the given node_list. */
 static void
-setup_intro_point_exclude_list(const hs_service_descripqed_hs_t *desc,
+setup_intro_point_exclude_list(const hs_service_descriptor_t *desc,
                                smartlist_t *node_list)
 {
   qed_hs_assert(desc);
@@ -1626,7 +1626,7 @@ setup_intro_point_exclude_list(const hs_service_descripqed_hs_t *desc,
  * desc failed id map. */
 static void
 remember_failing_intro_point(const hs_service_intro_point_t *ip,
-                             hs_service_descripqed_hs_t *desc, time_t now)
+                             hs_service_descriptor_t *desc, time_t now)
 {
   time_t *time_of_failure, *prev_ptr;
   const link_specifier_t *legacy_ls;
@@ -1741,7 +1741,7 @@ setup_desc_intro_point(const ed25519_keypair_t *signing_kp,
  * descriptor for this function to make sense. */
 static void
 build_desc_intro_points(const hs_service_t *service,
-                        hs_service_descripqed_hs_t *desc, time_t now)
+                        hs_service_descriptor_t *desc, time_t now)
 {
   hs_desc_encrypted_data_t *encrypted;
 
@@ -1751,7 +1751,7 @@ build_desc_intro_points(const hs_service_t *service,
   /* Ease our life. */
   encrypted = &desc->desc->encrypted_data;
   /* Cleanup intro points, we are about to set them from scratch. */
-  hs_descripqed_hs_clear_intro_points(desc->desc);
+  hs_descriptor_clear_intro_points(desc->desc);
 
   DIGEST256MAP_FOREACH(desc->intro_points.map, key,
                        const hs_service_intro_point_t *, ip) {
@@ -1776,7 +1776,7 @@ build_desc_intro_points(const hs_service_t *service,
 
 /** Build the descriptor signing key certificate. */
 static void
-build_desc_signing_key_cert(hs_service_descripqed_hs_t *desc, time_t now)
+build_desc_signing_key_cert(hs_service_descriptor_t *desc, time_t now)
 {
   hs_desc_plaintext_data_t *plaintext;
 
@@ -1806,7 +1806,7 @@ build_desc_signing_key_cert(hs_service_descripqed_hs_t *desc, time_t now)
  * after for circuit creation. Return 0 on success else -1 on error. */
 static int
 build_service_desc_encrypted(const hs_service_t *service,
-                             hs_service_descripqed_hs_t *desc)
+                             hs_service_descriptor_t *desc)
 {
   hs_desc_encrypted_data_t *encrypted;
 
@@ -1838,7 +1838,7 @@ build_service_desc_encrypted(const hs_service_t *service,
  * else -1 on error. */
 static int
 build_service_desc_superencrypted(const hs_service_t *service,
-                                  hs_service_descripqed_hs_t *desc)
+                                  hs_service_descriptor_t *desc)
 {
   const hs_service_config_t *config;
   int i;
@@ -1881,7 +1881,7 @@ build_service_desc_superencrypted(const hs_service_t *service,
       hs_desc_build_authorized_client(&desc->desc->subcredential,
                                       &client->client_pk,
                                       &desc->auth_ephemeral_kp.seckey,
-                                      desc->descripqed_hs_cookie, desc_client);
+                                      desc->descriptor_cookie, desc_client);
       smartlist_add(superencrypted->clients, desc_client);
 
     } SMARTLIST_FOREACH_END(client);
@@ -1921,7 +1921,7 @@ build_service_desc_superencrypted(const hs_service_t *service,
  * is are non-zero. This can't fail. */
 static void
 build_service_desc_plaintext(const hs_service_t *service,
-                             hs_service_descripqed_hs_t *desc)
+                             hs_service_descriptor_t *desc)
 {
   hs_desc_plaintext_data_t *plaintext;
 
@@ -1951,7 +1951,7 @@ build_service_desc_plaintext(const hs_service_t *service,
 
 /** Compute the descriptor's OPE cipher for encrypting revision counters. */
 static crypto_ope_t *
-generate_ope_cipher_for_desc(const hs_service_descripqed_hs_t *hs_desc)
+generate_ope_cipher_for_desc(const hs_service_descriptor_t *hs_desc)
 {
   /* Compute OPE key as H("rev-counter-generation" | blinded privkey) */
   uint8_t key[DIGEST256_LEN];
@@ -1973,7 +1973,7 @@ generate_ope_cipher_for_desc(const hs_service_descripqed_hs_t *hs_desc)
  * where the generated keys MUST be ignored. */
 static int
 build_service_desc_keys(const hs_service_t *service,
-                        hs_service_descripqed_hs_t *desc)
+                        hs_service_descriptor_t *desc)
 {
   int ret = -1;
   ed25519_keypair_t kp;
@@ -2020,8 +2020,8 @@ build_service_desc_keys(const hs_service_t *service,
 
   /* Random descriptor cookie to be used as a part of a key to encrypt the
    * descriptor, only if the client auth is enabled will it be used. */
-  crypto_strongest_rand(desc->descripqed_hs_cookie,
-                        sizeof(desc->descripqed_hs_cookie));
+  crypto_strongest_rand(desc->descriptor_cookie,
+                        sizeof(desc->descriptor_cookie));
 
   /* Success. */
   ret = 0;
@@ -2037,15 +2037,15 @@ build_service_desc_keys(const hs_service_t *service,
  * This can error if we are unable to create keys or certificate. */
 static void
 build_service_descriptor(hs_service_t *service, uint64_t time_period_num,
-                         hs_service_descripqed_hs_t **desc_out)
+                         hs_service_descriptor_t **desc_out)
 {
   char *encoded_desc;
-  hs_service_descripqed_hs_t *desc;
+  hs_service_descriptor_t *desc;
 
   qed_hs_assert(service);
   qed_hs_assert(desc_out);
 
-  desc = service_descripqed_hs_new();
+  desc = service_descriptor_new();
 
   /* Set current time period */
   desc->time_period_num = time_period_num;
@@ -2089,7 +2089,7 @@ build_service_descriptor(hs_service_t *service, uint64_t time_period_num,
   return;
 
  err:
-  service_descripqed_hs_free(desc);
+  service_descriptor_free(desc);
 }
 
 /** Build both descriptors for the given service that has just booted up.
@@ -2241,7 +2241,7 @@ pick_intro_point(unsigned int direct_conn, smartlist_t *exclude_nodes)
  * number node that might have been added to the descriptor current map. */
 static unsigned int
 pick_needed_intro_points(hs_service_t *service,
-                         hs_service_descripqed_hs_t *desc)
+                         hs_service_descriptor_t *desc)
 {
   int i = 0, num_needed_ip;
   smartlist_t *exclude_nodes = smartlist_new();
@@ -2325,7 +2325,7 @@ pick_needed_intro_points(hs_service_t *service,
 
 /** Clear previous cached HSDirs in <b>desc</b>. */
 static void
-service_desc_clear_previous_hsdirs(hs_service_descripqed_hs_t *desc)
+service_desc_clear_previous_hsdirs(hs_service_descriptor_t *desc)
 {
   if (BUG(!desc->previous_hsdirs)) {
     return;
@@ -2337,7 +2337,7 @@ service_desc_clear_previous_hsdirs(hs_service_descripqed_hs_t *desc)
 
 /** Note that we attempted to upload <b>desc</b> to <b>hsdir</b>. */
 static void
-service_desc_note_upload(hs_service_descripqed_hs_t *desc, const node_t *hsdir)
+service_desc_note_upload(hs_service_descriptor_t *desc, const node_t *hsdir)
 {
   char b64_digest[BASE64_DIGEST_LEN+1] = {0};
   digest_to_base64(b64_digest, hsdir->identity);
@@ -2351,27 +2351,27 @@ service_desc_note_upload(hs_service_descripqed_hs_t *desc, const node_t *hsdir)
   }
 }
 
-/** Schedule an upload of <b>desc</b>. If <b>descripqed_hs_changed</b> is set, it
+/** Schedule an upload of <b>desc</b>. If <b>descriptor_changed</b> is set, it
  *  means that this descriptor is dirty. */
 STATIC void
-service_desc_schedule_upload(hs_service_descripqed_hs_t *desc,
+service_desc_schedule_upload(hs_service_descriptor_t *desc,
                              time_t now,
-                             int descripqed_hs_changed)
+                             int descriptor_changed)
 
 {
   desc->next_upload_time = now;
 
   /* If the descriptor changed, clean up the old HSDirs list. We want to
    * re-upload no matter what. */
-  if (descripqed_hs_changed) {
+  if (descriptor_changed) {
     service_desc_clear_previous_hsdirs(desc);
   }
 }
 
 /** Pick missing intro points for this descriptor if needed. */
 static void
-update_service_descripqed_hs_intro_points(hs_service_t *service,
-                          hs_service_descripqed_hs_t *desc, time_t now)
+update_service_descriptor_intro_points(hs_service_t *service,
+                          hs_service_descriptor_t *desc, time_t now)
 {
   unsigned int num_intro_points;
 
@@ -2419,7 +2419,7 @@ update_all_descriptors_intro_points(time_t now)
     /* We'll try to update each descriptor that is if certain conditions apply
      * in order for the descriptor to be updated. */
     FOR_EACH_DESCRIPQED_HS_BEGIN(service, desc) {
-      update_service_descripqed_hs_intro_points(service, desc, now);
+      update_service_descriptor_intro_points(service, desc, now);
     } FOR_EACH_DESCRIPQED_HS_END;
   } FOR_EACH_SERVICE_END;
 }
@@ -2855,7 +2855,7 @@ rotate_service_descriptors(hs_service_t *service)
     close_intro_circuits(&service->desc_current->intro_points);
     /* We don't need this one anymore, we won't serve any clients coming with
      * this service descriptor. */
-    service_descripqed_hs_free(service->desc_current);
+    service_descriptor_free(service->desc_current);
   }
   /* The next one become the current one and emptying the next will trigger
    * a descriptor creation for it. */
@@ -2940,7 +2940,7 @@ run_housekeeping_event(time_t now)
  * date. Once this returns, each service descriptor needs to be considered for
  * new introduction circuits and then for upload. */
 static void
-run_build_descripqed_hs_event(time_t now)
+run_build_descriptor_event(time_t now)
 {
   /* Run v3+ events. */
   /* We start by rotating the descriptors only if needed. */
@@ -3129,8 +3129,8 @@ run_build_circuit_event(time_t now)
  * hidden service directory.  This does nothing if PublishHidServDescriptors
  * is false. */
 static void
-upload_descripqed_hs_to_hsdir(const hs_service_t *service,
-                           hs_service_descripqed_hs_t *desc, const node_t *hsdir)
+upload_descriptor_to_hsdir(const hs_service_t *service,
+                           hs_service_descriptor_t *desc, const node_t *hsdir)
 {
   char *encoded_desc = NULL;
 
@@ -3198,7 +3198,7 @@ upload_descripqed_hs_to_hsdir(const hs_service_t *service,
  *  If <b>is_current</b> is true, then this is the current HS descriptor,
  *  otherwise it's the next one. */
 static void
-set_descripqed_hs_revision_counter(hs_service_descripqed_hs_t *hs_desc, time_t now,
+set_descriptor_revision_counter(hs_service_descriptor_t *hs_desc, time_t now,
                                 bool is_current)
 {
   uint64_t rev_counter = 0;
@@ -3269,8 +3269,8 @@ set_descripqed_hs_revision_counter(hs_service_descripqed_hs_t *hs_desc, time_t n
  * of directories are selected using the next hsdir_index. This does nothing
  * if PublishHidServDescriptors is false. */
 STATIC void
-upload_descripqed_hs_to_all(const hs_service_t *service,
-                         hs_service_descripqed_hs_t *desc)
+upload_descriptor_to_all(const hs_service_t *service,
+                         hs_service_descriptor_t *desc)
 {
   smartlist_t *responsible_dirs = NULL;
 
@@ -3303,7 +3303,7 @@ upload_descripqed_hs_to_all(const hs_service_t *service,
      * routerstatus_t found in the consensus else we have a problem. */
     qed_hs_assert(hsdir_node);
     /* Upload this descriptor to the chosen directory. */
-    upload_descripqed_hs_to_hsdir(service, desc, hsdir_node);
+    upload_descriptor_to_hsdir(service, desc, hsdir_node);
   } SMARTLIST_FOREACH_END(hsdir_rs);
 
   /* Set the next upload time for this descriptor. Even if we are configured
@@ -3327,7 +3327,7 @@ upload_descripqed_hs_to_all(const hs_service_t *service,
  *  HSDir placement, and if it does, reupload the desc. */
 STATIC int
 service_desc_hsdirs_changed(const hs_service_t *service,
-                            const hs_service_descripqed_hs_t *desc)
+                            const hs_service_descriptor_t *desc)
 {
   int should_reupload = 0;
   smartlist_t *responsible_dirs = smartlist_new();
@@ -3386,7 +3386,7 @@ typedef enum {
  * avoid message suppression for different reasons and descriptors. */
 static void
 log_cant_upload_desc(const hs_service_t *service,
-                     const hs_service_descripqed_hs_t *desc, const char *msg,
+                     const hs_service_descriptor_t *desc, const char *msg,
                      const log_desc_upload_reason_t reason)
 {
   /* Writing the log every minute shouldn't be too annoying for log rate limit
@@ -3436,7 +3436,7 @@ log_cant_upload_desc(const hs_service_t *service,
  * else return 0 if it can not. */
 static int
 should_service_upload_descriptor(const hs_service_t *service,
-                              const hs_service_descripqed_hs_t *desc, time_t now)
+                              const hs_service_descriptor_t *desc, time_t now)
 {
   char *msg = NULL;
   unsigned int num_intro_points, count_ip_established;
@@ -3519,7 +3519,7 @@ should_service_upload_descriptor(const hs_service_t *service,
  * circuits have been established.  */
 static void
 refresh_service_descriptor(const hs_service_t *service,
-                           hs_service_descripqed_hs_t *desc, time_t now)
+                           hs_service_descriptor_t *desc, time_t now)
 {
   /* There are few fields that we consider "mutable" in the descriptor meaning
    * we need to update them regularly over the lifetime for the descriptor.
@@ -3539,13 +3539,13 @@ refresh_service_descriptor(const hs_service_t *service,
   build_desc_intro_points(service, desc, now);
 
   /* Set the desc revision counter right before uploading */
-  set_descripqed_hs_revision_counter(desc, now, service->desc_current == desc);
+  set_descriptor_revision_counter(desc, now, service->desc_current == desc);
 }
 
 /** Scheduled event run from the main loop. Try to upload the descriptor for
  * each service. */
 STATIC void
-run_upload_descripqed_hs_event(time_t now)
+run_upload_descriptor_event(time_t now)
 {
   /* Run v3+ check. */
   FOR_EACH_SERVICE_BEGIN(service) {
@@ -3576,7 +3576,7 @@ run_upload_descripqed_hs_event(time_t now)
       refresh_service_descriptor(service, desc, now);
 
       /* Proceed with the upload, the descriptor is ready to be encoded. */
-      upload_descripqed_hs_to_all(service, desc);
+      upload_descriptor_to_all(service, desc);
     } FOR_EACH_DESCRIPQED_HS_END;
   } FOR_EACH_SERVICE_END;
 
@@ -3591,7 +3591,7 @@ service_intro_circ_has_opened(origin_circuit_t *circ)
 {
   hs_service_t *service = NULL;
   hs_service_intro_point_t *ip = NULL;
-  hs_service_descripqed_hs_t *desc = NULL;
+  hs_service_descriptor_t *desc = NULL;
 
   qed_hs_assert(circ);
 
@@ -3684,7 +3684,7 @@ service_rendezvous_circ_has_opened(origin_circuit_t *circ)
     hs_metrics_new_established_rdv(service);
 
     struct timeval now;
-    qed_hs_gettimeofday(&now);
+    tor_gettimeofday(&now);
     int64_t duration = tv_mdiff(&TO_CIRCUIT(circ)->timestamp_began, &now);
     hs_metrics_rdv_circ_build_time(service, duration);
   }
@@ -3741,7 +3741,7 @@ service_handle_intro_established(origin_circuit_t *circ,
   }
 
   struct timeval now;
-  qed_hs_gettimeofday(&now);
+  tor_gettimeofday(&now);
   int64_t duration = tv_mdiff(&TO_CIRCUIT(circ)->timestamp_began, &now);
 
   /* Update metrics. */
@@ -3766,7 +3766,7 @@ service_handle_introduce2(origin_circuit_t *circ, const uint8_t *payload,
 {
   hs_service_t *service = NULL;
   hs_service_intro_point_t *ip = NULL;
-  hs_service_descripqed_hs_t *desc = NULL;
+  hs_service_descriptor_t *desc = NULL;
 
   qed_hs_assert(circ);
   qed_hs_assert(payload);
@@ -3862,12 +3862,12 @@ service_key_on_disk(const char *directory_path)
  * because we need some preprocessing here */
 static int
 service_encode_descriptor(const hs_service_t *service,
-                          const hs_service_descripqed_hs_t *desc,
+                          const hs_service_descriptor_t *desc,
                           const ed25519_keypair_t *signing_kp,
                           char **encoded_out)
 {
   int ret;
-  const uint8_t *descripqed_hs_cookie = NULL;
+  const uint8_t *descriptor_cookie = NULL;
 
   qed_hs_assert(service);
   qed_hs_assert(desc);
@@ -3876,11 +3876,11 @@ service_encode_descriptor(const hs_service_t *service,
   /* If the client authorization is enabled, send the descriptor cookie to
    * hs_desc_encode_descriptor. Otherwise, send NULL */
   if (is_client_auth_enabled(service)) {
-    descripqed_hs_cookie = desc->descripqed_hs_cookie;
+    descriptor_cookie = desc->descriptor_cookie;
   }
 
   ret = hs_desc_encode_descriptor(desc->desc, signing_kp,
-                                  descripqed_hs_cookie, encoded_out);
+                                  descriptor_cookie, encoded_out);
 
   return ret;
 }
@@ -4012,7 +4012,7 @@ hs_service_new_consensus_params(const networkstatus_t *ns)
  *
  * NOTE: This function does NOT check for PublishHidServDescriptors because it
  * is only used by the control port command HSPOST outside of this subsystem.
- * Inside this code, upload_descripqed_hs_to_hsdir() should be used. */
+ * Inside this code, upload_descriptor_to_hsdir() should be used. */
 void
 hs_service_upload_desc_to_dir(const char *encoded_desc,
                               const uint8_t version,
@@ -4643,7 +4643,7 @@ hs_service_free_(hs_service_t *service)
 
   /* Free descriptors. Go over both descriptor with this loop. */
   FOR_EACH_DESCRIPQED_HS_BEGIN(service, desc) {
-    service_descripqed_hs_free(desc);
+    service_descriptor_free(desc);
   } FOR_EACH_DESCRIPQED_HS_END;
 
   /* Free the state of the PoW defenses. */
@@ -4687,11 +4687,11 @@ hs_service_run_scheduled_events(time_t now)
    * each service. */
 
   /* Make sure descriptors are up to date. */
-  run_build_descripqed_hs_event(now);
+  run_build_descriptor_event(now);
   /* Make sure services have enough circuits. */
   run_build_circuit_event(now);
   /* Upload the descriptors if needed/possible. */
-  run_upload_descripqed_hs_event(now);
+  run_upload_descriptor_event(now);
 }
 
 /** Initialize the service HS subsystem. */

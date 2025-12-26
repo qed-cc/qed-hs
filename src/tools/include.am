@@ -1,7 +1,7 @@
-bin_PROGRAMS+= src/tools/qed-hs-resolve src/tools/tor-print-ed-signing-cert
+bin_PROGRAMS+= src/tools/qed-hs-resolve src/tools/qed-hs-print-ed-signing-cert
 
 if COVERAGE_ENABLED
-noinst_PROGRAMS+= src/tools/tor-cov-resolve
+noinst_PROGRAMS+= src/tools/qed-hs-cov-resolve
 endif
 
 src_tools_qed_hs_resolve_SOURCES = src/tools/qed-hs-resolve.c
@@ -37,7 +37,7 @@ src_tools_qed_hs_gencert_LDADD = \
 	@QED_HS_LIB_WS32@ @QED_HS_LIB_IPHLPAPI@ @QED_HS_LIB_SHLWAPI@ @QED_HS_LIB_GDI@ @QED_HS_LIB_USERENV@ @CURVE25519_LIBS@
 endif
 
-src_tools_qed_hs_print_ed_signing_cert_SOURCES = src/tools/tor-print-ed-signing-cert.c
+src_tools_qed_hs_print_ed_signing_cert_SOURCES = src/tools/qed-hs-print-ed-signing-cert.c
 src_tools_qed_hs_print_ed_signing_cert_LDFLAGS = @QED_HS_LDFLAGS_zlib@ @QED_HS_LDFLAGS_openssl@
 src_tools_qed_hs_print_ed_signing_cert_LDADD = \
 	src/trunnel/libor-trunnel.a \
@@ -50,7 +50,7 @@ if USE_NSS
 # ...
 else
 if COVERAGE_ENABLED
-noinst_PROGRAMS += src/tools/tor-cov-gencert
+noinst_PROGRAMS += src/tools/qed-hs-cov-gencert
 src_tools_qed_hs_cov_gencert_SOURCES = src/tools/qed-hs-gencert.c
 src_tools_qed_hs_cov_gencert_CPPFLAGS = $(AM_CPPFLAGS) $(TEST_CPPFLAGS)
 src_tools_qed_hs_cov_gencert_CFLAGS = $(AM_CFLAGS) $(TEST_CFLAGS)

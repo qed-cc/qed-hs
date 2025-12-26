@@ -41,7 +41,7 @@
 #include "lib/malloc/malloc.h"
 #include "lib/string/scanf.h"
 
-#include "ext/qed_hs_queue.h"
+#include "ext/tor_queue.h"
 #include "ext/ht.h"
 #include "ext/siphash.h"
 

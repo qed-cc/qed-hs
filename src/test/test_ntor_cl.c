@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define ONION_NQED_HS_PRIVATE
+#define ONION_NTOR_PRIVATE
 #include "core/or/or.h"
 #include "lib/crypt_ops/crypto_cipher.h"
 #include "lib/crypt_ops/crypto_curve25519.h"
@@ -38,8 +38,8 @@ client1(int argc, char **argv)
   /* client1 nodeID B -> msg state */
   curve25519_public_key_t B;
   uint8_t node_id[DIGEST_LEN];
-  nqed_hs_handshake_state_t *state = NULL;
-  uint8_t msg[NQED_HS_ONIONSKIN_LEN];
+  ntor_handshake_state_t *state = NULL;
+  uint8_t msg[NTOR_ONIONSKIN_LEN];
 
   char buf[1024];
 
@@ -47,7 +47,7 @@ client1(int argc, char **argv)
   BASE16(2, node_id, DIGEST_LEN);
   BASE16(3, B.public_key, CURVE25519_PUBKEY_LEN);
 
-  if (onion_skin_nqed_hs_create(node_id, &B, &state, msg)<0) {
+  if (onion_skin_ntor_create(node_id, &B, &state, msg)<0) {
     fprintf(stderr, "handshake failed");
     return 2;
   }
@@ -57,20 +57,20 @@ client1(int argc, char **argv)
   base16_encode(buf, sizeof(buf), (void*)state, sizeof(*state));
   printf("%s\n", buf);
 
-  nqed_hs_handshake_state_free(state);
+  ntor_handshake_state_free(state);
   return 0;
 }
 
 static int
 server1(int argc, char **argv)
 {
-  uint8_t msg_in[NQED_HS_ONIONSKIN_LEN];
+  uint8_t msg_in[NTOR_ONIONSKIN_LEN];
   curve25519_keypair_t kp;
   di_digest256_map_t *keymap=NULL;
   uint8_t node_id[DIGEST_LEN];
   int keybytes;
 
-  uint8_t msg_out[NQED_HS_REPLY_LEN];
+  uint8_t msg_out[NTOR_REPLY_LEN];
   uint8_t *keys = NULL;
   char *hexkeys = NULL;
   int result = 0;
@@ -81,7 +81,7 @@ server1(int argc, char **argv)
   N_ARGS(6);
   BASE16(2, kp.seckey.secret_key, CURVE25519_SECKEY_LEN);
   BASE16(3, node_id, DIGEST_LEN);
-  BASE16(4, msg_in, NQED_HS_ONIONSKIN_LEN);
+  BASE16(4, msg_in, NTOR_ONIONSKIN_LEN);
   INT(5, keybytes);
 
   curve25519_public_key_generate(&kp.pubkey, &kp.seckey);
@@ -89,7 +89,7 @@ server1(int argc, char **argv)
 
   keys = qed_hs_malloc(keybytes);
   hexkeys = qed_hs_malloc(keybytes*2+1);
-  if (onion_skin_nqed_hs_server_handshake(
+  if (onion_skin_ntor_server_handshake(
                                 msg_in, keymap, NULL, node_id, msg_out, keys,
                                 (size_t)keybytes)<0) {
     fprintf(stderr, "handshake failed");
@@ -112,8 +112,8 @@ server1(int argc, char **argv)
 static int
 client2(int argc, char **argv)
 {
-  struct nqed_hs_handshake_state_t state;
-  uint8_t msg[NQED_HS_REPLY_LEN];
+  struct ntor_handshake_state_t state;
+  uint8_t msg[NTOR_REPLY_LEN];
   int keybytes;
   uint8_t *keys;
   char *hexkeys;
@@ -126,7 +126,7 @@ client2(int argc, char **argv)
 
   keys = qed_hs_malloc(keybytes);
   hexkeys = qed_hs_malloc(keybytes*2+1);
-  if (onion_skin_nqed_hs_client_handshake(&state, msg, keys, keybytes, NULL)<0) {
+  if (onion_skin_ntor_client_handshake(&state, msg, keys, keybytes, NULL)<0) {
     fprintf(stderr, "handshake failed");
     result = 2;
     goto done;

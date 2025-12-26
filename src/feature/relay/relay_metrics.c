@@ -259,8 +259,8 @@ handshake_type_to_str(const uint16_t type)
       return "fast";
     case ONION_HANDSHAKE_TYPE_NTOR:
       return "ntor";
-    case ONION_HANDSHAKE_TYPE_NQED_HS_V3:
-      return "nqed_hs_v3";
+    case ONION_HANDSHAKE_TYPE_NTOR_V3:
+      return "ntor_v3";
     default:
       // LCOV_EXCL_START
       qed_hs_assert_unreached();

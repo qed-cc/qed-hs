@@ -43,7 +43,7 @@ void hs_circ_cleanup_on_repurpose(circuit_t *circ);
 /* Circuit API. */
 int hs_circ_service_intro_has_opened(hs_service_t *service,
                                      hs_service_intro_point_t *ip,
-                                     const hs_service_descripqed_hs_t *desc,
+                                     const hs_service_descriptor_t *desc,
                                      origin_circuit_t *circ);
 void hs_circ_service_rp_has_opened(const hs_service_t *service,
                                    origin_circuit_t *circ);
@@ -83,7 +83,7 @@ int hs_circ_send_establish_rendezvous(origin_circuit_t *circ);
 /* e2e circuit API. */
 
 int hs_circuit_setup_e2e_rend_circ(origin_circuit_t *circ,
-                                   const uint8_t *nqed_hs_key_seed,
+                                   const uint8_t *ntor_key_seed,
                                    size_t seed_len,
                                    int is_service_side);
 int hs_circuit_setup_e2e_rend_circ_legacy_client(origin_circuit_t *circ,
@@ -97,13 +97,13 @@ void hs_circ_setup_congestion_control(origin_circuit_t *origin_circ,
 
 #ifdef HS_CIRCUIT_PRIVATE
 
-struct hs_nqed_hs_rend_cell_keys_t;
+struct hs_ntor_rend_cell_keys_t;
 
 STATIC hs_ident_circuit_t *
 create_rp_circuit_identifier(const hs_service_t *service,
                              const uint8_t *rendezvous_cookie,
                              const curve25519_public_key_t *server_pk,
-                             const struct hs_nqed_hs_rend_cell_keys_t *keys);
+                             const struct hs_ntor_rend_cell_keys_t *keys);
 
 MOCK_DECL(STATIC void,
 launch_rendezvous_point_circuit,(const hs_service_t *service,

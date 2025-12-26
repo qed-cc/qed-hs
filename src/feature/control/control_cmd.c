@@ -1014,14 +1014,14 @@ handle_control_attachstream(control_connection_t *conn,
   return 0;
 }
 
-static const char *postdescripqed_hs_keywords[] = {
+static const char *postdescriptor_keywords[] = {
   "cache", "purpose", NULL,
 };
 
-static const control_cmd_syntax_t postdescripqed_hs_syntax = {
+static const control_cmd_syntax_t postdescriptor_syntax = {
   .max_args = 0,
   .accept_keywords = true,
-  .allowed_keywords = postdescripqed_hs_keywords,
+  .allowed_keywords = postdescriptor_keywords,
   .want_cmddata = true,
 };
 

@@ -5,12 +5,12 @@
 /* See LICENSE for licensing information */
 
 /**
- * @file onion_nqed_hs_v3.h
- * @brief Header for core/crypto/onion_nqed_hs_v3.c
+ * @file onion_ntor_v3.h
+ * @brief Header for core/crypto/onion_ntor_v3.c
  **/
 
-#ifndef QED_HS_CORE_CRYPTO_ONION_NQED_HS_V3_H
-#define QED_HS_CORE_CRYPTO_ONION_NQED_HS_V3_H
+#ifndef QED_HS_CORE_CRYPTO_ONION_NTOR_V3_H
+#define QED_HS_CORE_CRYPTO_ONION_NTOR_V3_H
 
 #include "lib/cc/torint.h"
 #include "lib/testsupport/testsupport.h"
@@ -83,7 +83,7 @@ int onion_skin_ntor3_server_handshake_part2(
                 uint8_t *keys_out,
                 size_t keys_out_len);
 
-#ifdef ONION_NQED_HS_V3_PRIVATE
+#ifdef ONION_NTOR_V3_PRIVATE
 struct ntor3_handshake_state_t {
   /** Ephemeral (x,X) keypair. */
   curve25519_keypair_t client_keypair;
@@ -137,4 +137,4 @@ STATIC int onion_skin_ntor3_server_handshake_part2_nokeygen(
 
 #endif
 
-#endif /* !defined(QED_HS_CORE_CRYPTO_ONION_NQED_HS_V3_H) */
+#endif /* !defined(QED_HS_CORE_CRYPTO_ONION_NTOR_V3_H) */

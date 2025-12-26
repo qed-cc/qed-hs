@@ -62,13 +62,13 @@ src_test_fuzz_fuzz_consensus_LDADD = $(FUZZING_LIBS)
 endif
 
 if UNITTESTS_ENABLED
-src_test_fuzz_fuzz_descripqed_hs_SOURCES = \
+src_test_fuzz_fuzz_descriptor_SOURCES = \
 	src/test/fuzz/fuzzing_common.c \
 	src/test/fuzz/fuzz_descriptor.c
-src_test_fuzz_fuzz_descripqed_hs_CPPFLAGS = $(FUZZING_CPPFLAGS)
-src_test_fuzz_fuzz_descripqed_hs_CFLAGS = $(FUZZING_CFLAGS)
-src_test_fuzz_fuzz_descripqed_hs_LDFLAGS = $(FUZZING_LDFLAG)
-src_test_fuzz_fuzz_descripqed_hs_LDADD = $(FUZZING_LIBS)
+src_test_fuzz_fuzz_descriptor_CPPFLAGS = $(FUZZING_CPPFLAGS)
+src_test_fuzz_fuzz_descriptor_CFLAGS = $(FUZZING_CFLAGS)
+src_test_fuzz_fuzz_descriptor_LDFLAGS = $(FUZZING_LDFLAG)
+src_test_fuzz_fuzz_descriptor_LDADD = $(FUZZING_LIBS)
 endif
 
 if UNITTESTS_ENABLED
@@ -244,12 +244,12 @@ src_test_fuzz_lf_fuzz_consensus_LDADD = $(LIBFUZZER_LIBS)
 endif
 
 if UNITTESTS_ENABLED
-src_test_fuzz_lf_fuzz_descripqed_hs_SOURCES = \
-	$(src_test_fuzz_fuzz_descripqed_hs_SOURCES)
-src_test_fuzz_lf_fuzz_descripqed_hs_CPPFLAGS = $(LIBFUZZER_CPPFLAGS)
-src_test_fuzz_lf_fuzz_descripqed_hs_CFLAGS = $(LIBFUZZER_CFLAGS)
-src_test_fuzz_lf_fuzz_descripqed_hs_LDFLAGS = $(LIBFUZZER_LDFLAG)
-src_test_fuzz_lf_fuzz_descripqed_hs_LDADD = $(LIBFUZZER_LIBS)
+src_test_fuzz_lf_fuzz_descriptor_SOURCES = \
+	$(src_test_fuzz_fuzz_descriptor_SOURCES)
+src_test_fuzz_lf_fuzz_descriptor_CPPFLAGS = $(LIBFUZZER_CPPFLAGS)
+src_test_fuzz_lf_fuzz_descriptor_CFLAGS = $(LIBFUZZER_CFLAGS)
+src_test_fuzz_lf_fuzz_descriptor_LDFLAGS = $(LIBFUZZER_LDFLAG)
+src_test_fuzz_lf_fuzz_descriptor_LDADD = $(LIBFUZZER_LIBS)
 endif
 
 if UNITTESTS_ENABLED
@@ -408,10 +408,10 @@ src_test_fuzz_liboss_fuzz_consensus_a_CFLAGS = $(LIBOSS_FUZZ_CFLAGS)
 endif
 
 if UNITTESTS_ENABLED
-src_test_fuzz_liboss_fuzz_descripqed_hs_a_SOURCES = \
-	$(src_test_fuzz_fuzz_descripqed_hs_SOURCES)
-src_test_fuzz_liboss_fuzz_descripqed_hs_a_CPPFLAGS = $(LIBOSS_FUZZ_CPPFLAGS)
-src_test_fuzz_liboss_fuzz_descripqed_hs_a_CFLAGS = $(LIBOSS_FUZZ_CFLAGS)
+src_test_fuzz_liboss_fuzz_descriptor_a_SOURCES = \
+	$(src_test_fuzz_fuzz_descriptor_SOURCES)
+src_test_fuzz_liboss_fuzz_descriptor_a_CPPFLAGS = $(LIBOSS_FUZZ_CPPFLAGS)
+src_test_fuzz_liboss_fuzz_descriptor_a_CFLAGS = $(LIBOSS_FUZZ_CFLAGS)
 endif
 
 if UNITTESTS_ENABLED

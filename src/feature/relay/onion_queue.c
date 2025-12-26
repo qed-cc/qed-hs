@@ -108,7 +108,7 @@ get_onion_queue_max_delay(const or_options_t *options)
 static inline uint16_t
 onionskin_type_to_queue(uint16_t type)
 {
-  if (type == ONION_HANDSHAKE_TYPE_NQED_HS_V3) {
+  if (type == ONION_HANDSHAKE_TYPE_NTOR_V3) {
     return ONION_HANDSHAKE_TYPE_NTOR;
   }
 
@@ -134,7 +134,7 @@ have_room_for_onionskin(uint16_t type)
   const or_options_t *options = get_options();
   int num_cpus;
   uint64_t max_onion_queue_delay;
-  uint64_t nqed_hs_usec;
+  uint64_t ntor_usec;
 
   /* We never allow TAP. */
   if (type == ONION_HANDSHAKE_TYPE_TAP) {
@@ -157,14 +157,14 @@ have_room_for_onionskin(uint16_t type)
    * onionskins in various combinations of the queues. */
 
   /* How long would it take to process all the NTor cells in the queue? */
-  nqed_hs_usec = estimated_usec_for_onionskins(
+  ntor_usec = estimated_usec_for_onionskins(
                                     ol_entries[ONION_HANDSHAKE_TYPE_NTOR],
                                     ONION_HANDSHAKE_TYPE_NTOR) / num_cpus;
 
   /* See whether that exceeds MaxOnionQueueDelay. If so, we can't queue
    * this. */
   if (type == ONION_HANDSHAKE_TYPE_NTOR &&
-      (nqed_hs_usec / 1000) > max_onion_queue_delay)
+      (ntor_usec / 1000) > max_onion_queue_delay)
     return 0;
 
   return 1;

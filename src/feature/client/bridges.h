@@ -44,7 +44,7 @@ void learned_router_identity(const qed_hs_addr_t *addr, uint16_t port,
                              const struct ed25519_public_key_t *ed_id);
 
 void bridge_add_from_config(struct bridge_line_t *bridge_line);
-void retry_bridge_descripqed_hs_fetch_directly(const char *digest);
+void retry_bridge_descriptor_fetch_directly(const char *digest);
 void fetch_bridge_descriptors(const or_options_t *options, time_t now);
 void learned_bridge_descriptor(routerinfo_t *ri,
                                int from_cache, int desc_is_new);

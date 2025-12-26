@@ -254,7 +254,7 @@ run_vegas_cwnd_test_vec(congestion_control_t *cc,
  * test_sendme_is_next() for that, in test_sendme.c.
  *
  * We also do NOT exercise the negotiation code here. See
- * test_ntor3_handshake() for that, in test_nqed_hs_v3.c.
+ * test_ntor3_handshake() for that, in test_ntor_v3.c.
  */
 void
 test_congestion_control_vegas_cwnd(void *arg)

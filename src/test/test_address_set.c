@@ -155,7 +155,7 @@ test_nodelist(void *arg)
   rs = qed_hs_malloc_zero(sizeof(*rs));
   crypto_rand(rs->identity_digest, sizeof(rs->identity_digest));
   crypto_rand(md->digest, sizeof(md->digest));
-  memcpy(rs->descripqed_hs_digest, md->digest, DIGEST256_LEN);
+  memcpy(rs->descriptor_digest, md->digest, DIGEST256_LEN);
 
   /* Setup the rs, ri and md addresses. */
   qed_hs_addr_copy(&rs->ipv4_addr, &addr_v4);
@@ -237,7 +237,7 @@ test_exit_no_reentry(void *arg)
   rs = qed_hs_malloc_zero(sizeof(*rs));
   crypto_rand(rs->identity_digest, sizeof(rs->identity_digest));
   crypto_rand(md->digest, sizeof(md->digest));
-  memcpy(rs->descripqed_hs_digest, md->digest, DIGEST256_LEN);
+  memcpy(rs->descriptor_digest, md->digest, DIGEST256_LEN);
 
   /* Setup the rs, ri and md addresses. */
   qed_hs_addr_copy(&rs->ipv4_addr, &addr_v4);

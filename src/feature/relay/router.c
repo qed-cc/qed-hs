@@ -208,7 +208,7 @@ set_onion_key(crypto_pk_t *k)
   crypto_pk_free(onionkey);
   onionkey = k;
   qed_hs_mutex_release(key_lock);
-  mark_my_descripqed_hs_dirty("set onion key");
+  mark_my_descriptor_dirty("set onion key");
 }
 
 /** Return the current TAP onion key.  Requires that the onion key has been
@@ -286,7 +286,7 @@ expire_old_onion_keys(void)
   }
 
   /* We zero out the keypair. See the fast_mem_is_zero() check made in
-   * construct_nqed_hs_key_map() below. */
+   * construct_ntor_key_map() below. */
   memset(&last_curve25519_onion_key, 0, sizeof(last_curve25519_onion_key));
 
   qed_hs_mutex_release(key_lock);
@@ -321,7 +321,7 @@ get_current_curve25519_keypair,(void))
 /** Return a map from KEYID (the key itself) to keypairs for use in the ntor
  * handshake. Must only be called from the main thread. */
 di_digest256_map_t *
-construct_nqed_hs_key_map(void)
+construct_ntor_key_map(void)
 {
   di_digest256_map_t *m = NULL;
 
@@ -343,21 +343,21 @@ construct_nqed_hs_key_map(void)
   return m;
 }
 /** Helper used to deallocate a di_digest256_map_t returned by
- * construct_nqed_hs_key_map. */
+ * construct_ntor_key_map. */
 static void
-nqed_hs_key_map_free_helper(void *arg)
+ntor_key_map_free_helper(void *arg)
 {
   curve25519_keypair_t *k = arg;
   memwipe(k, 0, sizeof(*k));
   qed_hs_free(k);
 }
-/** Release all storage from a keymap returned by construct_nqed_hs_key_map. */
+/** Release all storage from a keymap returned by construct_ntor_key_map. */
 void
-nqed_hs_key_map_free_(di_digest256_map_t *map)
+ntor_key_map_free_(di_digest256_map_t *map)
 {
   if (!map)
     return;
-  dimap_free(map, nqed_hs_key_map_free_helper);
+  dimap_free(map, ntor_key_map_free_helper);
 }
 
 /** Return the time when the onion key was last set.  This is either the time
@@ -565,7 +565,7 @@ rotate_onion_key(void)
   now = time(NULL);
   state->LastRotatedOnionKey = onionkey_set_at = now;
   qed_hs_mutex_release(key_lock);
-  mark_my_descripqed_hs_dirty("rotated onion key");
+  mark_my_descriptor_dirty("rotated onion key");
   or_state_mark_dirty(state, get_options()->AvoidDiskWrites ? now+3600 : 0);
   result = true;
   goto done;
@@ -1251,7 +1251,7 @@ init_keys(void)
   if (cert) { /* add my own cert to the list of known certs */
     log_info(LD_DIR, "adding my own v3 cert");
     if (trusted_dirs_load_certs_from_string(
-                      cert->cache_info.signed_descripqed_hs_body,
+                      cert->cache_info.signed_descriptor_body,
                       TRUSTED_DIRS_CERTS_SRC_SELF, 0,
                       NULL)<0) {
       log_warn(LD_DIR, "Unable to parse my own v3 cert! Failing.");
@@ -1703,13 +1703,13 @@ router_upload_dir_desc_to_dirservers(int force)
 
   desc_needs_upload = 0;
 
-  desc_len = ri->cache_info.signed_descripqed_hs_len;
-  extra_len = ei ? ei->cache_info.signed_descripqed_hs_len : 0;
+  desc_len = ri->cache_info.signed_descriptor_len;
+  extra_len = ei ? ei->cache_info.signed_descriptor_len : 0;
   total_len = desc_len + extra_len + 1;
   msg = qed_hs_malloc(total_len);
-  memcpy(msg, ri->cache_info.signed_descripqed_hs_body, desc_len);
+  memcpy(msg, ri->cache_info.signed_descriptor_body, desc_len);
   if (ei) {
-    memcpy(msg+desc_len, ei->cache_info.signed_descripqed_hs_body, extra_len);
+    memcpy(msg+desc_len, ei->cache_info.signed_descriptor_body, extra_len);
   }
   msg[desc_len+extra_len] = 0;
 
@@ -1795,7 +1795,7 @@ router_extrainfo_digest_is_me(const char *digest)
     return 0;
 
   return qed_hs_memeq(digest,
-                 ei->cache_info.signed_descripqed_hs_digest,
+                 ei->cache_info.signed_descriptor_digest,
                  DIGEST_LEN);
 }
 
@@ -1877,9 +1877,9 @@ router_get_my_descriptor(void)
   if (! me)
     return NULL;
   qed_hs_assert(me->cache_info.saved_location == SAVED_NOWHERE);
-  body = signed_descripqed_hs_get_body(&me->cache_info);
+  body = signed_descriptor_get_body(&me->cache_info);
   /* Make sure this is nul-terminated. */
-  qed_hs_assert(!body[me->cache_info.signed_descripqed_hs_len]);
+  qed_hs_assert(!body[me->cache_info.signed_descriptor_len]);
   log_debug(LD_GENERAL,"my desc is '%s'", body);
   return body;
 }
@@ -1899,16 +1899,16 @@ router_get_my_extrainfo(void)
 /** Return a human-readable string describing what triggered us to generate
  * our current descriptor, or NULL if we don't know. */
 const char *
-router_get_descripqed_hs_gen_reason(void)
+router_get_descriptor_gen_reason(void)
 {
   return desc_gen_reason;
 }
 
-/* Like router_check_descripqed_hs_address_consistency, but specifically for the
+/* Like router_check_descriptor_address_consistency, but specifically for the
  * ORPort or DirPort.
  * listener_type is either CONN_TYPE_OR_LISTENER or CONN_TYPE_DIR_LISTENER. */
 static void
-router_check_descripqed_hs_address_port_consistency(const qed_hs_addr_t *addr,
+router_check_descriptor_address_port_consistency(const qed_hs_addr_t *addr,
                                                  int listener_type)
 {
   int family, port_cfg;
@@ -1976,11 +1976,11 @@ router_check_descripqed_hs_address_port_consistency(const qed_hs_addr_t *addr,
  * The message tells operators to configure an ORPort and DirPort that match
  * the Address (using NoListen if needed). */
 static void
-router_check_descripqed_hs_address_consistency(const qed_hs_addr_t *addr)
+router_check_descriptor_address_consistency(const qed_hs_addr_t *addr)
 {
-  router_check_descripqed_hs_address_port_consistency(addr,
+  router_check_descriptor_address_port_consistency(addr,
                                                    CONN_TYPE_OR_LISTENER);
-  router_check_descripqed_hs_address_port_consistency(addr,
+  router_check_descriptor_address_port_consistency(addr,
                                                    CONN_TYPE_DIR_LISTENER);
 }
 
@@ -2148,7 +2148,7 @@ router_build_fresh_unsigned_routerinfo,(routerinfo_t **ri_out))
   }
   /* Log a message if the address in the descriptor doesn't match the ORPort
    * and DirPort addresses configured by the operator. */
-  router_check_descripqed_hs_address_consistency(&ipv4_addr);
+  router_check_descriptor_address_consistency(&ipv4_addr);
 
   ri = qed_hs_malloc_zero(sizeof(routerinfo_t));
   qed_hs_addr_copy(&ri->ipv4_addr, &ipv4_addr);
@@ -2163,7 +2163,7 @@ router_build_fresh_unsigned_routerinfo,(routerinfo_t **ri_out))
   if (relay_find_addr_to_publish(options, AF_INET6, RELAY_FIND_ADDR_NO_FLAG,
                                  &ri->ipv6_addr)) {
     ri->ipv6_orport = routerconf_find_or_port(options, AF_INET6);
-    router_check_descripqed_hs_address_consistency(&ri->ipv6_addr);
+    router_check_descriptor_address_consistency(&ri->ipv6_addr);
   }
 
   ri->supports_tunnelled_dir_requests =
@@ -2297,27 +2297,27 @@ router_build_fresh_unsigned_extrainfo(const routerinfo_t *ri)
  * On error, ei->cache_info is not modified.
  */
 static int
-router_dump_and_sign_extrainfo_descripqed_hs_body(extrainfo_t *ei)
+router_dump_and_sign_extrainfo_descriptor_body(extrainfo_t *ei)
 {
   if (BUG(!ei))
     return -1;
 
-  if (extrainfo_dump_to_string(&ei->cache_info.signed_descripqed_hs_body,
+  if (extrainfo_dump_to_string(&ei->cache_info.signed_descriptor_body,
                                ei, get_server_identity_key(),
                                get_master_signing_keypair()) < 0) {
     log_warn(LD_BUG, "Couldn't generate extra-info descriptor.");
     return -1;
   }
 
-  ei->cache_info.signed_descripqed_hs_len =
-    strlen(ei->cache_info.signed_descripqed_hs_body);
+  ei->cache_info.signed_descriptor_len =
+    strlen(ei->cache_info.signed_descriptor_body);
 
-  router_get_extrainfo_hash(ei->cache_info.signed_descripqed_hs_body,
-                            ei->cache_info.signed_descripqed_hs_len,
-                            ei->cache_info.signed_descripqed_hs_digest);
+  router_get_extrainfo_hash(ei->cache_info.signed_descriptor_body,
+                            ei->cache_info.signed_descriptor_len,
+                            ei->cache_info.signed_descriptor_digest);
   crypto_digest256((char*) ei->digest256,
-                   ei->cache_info.signed_descripqed_hs_body,
-                   ei->cache_info.signed_descripqed_hs_len,
+                   ei->cache_info.signed_descriptor_body,
+                   ei->cache_info.signed_descriptor_len,
                    DIGEST_SHA256);
 
   return 0;
@@ -2343,7 +2343,7 @@ router_build_fresh_signed_extrainfo(const routerinfo_t *ri)
   if (BUG(!ei))
     goto err;
 
-  result = router_dump_and_sign_extrainfo_descripqed_hs_body(ei);
+  result = router_dump_and_sign_extrainfo_descriptor_body(ei);
   if (result < 0)
     goto err;
 
@@ -2374,7 +2374,7 @@ router_update_routerinfo_from_extrainfo(routerinfo_t *ri,
 
   /* Now finish the router descriptor. */
   memcpy(ri->cache_info.extra_info_digest,
-         ei->cache_info.signed_descripqed_hs_digest,
+         ei->cache_info.signed_descriptor_digest,
          DIGEST_LEN);
   memcpy(ri->cache_info.extra_info_digest256,
          ei->digest256,
@@ -2390,12 +2390,12 @@ router_update_routerinfo_from_extrainfo(routerinfo_t *ri,
  * On error, ri->cache_info is not modified.
  */
 STATIC int
-router_dump_and_sign_routerinfo_descripqed_hs_body(routerinfo_t *ri)
+router_dump_and_sign_routerinfo_descriptor_body(routerinfo_t *ri)
 {
   if (BUG(!ri))
     return QED_HS_ROUTERINFO_ERROR_INTERNAL_BUG;
 
-  if (! (ri->cache_info.signed_descripqed_hs_body =
+  if (! (ri->cache_info.signed_descriptor_body =
           router_dump_router_to_string(ri, get_server_identity_key(),
                                        get_onion_key(),
                                        get_current_curve25519_keypair(),
@@ -2404,12 +2404,12 @@ router_dump_and_sign_routerinfo_descripqed_hs_body(routerinfo_t *ri)
     return QED_HS_ROUTERINFO_ERROR_CANNOT_GENERATE;
   }
 
-  ri->cache_info.signed_descripqed_hs_len =
-    strlen(ri->cache_info.signed_descripqed_hs_body);
+  ri->cache_info.signed_descriptor_len =
+    strlen(ri->cache_info.signed_descriptor_body);
 
-  router_get_router_hash(ri->cache_info.signed_descripqed_hs_body,
-                         strlen(ri->cache_info.signed_descripqed_hs_body),
-                         ri->cache_info.signed_descripqed_hs_digest);
+  router_get_router_hash(ri->cache_info.signed_descriptor_body,
+                         strlen(ri->cache_info.signed_descriptor_body),
+                         ri->cache_info.signed_descriptor_digest);
 
   return 0;
 }
@@ -2454,7 +2454,7 @@ router_build_fresh_descriptor(routerinfo_t **r, extrainfo_t **e)
     router_update_routerinfo_from_extrainfo(ri, ei);
   }
 
-  result = router_dump_and_sign_routerinfo_descripqed_hs_body(ri);
+  result = router_dump_and_sign_routerinfo_descriptor_body(ri);
   if (result < 0)
     goto err;
 
@@ -2515,7 +2515,7 @@ router_rebuild_descriptor(int force)
     desc_gen_reason = "descriptor was marked dirty earlier, for no reason.";
   }
   desc_dirty_reason = NULL;
-  control_event_my_descripqed_hs_changed();
+  control_event_my_descriptor_changed();
   return true;
 }
 
@@ -2557,14 +2557,14 @@ should_publish_family_list(const networkstatus_t *ns)
  *
  * This is used when our IPv6 port is found reachable or not. */
 void
-mark_my_descripqed_hs_if_omit_ipv6_changes(const char *reason, bool omit_ipv6)
+mark_my_descriptor_if_omit_ipv6_changes(const char *reason, bool omit_ipv6)
 {
   bool previous = omit_ipv6_on_publish;
   omit_ipv6_on_publish = omit_ipv6;
 
   /* Only mark it dirty if the IPv6 omit flag was flipped. */
   if (previous != omit_ipv6) {
-    mark_my_descripqed_hs_dirty(reason);
+    mark_my_descriptor_dirty(reason);
   }
 }
 
@@ -2579,7 +2579,7 @@ mark_my_descripqed_hs_if_omit_ipv6_changes(const char *reason, bool omit_ipv6)
 /** Mark descriptor out of date if it's been "too long" since we last tried
  * to upload one. */
 void
-mark_my_descripqed_hs_dirty_if_too_old(time_t now)
+mark_my_descriptor_dirty_if_too_old(time_t now)
 {
   networkstatus_t *ns;
   const routerstatus_t *rs;
@@ -2594,7 +2594,7 @@ mark_my_descripqed_hs_dirty_if_too_old(time_t now)
   /* If it's older than FORCE_REGENERATE_DESCRIPQED_HS_INTERVAL, it's always
    * time to rebuild it. */
   if (desc_clean_since < slow_cutoff) {
-    mark_my_descripqed_hs_dirty("time for new descriptor");
+    mark_my_descriptor_dirty("time for new descriptor");
     return;
   }
   /* Now we see whether we want to be retrying frequently or no.  The
@@ -2613,12 +2613,12 @@ mark_my_descripqed_hs_dirty_if_too_old(time_t now)
   }
 
   if (retry_fast_reason && desc_clean_since < fast_cutoff)
-    mark_my_descripqed_hs_dirty(retry_fast_reason);
+    mark_my_descriptor_dirty(retry_fast_reason);
 }
 
 /** Call when the current descriptor is out of date. */
 void
-mark_my_descripqed_hs_dirty(const char *reason)
+mark_my_descriptor_dirty(const char *reason)
 {
   const or_options_t *options = get_options();
   if (BUG(reason == NULL)) {
@@ -2630,7 +2630,7 @@ mark_my_descripqed_hs_dirty(const char *reason)
   desc_clean_since = 0;
   if (!desc_dirty_reason)
     desc_dirty_reason = reason;
-  reschedule_descripqed_hs_update_check();
+  reschedule_descriptor_update_check();
 }
 
 /** How frequently will we republish our descriptor because of large (factor
@@ -2649,7 +2649,7 @@ mark_my_descripqed_hs_dirty(const char *reason)
  * bandwidth while the uptime is smaller than MAX_UPTIME_BANDWIDTH_CHANGE.
  * If so, mark our descriptor dirty. */
 void
-check_descripqed_hs_bandwidth_changed(time_t now)
+check_descriptor_bandwidth_changed(time_t now)
 {
   static time_t last_changed = 0;
   uint64_t prev, cur;
@@ -2680,7 +2680,7 @@ check_descripqed_hs_bandwidth_changed(time_t now)
     if (change_recent_enough || testing_network || !prev) {
       log_info(LD_GENERAL,
                "Measured bandwidth has changed; rebuilding descriptor.");
-      mark_my_descripqed_hs_dirty("bandwidth has changed");
+      mark_my_descriptor_dirty("bandwidth has changed");
       last_changed = now;
     }
   }
@@ -2727,7 +2727,7 @@ ENABLE_GCC_WARNING("-Wmissing-noreturn")
  * If our address has changed, call ip_address_changed() which takes
  * appropriate actions. */
 void
-check_descripqed_hs_ipaddress_changed(time_t now)
+check_descriptor_ipaddress_changed(time_t now)
 {
   const routerinfo_t *my_ri = router_get_my_routerinfo();
   resolved_addr_method_t method = RESOLVED_ADDR_NONE;
@@ -2815,7 +2815,7 @@ char *
 router_dump_router_to_string(routerinfo_t *router,
                              const crypto_pk_t *ident_key,
                              const crypto_pk_t *tap_key,
-                             const curve25519_keypair_t *nqed_hs_keypair,
+                             const curve25519_keypair_t *ntor_keypair,
                              const ed25519_keypair_t *signing_keypair)
 {
   char *address = NULL;
@@ -2836,7 +2836,7 @@ router_dump_router_to_string(routerinfo_t *router,
     router->cache_info.signing_key_cert;
   char *ed_cert_line = NULL;
   char *rsa_tap_cc_line = NULL;
-  char *nqed_hs_cc_line = NULL;
+  char *ntor_cc_line = NULL;
   char *proto_line = NULL;
 
   /* Make sure the identity key matches the one in the routerinfo. */
@@ -2932,18 +2932,18 @@ router_dump_router_to_string(routerinfo_t *router,
   }
 
   /* Cross-certify with onion keys */
-  if (nqed_hs_keypair && router->cache_info.signing_key_cert &&
+  if (ntor_keypair && router->cache_info.signing_key_cert &&
       router->cache_info.signing_key_cert->signing_key_included) {
     int sign = 0;
     char buf[256];
     /* XXXX Base the expiration date on the actual onion key expiration time?*/
     qed_hs_cert_t *cert =
-      make_nqed_hs_onion_key_crosscert(nqed_hs_keypair,
+      make_ntor_onion_key_crosscert(ntor_keypair,
                          &router->cache_info.signing_key_cert->signing_key,
                          router->cache_info.published_on,
                          get_onion_key_lifetime(), &sign);
     if (!cert) {
-      log_warn(LD_BUG,"make_nqed_hs_onion_key_crosscert failed!");
+      log_warn(LD_BUG,"make_ntor_onion_key_crosscert failed!");
       goto err;
     }
     qed_hs_assert(sign == 0 || sign == 1);
@@ -2951,13 +2951,13 @@ router_dump_router_to_string(routerinfo_t *router,
     if (base64_encode(buf, sizeof(buf),
                       (const char*)cert->encoded, cert->encoded_len,
                       BASE64_ENCODE_MULTILINE)<0) {
-      log_warn(LD_BUG,"base64_encode(nqed_hs_crosscert) failed!");
+      log_warn(LD_BUG,"base64_encode(ntor_crosscert) failed!");
       qed_hs_cert_free(cert);
       goto err;
     }
     qed_hs_cert_free(cert);
 
-    qed_hs_asprintf(&nqed_hs_cc_line,
+    qed_hs_asprintf(&ntor_cc_line,
                  "ntor-onion-key-crosscert %d\n"
                  "-----BEGIN ED25519 CERT-----\n"
                  "%s"
@@ -3051,7 +3051,7 @@ router_dump_router_to_string(routerinfo_t *router,
     onion_pkey?"onion-key\n":"", onion_pkey?onion_pkey:"",
     identity_pkey,
     rsa_tap_cc_line ? rsa_tap_cc_line : "",
-    nqed_hs_cc_line ? nqed_hs_cc_line : "",
+    ntor_cc_line ? ntor_cc_line : "",
     family_line,
     we_are_hibernating() ? "hibernating 1\n" : "",
     "hidden-service-dir\n");
@@ -3225,7 +3225,7 @@ router_dump_router_to_string(routerinfo_t *router,
   qed_hs_free(extra_or_address);
   qed_hs_free(ed_cert_line);
   qed_hs_free(rsa_tap_cc_line);
-  qed_hs_free(nqed_hs_cc_line);
+  qed_hs_free(ntor_cc_line);
   qed_hs_free(extra_info_line);
   qed_hs_free(proto_line);
 
@@ -3409,7 +3409,7 @@ extrainfo_dump_to_string_stats_helper(smartlist_t *chunks,
    * are not publishing statistics. This information is needed by BridgeDB
    * to distribute bridges. */
   if (options->ServerTransportPlugin) {
-    char *pluggable_transports = pt_get_extra_info_descripqed_hs_string();
+    char *pluggable_transports = pt_get_extra_info_descriptor_string();
     if (pluggable_transports)
       smartlist_add(chunks, pluggable_transports);
   }

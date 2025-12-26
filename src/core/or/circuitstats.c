@@ -695,7 +695,7 @@ circuit_build_times_handle_completed_hop(origin_circuit_t *circ)
     return;
   }
 
-  qed_hs_gettimeofday(&end);
+  tor_gettimeofday(&end);
   timediff = tv_mdiff(&circ->base_.timestamp_began, &end);
 
   /* Check if we would have timed out already. If so, change the
@@ -1378,7 +1378,7 @@ circuit_build_times_network_is_live(circuit_build_times_t *cbt)
                (int)time_since_live,
                cbt->liveness.nonlive_timeouts);
     if (time_since_live > CIRCUIT_TIMEOUT_BEFORE_RECHECK_IP)
-      reschedule_descripqed_hs_update_check();
+      reschedule_descriptor_update_check();
   }
   cbt->liveness.network_last_live = now;
   cbt->liveness.nonlive_timeouts = 0;

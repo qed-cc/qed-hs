@@ -33,7 +33,7 @@ extend_info_t *
 extend_info_new(const char *nickname,
                 const char *rsa_id_digest,
                 const ed25519_public_key_t *ed_id,
-                const curve25519_public_key_t *nqed_hs_key,
+                const curve25519_public_key_t *ntor_key,
                 const qed_hs_addr_t *addr, uint16_t port,
                 const protover_summary_flags_t *pv,
                 bool for_exit_use)
@@ -45,8 +45,8 @@ extend_info_new(const char *nickname,
     memcpy(&info->ed_identity, ed_id, sizeof(ed25519_public_key_t));
   if (nickname)
     strlcpy(info->nickname, nickname, sizeof(info->nickname));
-  if (nqed_hs_key)
-    memcpy(&info->curve25519_onion_key, nqed_hs_key,
+  if (ntor_key)
+    memcpy(&info->curve25519_onion_key, ntor_key,
            sizeof(curve25519_public_key_t));
   for (int i = 0; i < EXTEND_INFO_MAX_ADDRS; ++i) {
     qed_hs_addr_make_unspec(&info->orports[i].addr);
@@ -203,7 +203,7 @@ extend_info_supports_ntor(const extend_info_t* ei)
 
 /** Return true if we can use the Ntor v3 handshake with `ei` */
 int
-extend_info_supports_nqed_hs_v3(const extend_info_t *ei)
+extend_info_supports_ntor_v3(const extend_info_t *ei)
 {
   qed_hs_assert(ei);
   return extend_info_supports_ntor(ei) &&

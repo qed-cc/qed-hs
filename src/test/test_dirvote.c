@@ -13,7 +13,7 @@
 #include "feature/nodelist/node_st.h"
 #include "feature/nodelist/nodelist.h"
 #include "feature/nodelist/routerinfo_st.h"
-#include "feature/nodelist/signed_descripqed_hs_st.h"
+#include "feature/nodelist/signed_descriptor_st.h"
 
 #include "test/test.h"
 
@@ -118,7 +118,7 @@ static routerinfo_t *
 routerinfo_new(router_values_t *status, int family, int addr)
 {
   routerinfo_t *ri = qed_hs_malloc(sizeof(routerinfo_t));
-  signed_descripqed_hs_t cache_info;
+  signed_descriptor_t cache_info;
   memcpy(cache_info.identity_digest, status->digest,
          sizeof(cache_info.identity_digest));
   ri->cache_info = cache_info;

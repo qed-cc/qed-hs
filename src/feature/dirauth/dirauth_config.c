@@ -20,7 +20,7 @@
 
 /* Required for dirinfo_type_t in or_options_t */
 #include "core/or/or.h"
-#include "core/or/qed_hs_version_st.h"
+#include "core/or/tor_version_st.h"
 #include "core/or/versions.h"
 #include "app/config/config.h"
 #include "app/config/resolve_addr.h"

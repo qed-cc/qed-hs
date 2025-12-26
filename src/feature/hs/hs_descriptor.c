@@ -211,7 +211,7 @@ build_mac(const uint8_t *mac_key, size_t mac_key_len,
  * Then, set the newly allocated buffer in secret_input_out and return the
  * length of the buffer. */
 static size_t
-build_secret_input(const hs_descripqed_hs_t *desc,
+build_secret_input(const hs_descriptor_t *desc,
                    const uint8_t *secret_data,
                    size_t secret_data_len,
                    uint8_t **secret_input_out)
@@ -246,7 +246,7 @@ build_secret_input(const hs_descripqed_hs_t *desc,
 /** Do the KDF construction and put the resulting data in key_out which is of
  * key_out_len length. It uses SHAKE-256 as specified in the spec. */
 static void
-build_kdf_key(const hs_descripqed_hs_t *desc,
+build_kdf_key(const hs_descriptor_t *desc,
               const uint8_t *secret_data,
               size_t secret_data_len,
               const uint8_t *salt, size_t salt_len,
@@ -292,7 +292,7 @@ build_kdf_key(const hs_descripqed_hs_t *desc,
  * KDF function and then extract a secret key in key_out, the IV in iv_out
  * and MAC in mac_out. This function can't fail. */
 static void
-build_secret_key_iv_mac(const hs_descripqed_hs_t *desc,
+build_secret_key_iv_mac(const hs_descriptor_t *desc,
                         const uint8_t *secret_data,
                         size_t secret_data_len,
                         const uint8_t *salt, size_t salt_len,
@@ -617,7 +617,7 @@ build_encrypted(const uint8_t *key, const uint8_t *iv, const char *plaintext,
  * data and return the length of it. <b>is_superencrypted_layer</b> is set
  * if this is the outer encrypted layer of the descriptor. */
 static size_t
-encrypt_descripqed_hs_data(const hs_descripqed_hs_t *desc,
+encrypt_descriptor_data(const hs_descriptor_t *desc,
                         const uint8_t *secret_data,
                         size_t secret_data_len,
                         const char *plaintext,
@@ -721,7 +721,7 @@ get_auth_client_str(const hs_desc_authorized_client_t *client)
  *  newly-allocated string with it. It's the responsibility of the caller to
  *  free the returned string. */
 static char *
-get_all_auth_client_lines(const hs_descripqed_hs_t *desc)
+get_all_auth_client_lines(const hs_descriptor_t *desc)
 {
   smartlist_t *auth_client_lines = smartlist_new();
   char *auth_client_lines_str = NULL;
@@ -757,7 +757,7 @@ get_all_auth_client_lines(const hs_descripqed_hs_t *desc)
  * an error occurred. It's the responsibility of the caller to free the
  * returned string. */
 static char *
-get_inner_encrypted_layer_plaintext(const hs_descripqed_hs_t *desc)
+get_inner_encrypted_layer_plaintext(const hs_descriptor_t *desc)
 {
   char *encoded_str = NULL;
   smartlist_t *lines = smartlist_new();
@@ -853,7 +853,7 @@ get_inner_encrypted_layer_plaintext(const hs_descripqed_hs_t *desc)
  * layer plaintext. It's the responsibility of the caller to free the returned
  * string. Can not fail. */
 static char *
-get_outer_encrypted_layer_plaintext(const hs_descripqed_hs_t *desc,
+get_outer_encrypted_layer_plaintext(const hs_descriptor_t *desc,
                                     const char *layer2_b64_ciphertext)
 {
   char *layer1_str = NULL;
@@ -910,7 +910,7 @@ get_outer_encrypted_layer_plaintext(const hs_descripqed_hs_t *desc,
  * middle (superencrypted) layer of the descriptor. It's the responsibility of
  * the caller to free the returned string. */
 static char *
-encrypt_desc_data_and_base64(const hs_descripqed_hs_t *desc,
+encrypt_desc_data_and_base64(const hs_descriptor_t *desc,
                              const uint8_t *secret_data,
                              size_t secret_data_len,
                              const char *encoded_str,
@@ -920,7 +920,7 @@ encrypt_desc_data_and_base64(const hs_descripqed_hs_t *desc,
   ssize_t enc_b64_len, ret_len, enc_len;
   char *encrypted_blob = NULL;
 
-  enc_len = encrypt_descripqed_hs_data(desc, secret_data, secret_data_len,
+  enc_len = encrypt_descriptor_data(desc, secret_data, secret_data_len,
                                     encoded_str, &encrypted_blob,
                                     is_superencrypted_layer);
   /* Get the encoded size plus a NUL terminating byte. */
@@ -939,16 +939,16 @@ encrypt_desc_data_and_base64(const hs_descripqed_hs_t *desc,
 /** Generate the secret data which is used to encrypt/decrypt the descriptor.
  *
  * SECRET_DATA = blinded-public-key
- * SECRET_DATA = blinded-public-key | descripqed_hs_cookie
+ * SECRET_DATA = blinded-public-key | descriptor_cookie
  *
- * The descripqed_hs_cookie is optional but if it exists, it must be at least
+ * The descriptor_cookie is optional but if it exists, it must be at least
  * HS_DESC_DESCRIPQED_HS_COOKIE_LEN bytes long.
  *
  * A newly allocated secret data is put in secret_data_out. Return the
  * length of the secret data. This function cannot fail. */
 static size_t
 build_secret_data(const ed25519_public_key_t *blinded_pubkey,
-                  const uint8_t *descripqed_hs_cookie,
+                  const uint8_t *descriptor_cookie,
                   uint8_t **secret_data_out)
 {
   size_t secret_data_len;
@@ -957,7 +957,7 @@ build_secret_data(const ed25519_public_key_t *blinded_pubkey,
   qed_hs_assert(blinded_pubkey);
   qed_hs_assert(secret_data_out);
 
-  if (descripqed_hs_cookie) {
+  if (descriptor_cookie) {
     /* If the descriptor cookie is present, we need both the blinded
      * pubkey and the descriptor cookie as a secret data. */
     secret_data_len = ED25519_PUBKEY_LEN + HS_DESC_DESCRIPQED_HS_COOKIE_LEN;
@@ -967,7 +967,7 @@ build_secret_data(const ed25519_public_key_t *blinded_pubkey,
            blinded_pubkey->pubkey,
            ED25519_PUBKEY_LEN);
     memcpy(secret_data + ED25519_PUBKEY_LEN,
-           descripqed_hs_cookie,
+           descriptor_cookie,
            HS_DESC_DESCRIPQED_HS_COOKIE_LEN);
   } else {
     /* If the descriptor cookie is not present, we need only the blinded
@@ -989,8 +989,8 @@ build_secret_data(const ed25519_public_key_t *blinded_pubkey,
  * containing the encrypted encoded blob is put in encrypted_blob_out. Return 0
  * on success else a negative value. */
 static int
-encode_superencrypted_data(const hs_descripqed_hs_t *desc,
-                           const uint8_t *descripqed_hs_cookie,
+encode_superencrypted_data(const hs_descriptor_t *desc,
+                           const uint8_t *descriptor_cookie,
                            char **encrypted_blob_out)
 {
   int ret = -1;
@@ -1016,7 +1016,7 @@ encode_superencrypted_data(const hs_descripqed_hs_t *desc,
   }
 
   secret_data_len = build_secret_data(&desc->plaintext_data.blinded_pubkey,
-                                      descripqed_hs_cookie,
+                                      descriptor_cookie,
                                       &secret_data);
 
   /* Encrypt and b64 the inner layer */
@@ -1061,9 +1061,9 @@ encode_superencrypted_data(const hs_descripqed_hs_t *desc,
  * newly allocated string of the encoded descriptor. On error, -1 is returned
  * and encoded_out is untouched. */
 static int
-desc_encode_v3(const hs_descripqed_hs_t *desc,
+desc_encode_v3(const hs_descriptor_t *desc,
                const ed25519_keypair_t *signing_kp,
-               const uint8_t *descripqed_hs_cookie,
+               const uint8_t *descriptor_cookie,
                char **encoded_out)
 {
   int ret = -1;
@@ -1108,7 +1108,7 @@ desc_encode_v3(const hs_descripqed_hs_t *desc,
   /* Build the superencrypted data section. */
   {
     char *enc_b64_blob=NULL;
-    if (encode_superencrypted_data(desc, descripqed_hs_cookie,
+    if (encode_superencrypted_data(desc, descriptor_cookie,
                                    &enc_b64_blob) < 0) {
       goto err;
     }
@@ -1145,7 +1145,7 @@ desc_encode_v3(const hs_descripqed_hs_t *desc,
   encoded_str = smartlist_join_strings(lines, "\n", 1, NULL);
   *encoded_out = encoded_str;
 
-  if (strlen(encoded_str) >= hs_cache_get_max_descripqed_hs_size()) {
+  if (strlen(encoded_str) >= hs_cache_get_max_descriptor_size()) {
     log_warn(LD_GENERAL, "We just made an HS descriptor that's too big (%d)."
              "Failing.", (int)strlen(encoded_str));
     qed_hs_free(encoded_str);
@@ -1429,7 +1429,7 @@ encrypted_data_length_is_valid(size_t len)
  * and return the buffer's length. The caller should wipe and free its content
  * once done with it. This function can't fail. */
 static size_t
-build_descripqed_hs_cookie_keys(const hs_subcredential_t *subcredential,
+build_descriptor_cookie_keys(const hs_subcredential_t *subcredential,
                              const curve25519_secret_key_t *sk,
                              const curve25519_public_key_t *pk,
                              uint8_t **keys_out)
@@ -1464,19 +1464,19 @@ build_descripqed_hs_cookie_keys(const hs_subcredential_t *subcredential,
 
 /** Decrypt the descriptor cookie given the descriptor, the auth client,
  * and the client secret key. On success, return 0 and a newly allocated
- * descriptor cookie descripqed_hs_cookie_out. On error or if the client id
- * is invalid, return -1 and descripqed_hs_cookie_out is set to
+ * descriptor cookie descriptor_cookie_out. On error or if the client id
+ * is invalid, return -1 and descriptor_cookie_out is set to
  * NULL. */
 static int
-decrypt_descripqed_hs_cookie(const hs_descripqed_hs_t *desc,
+decrypt_descriptor_cookie(const hs_descriptor_t *desc,
                           const hs_desc_authorized_client_t *client,
                           const curve25519_secret_key_t *client_auth_sk,
-                          uint8_t **descripqed_hs_cookie_out)
+                          uint8_t **descriptor_cookie_out)
 {
   int ret = -1;
   uint8_t *keystream = NULL;
   size_t keystream_length = 0;
-  uint8_t *descripqed_hs_cookie = NULL;
+  uint8_t *descriptor_cookie = NULL;
   const uint8_t *cookie_key = NULL;
   crypto_cipher_t *cipher = NULL;
 
@@ -1497,7 +1497,7 @@ decrypt_descripqed_hs_cookie(const hs_descripqed_hs_t *desc,
 
   /* Get the KEYS component to derive the CLIENT-ID and COOKIE-KEY. */
   keystream_length =
-    build_descripqed_hs_cookie_keys(&desc->subcredential,
+    build_descriptor_cookie_keys(&desc->subcredential,
                              client_auth_sk,
                              &desc->superencrypted_data.auth_ephemeral_pubkey,
                              &keystream);
@@ -1514,16 +1514,16 @@ decrypt_descripqed_hs_cookie(const hs_descripqed_hs_t *desc,
   /* This creates a cipher for AES. It can't fail. */
   cipher = crypto_cipher_new_with_iv_and_bits(cookie_key, client->iv,
                                               HS_DESC_COOKIE_KEY_BIT_SIZE);
-  descripqed_hs_cookie = qed_hs_malloc_zero(HS_DESC_DESCRIPQED_HS_COOKIE_LEN);
+  descriptor_cookie = qed_hs_malloc_zero(HS_DESC_DESCRIPQED_HS_COOKIE_LEN);
   /* This can't fail. */
-  crypto_cipher_decrypt(cipher, (char *) descripqed_hs_cookie,
+  crypto_cipher_decrypt(cipher, (char *) descriptor_cookie,
                         (const char *) client->encrypted_cookie,
                         sizeof(client->encrypted_cookie));
 
   /* Success. */
   ret = 0;
  done:
-  *descripqed_hs_cookie_out = descripqed_hs_cookie;
+  *descriptor_cookie_out = descriptor_cookie;
   if (cipher) {
     crypto_cipher_free(cipher);
   }
@@ -1534,7 +1534,7 @@ decrypt_descripqed_hs_cookie(const hs_descripqed_hs_t *desc,
 
 /** Decrypt an encrypted descriptor layer at <b>encrypted_blob</b> of size
  *  <b>encrypted_blob_size</b>. The descriptor cookie is optional. Use
- *  the descriptor object <b>desc</b> and <b>descripqed_hs_cookie</b>
+ *  the descriptor object <b>desc</b> and <b>descriptor_cookie</b>
  *  to generate the right decryption keys; set <b>decrypted_out</b> to
  *  the plaintext. If <b>is_superencrypted_layer</b> is set, this is
  *  the outer encrypted layer of the descriptor.
@@ -1543,8 +1543,8 @@ decrypt_descripqed_hs_cookie(const hs_descripqed_hs_t *desc,
  * *<b>decrypted_out</b> to NULL.
  */
 MOCK_IMPL(STATIC size_t,
-decrypt_desc_layer,(const hs_descripqed_hs_t *desc,
-                    const uint8_t *descripqed_hs_cookie,
+decrypt_desc_layer,(const hs_descriptor_t *desc,
+                    const uint8_t *descriptor_cookie,
                     bool is_superencrypted_layer,
                     char **decrypted_out))
 {
@@ -1586,7 +1586,7 @@ decrypt_desc_layer,(const hs_descripqed_hs_t *desc,
 
   /* Build secret data to be used in the decryption. */
   secret_data_len = build_secret_data(&desc->plaintext_data.blinded_pubkey,
-                                      descripqed_hs_cookie,
+                                      descriptor_cookie,
                                       &secret_data);
 
   /* KDF construction resulting in a key from which the secret key, IV and MAC
@@ -1665,7 +1665,7 @@ decrypt_desc_layer,(const hs_descripqed_hs_t *desc,
  * descriptor. Return the length of decrypted_out on success else 0 is
  * returned and decrypted_out is set to NULL. */
 MOCK_IMPL(STATIC size_t,
-desc_decrypt_superencrypted,(const hs_descripqed_hs_t *desc,char **decrypted_out))
+desc_decrypt_superencrypted,(const hs_descriptor_t *desc,char **decrypted_out))
 {
   size_t superencrypted_len = 0;
   char *superencrypted_plaintext = NULL;
@@ -1697,13 +1697,13 @@ desc_decrypt_superencrypted,(const hs_descripqed_hs_t *desc,char **decrypted_out
  * Return the length of decrypted_out on success else 0 is returned and
  * decrypted_out is set to NULL. */
 MOCK_IMPL(STATIC size_t,
-desc_decrypt_encrypted,(const hs_descripqed_hs_t *desc,
+desc_decrypt_encrypted,(const hs_descriptor_t *desc,
                         const curve25519_secret_key_t *client_auth_sk,
                         char **decrypted_out))
 {
   size_t encrypted_len = 0;
   char *encrypted_plaintext = NULL;
-  uint8_t *descripqed_hs_cookie = NULL;
+  uint8_t *descriptor_cookie = NULL;
 
   qed_hs_assert(desc);
   qed_hs_assert(desc->superencrypted_data.clients);
@@ -1716,15 +1716,15 @@ desc_decrypt_encrypted,(const hs_descripqed_hs_t *desc,
                             hs_desc_authorized_client_t *, client) {
       /* If we can decrypt the descriptor cookie successfully, we will use that
        * descriptor cookie and break from the loop. */
-      if (!decrypt_descripqed_hs_cookie(desc, client, client_auth_sk,
-                                     &descripqed_hs_cookie)) {
+      if (!decrypt_descriptor_cookie(desc, client, client_auth_sk,
+                                     &descriptor_cookie)) {
         break;
       }
     } SMARTLIST_FOREACH_END(client);
   }
 
   encrypted_len = decrypt_desc_layer(desc,
-                                     descripqed_hs_cookie,
+                                     descriptor_cookie,
                                      false, &encrypted_plaintext);
 
   if (!encrypted_len) {
@@ -1736,10 +1736,10 @@ desc_decrypt_encrypted,(const hs_descripqed_hs_t *desc,
   /* In case of error, encrypted_plaintext is already NULL, so the
    * following line makes sense. */
   *decrypted_out = encrypted_plaintext;
-  if (descripqed_hs_cookie) {
-    memwipe(descripqed_hs_cookie, 0, HS_DESC_DESCRIPQED_HS_COOKIE_LEN);
+  if (descriptor_cookie) {
+    memwipe(descriptor_cookie, 0, HS_DESC_DESCRIPQED_HS_COOKIE_LEN);
   }
-  qed_hs_free(descripqed_hs_cookie);
+  qed_hs_free(descriptor_cookie);
   /* This makes sense too, because, in case of error, this is zero. */
   return encrypted_len;
 }
@@ -1752,7 +1752,7 @@ static int
 decode_intro_legacy_key(const directory_token_t *tok,
                         smartlist_t *tokens,
                         hs_desc_intro_point_t *ip,
-                        const hs_descripqed_hs_t *desc)
+                        const hs_descriptor_t *desc)
 {
   qed_hs_assert(tok);
   qed_hs_assert(tokens);
@@ -1851,7 +1851,7 @@ set_intro_point_onion_key(curve25519_public_key_t *onion_key_out,
  * point object containing the decoded data. Return NULL if the section can't
  * be decoded. */
 STATIC hs_desc_intro_point_t *
-decode_introduction_point(const hs_descripqed_hs_t *desc, const char *start)
+decode_introduction_point(const hs_descriptor_t *desc, const char *start)
 {
   hs_desc_intro_point_t *ip = NULL;
   memarea_t *area = NULL;
@@ -1980,7 +1980,7 @@ decode_introduction_point(const hs_descripqed_hs_t *desc, const char *start)
  * find them. This function can't fail and it is possible that zero
  * introduction points can be decoded. */
 static void
-decode_intro_points(const hs_descripqed_hs_t *desc,
+decode_intro_points(const hs_descriptor_t *desc,
                     hs_desc_encrypted_data_t *desc_enc,
                     const char *data)
 {
@@ -2288,7 +2288,7 @@ desc_decode_plaintext_v3(smartlist_t *tokens,
 /** Decode the version 3 superencrypted section of the given descriptor desc.
  * The desc_superencrypted_out will be populated with the decoded data. */
 STATIC hs_desc_decode_status_t
-desc_decode_superencrypted_v3(const hs_descripqed_hs_t *desc,
+desc_decode_superencrypted_v3(const hs_descriptor_t *desc,
                               hs_desc_superencrypted_data_t *
                               desc_superencrypted_out)
 {
@@ -2402,7 +2402,7 @@ desc_decode_superencrypted_v3(const hs_descripqed_hs_t *desc,
 /** Decode the version 3 encrypted section of the given descriptor desc. The
  * desc_encrypted_out will be populated with the decoded data. */
 STATIC hs_desc_decode_status_t
-desc_decode_encrypted_v3(const hs_descripqed_hs_t *desc,
+desc_decode_encrypted_v3(const hs_descriptor_t *desc,
                          const curve25519_secret_key_t *client_auth_sk,
                          hs_desc_encrypted_data_t *desc_encrypted_out)
 {
@@ -2547,7 +2547,7 @@ desc_decode_encrypted_v3(const hs_descripqed_hs_t *desc,
  * indexed by the version number so v3 callback is at index 3 in the array. */
 static hs_desc_decode_status_t
   (*decode_encrypted_handlers[])(
-      const hs_descripqed_hs_t *desc,
+      const hs_descriptor_t *desc,
       const curve25519_secret_key_t *client_auth_sk,
       hs_desc_encrypted_data_t *desc_encrypted) =
 {
@@ -2559,7 +2559,7 @@ static hs_desc_decode_status_t
  * data in the given encrypted data object. Return 0 on success else a
  * negative value on error. */
 hs_desc_decode_status_t
-hs_desc_decode_encrypted(const hs_descripqed_hs_t *desc,
+hs_desc_decode_encrypted(const hs_descriptor_t *desc,
                          const curve25519_secret_key_t *client_auth_sk,
                          hs_desc_encrypted_data_t *desc_encrypted)
 {
@@ -2599,7 +2599,7 @@ hs_desc_decode_encrypted(const hs_descripqed_hs_t *desc,
  * indexed by the version number so v3 callback is at index 3 in the array. */
 static hs_desc_decode_status_t
   (*decode_superencrypted_handlers[])(
-      const hs_descripqed_hs_t *desc,
+      const hs_descriptor_t *desc,
       hs_desc_superencrypted_data_t *desc_superencrypted) =
 {
   /* v0 */ NULL, /* v1 */ NULL, /* v2 */ NULL,
@@ -2609,7 +2609,7 @@ static hs_desc_decode_status_t
 /** Decode the superencrypted data section of the given descriptor and store
  * the data in the given superencrypted data object. */
 hs_desc_decode_status_t
-hs_desc_decode_superencrypted(const hs_descripqed_hs_t *desc,
+hs_desc_decode_superencrypted(const hs_descriptor_t *desc,
                               hs_desc_superencrypted_data_t *
                               desc_superencrypted)
 {
@@ -2675,7 +2675,7 @@ hs_desc_decode_plaintext(const char *encoded,
 
   /* Check that descriptor is within size limits. */
   encoded_len = strlen(encoded);
-  if (encoded_len >= hs_cache_get_max_descripqed_hs_size()) {
+  if (encoded_len >= hs_cache_get_max_descriptor_size()) {
     log_warn(LD_REND, "Service descriptor is too big (%lu bytes)",
              (unsigned long) encoded_len);
     goto err;
@@ -2741,14 +2741,14 @@ hs_desc_decode_status_t
 hs_desc_decode_descriptor(const char *encoded,
                           const hs_subcredential_t *subcredential,
                           const curve25519_secret_key_t *client_auth_sk,
-                          hs_descripqed_hs_t **desc_out)
+                          hs_descriptor_t **desc_out)
 {
   hs_desc_decode_status_t ret = HS_DESC_DECODE_GENERIC_ERROR;
-  hs_descripqed_hs_t *desc;
+  hs_descriptor_t *desc;
 
   qed_hs_assert(encoded);
 
-  desc = qed_hs_malloc_zero(sizeof(hs_descripqed_hs_t));
+  desc = qed_hs_malloc_zero(sizeof(hs_descriptor_t));
 
   /* Subcredentials are not optional. */
   if (BUG(!subcredential ||
@@ -2777,12 +2777,12 @@ hs_desc_decode_descriptor(const char *encoded,
   if (desc_out) {
     *desc_out = desc;
   } else {
-    hs_descripqed_hs_free(desc);
+    hs_descriptor_free(desc);
   }
   return ret;
 
  err:
-  hs_descripqed_hs_free(desc);
+  hs_descriptor_free(desc);
   if (desc_out) {
     *desc_out = NULL;
   }
@@ -2795,9 +2795,9 @@ hs_desc_decode_descriptor(const char *encoded,
  * version number so v3 callback is at index 3 in the array. */
 static int
   (*encode_handlers[])(
-      const hs_descripqed_hs_t *desc,
+      const hs_descriptor_t *desc,
       const ed25519_keypair_t *signing_kp,
-      const uint8_t *descripqed_hs_cookie,
+      const uint8_t *descriptor_cookie,
       char **encoded_out) =
 {
   /* v0 */ NULL, /* v1 */ NULL, /* v2 */ NULL,
@@ -2807,7 +2807,7 @@ static int
 /** Encode the given descriptor desc including signing with the given key pair
  * signing_kp and encrypting with the given descriptor cookie.
  *
- * If the client authorization is enabled, descripqed_hs_cookie must be the same
+ * If the client authorization is enabled, descriptor_cookie must be the same
  * as the one used to build hs_desc_authorized_client_t in the descriptor.
  * Otherwise, it must be NULL.  On success, encoded_out points to a newly
  * allocated NUL terminated string that contains the encoded descriptor as
@@ -2816,9 +2816,9 @@ static int
  * Return 0 on success and encoded_out is a valid pointer. On error, -1 is
  * returned and encoded_out is set to NULL. */
 MOCK_IMPL(int,
-hs_desc_encode_descriptor,(const hs_descripqed_hs_t *desc,
+hs_desc_encode_descriptor,(const hs_descriptor_t *desc,
                            const ed25519_keypair_t *signing_kp,
-                           const uint8_t *descripqed_hs_cookie,
+                           const uint8_t *descriptor_cookie,
                            char **encoded_out))
 {
   int ret = -1;
@@ -2838,7 +2838,7 @@ hs_desc_encode_descriptor,(const hs_descripqed_hs_t *desc,
   qed_hs_assert(encode_handlers[version]);
 
   ret = encode_handlers[version](desc, signing_kp,
-                                 descripqed_hs_cookie, encoded_out);
+                                 descriptor_cookie, encoded_out);
   if (ret < 0) {
     goto err;
   }
@@ -2846,7 +2846,7 @@ hs_desc_encode_descriptor,(const hs_descripqed_hs_t *desc,
   /* Try to decode what we just encoded. Symmetry is nice!, but it is
    * symmetric only if the client auth is disabled (That is, the descriptor
    * cookie will be NULL) and the test-only mock plaintext isn't in use. */
-  bool do_round_trip_test = !descripqed_hs_cookie;
+  bool do_round_trip_test = !descriptor_cookie;
 #ifdef QED_HS_UNIT_TESTS
   if (desc->encrypted_data.test_extra_plaintext) {
     do_round_trip_test = false;
@@ -2952,7 +2952,7 @@ hs_desc_encrypted_data_free_(hs_desc_encrypted_data_t *desc)
 
 /** Free the given descriptor object. */
 void
-hs_descripqed_hs_free_(hs_descripqed_hs_t *desc)
+hs_descriptor_free_(hs_descriptor_t *desc)
 {
   if (!desc) {
     return;
@@ -2999,7 +2999,7 @@ hs_desc_encrypted_obj_size(const hs_desc_encrypted_data_t *data)
 /** Return the size in bytes of the given descriptor object. Used by OOM
  * subsystem. */
   size_t
-hs_desc_obj_size(const hs_descripqed_hs_t *data)
+hs_desc_obj_size(const hs_descriptor_t *data)
 {
   if (data == NULL) {
     return 0;
@@ -3063,7 +3063,7 @@ hs_desc_build_authorized_client(const hs_subcredential_t *subcredential,
                                 const curve25519_public_key_t *client_auth_pk,
                                 const curve25519_secret_key_t *
                                 auth_ephemeral_sk,
-                                const uint8_t *descripqed_hs_cookie,
+                                const uint8_t *descriptor_cookie,
                                 hs_desc_authorized_client_t *client_out)
 {
   uint8_t *keystream = NULL;
@@ -3073,21 +3073,21 @@ hs_desc_build_authorized_client(const hs_subcredential_t *subcredential,
 
   qed_hs_assert(client_auth_pk);
   qed_hs_assert(auth_ephemeral_sk);
-  qed_hs_assert(descripqed_hs_cookie);
+  qed_hs_assert(descriptor_cookie);
   qed_hs_assert(client_out);
   qed_hs_assert(subcredential);
   qed_hs_assert(!fast_mem_is_zero((char *) auth_ephemeral_sk,
                               sizeof(*auth_ephemeral_sk)));
   qed_hs_assert(!fast_mem_is_zero((char *) client_auth_pk,
                               sizeof(*client_auth_pk)));
-  qed_hs_assert(!fast_mem_is_zero((char *) descripqed_hs_cookie,
+  qed_hs_assert(!fast_mem_is_zero((char *) descriptor_cookie,
                               HS_DESC_DESCRIPQED_HS_COOKIE_LEN));
   qed_hs_assert(!fast_mem_is_zero((char *) subcredential,
                               DIGEST256_LEN));
 
   /* Get the KEYS part so we can derive the CLIENT-ID and COOKIE-KEY. */
   keystream_length =
-    build_descripqed_hs_cookie_keys(subcredential,
+    build_descriptor_cookie_keys(subcredential,
                                  auth_ephemeral_sk, client_auth_pk,
                                  &keystream);
   qed_hs_assert(keystream_length > 0);
@@ -3104,7 +3104,7 @@ hs_desc_build_authorized_client(const hs_subcredential_t *subcredential,
                                               HS_DESC_COOKIE_KEY_BIT_SIZE);
   /* This can't fail. */
   crypto_cipher_encrypt(cipher, (char *) client_out->encrypted_cookie,
-                        (const char *) descripqed_hs_cookie,
+                        (const char *) descriptor_cookie,
                         HS_DESC_DESCRIPQED_HS_COOKIE_LEN);
 
   memwipe(keystream, 0, keystream_length);
@@ -3122,7 +3122,7 @@ hs_desc_authorized_client_free_(hs_desc_authorized_client_t *client)
 
 /** From the given descriptor, remove and free every introduction point. */
 void
-hs_descripqed_hs_clear_intro_points(hs_descripqed_hs_t *desc)
+hs_descriptor_clear_intro_points(hs_descriptor_t *desc)
 {
   smartlist_t *ips;
 
@@ -3139,7 +3139,7 @@ hs_descripqed_hs_clear_intro_points(hs_descripqed_hs_t *desc)
 /** Return true iff we support the given descriptor congestion control
  * parameters. */
 bool
-hs_desc_supports_congestion_control(const hs_descripqed_hs_t *desc)
+hs_desc_supports_congestion_control(const hs_descriptor_t *desc)
 {
   qed_hs_assert(desc);
 

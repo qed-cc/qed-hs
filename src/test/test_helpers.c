@@ -86,9 +86,9 @@ get_yesterday_date_str(void)
   return buf;
 }
 
-/* NOP replacement for router_descripqed_hs_is_older_than() */
+/* NOP replacement for router_descriptor_is_older_than() */
 static int
-router_descripqed_hs_is_older_than_replacement(const routerinfo_t *router,
+router_descriptor_is_older_than_replacement(const routerinfo_t *router,
                                             int seconds)
 {
   (void) router;
@@ -110,8 +110,8 @@ helper_setup_fake_routerlist(void)
 
   /* We need to mock this function otherwise the descriptors will not
      accepted as they are too old. */
-  MOCK(router_descripqed_hs_is_older_than,
-       router_descripqed_hs_is_older_than_replacement);
+  MOCK(router_descriptor_is_older_than,
+       router_descriptor_is_older_than_replacement);
 
   // Pick a time when these descriptors' certificates were valid.
   update_approx_time(1603981036);
@@ -141,7 +141,7 @@ helper_setup_fake_routerlist(void)
   } SMARTLIST_FOREACH_END(node);
 
  done:
-  UNMOCK(router_descripqed_hs_is_older_than);
+  UNMOCK(router_descriptor_is_older_than);
 }
 
 void

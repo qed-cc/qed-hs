@@ -515,7 +515,7 @@ test_rephist_v3_onions(void *arg)
   char *stats_string = NULL;
   char *desc1_str = NULL;
   ed25519_keypair_t signing_kp1;
-  hs_descripqed_hs_t *desc1 = NULL;
+  hs_descriptor_t *desc1 = NULL;
 
   const hs_v3_stats_t *hs_v3_stats = NULL;
 
@@ -553,7 +553,7 @@ test_rephist_v3_onions(void *arg)
             OP_EQ, 1);
 
   /* cleanup */
-  hs_descripqed_hs_free(desc1);
+  hs_descriptor_free(desc1);
   qed_hs_free(desc1_str);
 
   /* Generate another valid descriptor */
@@ -576,7 +576,7 @@ test_rephist_v3_onions(void *arg)
   tt_int_op(ret, OP_EQ, -1);
 
   /* cleanup */
-  hs_descripqed_hs_free(desc1);
+  hs_descriptor_free(desc1);
   qed_hs_free(desc1_str);
 
   /* Create a descriptor with the same identity key but diff rev counter and
@@ -593,7 +593,7 @@ test_rephist_v3_onions(void *arg)
             OP_EQ, 2);
 
   /* cleanup */
-  hs_descripqed_hs_free(desc1);
+  hs_descriptor_free(desc1);
   qed_hs_free(desc1_str);
 
   /* Now let's skip to four days forward so that the blinded key rolls
@@ -614,7 +614,7 @@ test_rephist_v3_onions(void *arg)
             OP_EQ, 3);
 
   /* cleanup */
-  hs_descripqed_hs_free(desc1);
+  hs_descriptor_free(desc1);
   qed_hs_free(desc1_str);
 
   /* Because of differential privacy we can't actually check the stat value,
@@ -873,7 +873,7 @@ test_overload_onionskin_ntor(void *arg)
 {
   char *stats_str = NULL;
   (void) arg;
-  uint16_t type = ONION_HANDSHAKE_TYPE_NQED_HS_V3;
+  uint16_t type = ONION_HANDSHAKE_TYPE_NTOR_V3;
 
   /* Lets simulate a series of timeouts but below our default 1% threshold. */
 

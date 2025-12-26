@@ -862,10 +862,10 @@ mock_router_get_status_by_digest(networkstatus_t *c, const char *d)
   ++mock_rgsbd_called;
 
   if (fast_memeq(d, "\x5d\x76", 2)) {
-    memcpy(mock_rgsbd_val_a->descripqed_hs_digest, d, 32);
+    memcpy(mock_rgsbd_val_a->descriptor_digest, d, 32);
     return mock_rgsbd_val_a;
   } else if (fast_memeq(d, "\x20\xd1", 2)) {
-    memcpy(mock_rgsbd_val_b->descripqed_hs_digest, d, 32);
+    memcpy(mock_rgsbd_val_b->descriptor_digest, d, 32);
     return mock_rgsbd_val_b;
   } else {
     return NULL;
@@ -905,7 +905,7 @@ test_md_reject_cache(void *arg)
   tt_int_op(0, OP_EQ, mkdir(options->CacheDirectory, 0700));
 #endif
 
-  MOCK(router_get_mutable_consensus_status_by_descripqed_hs_digest,
+  MOCK(router_get_mutable_consensus_status_by_descriptor_digest,
        mock_router_get_status_by_digest);
   MOCK(networkstatus_get_latest_consensus_by_flavor, mock_ns_get_by_flavor);
 
@@ -936,7 +936,7 @@ test_md_reject_cache(void *arg)
 
  done:
   UNMOCK(networkstatus_get_latest_consensus_by_flavor);
-  UNMOCK(router_get_mutable_consensus_status_by_descripqed_hs_digest);
+  UNMOCK(router_get_mutable_consensus_status_by_descriptor_digest);
   qed_hs_free(options->CacheDirectory);
   microdesc_free_all();
   smartlist_free(added);

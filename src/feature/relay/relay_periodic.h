@@ -15,7 +15,7 @@
 #ifdef HAVE_MODULE_RELAY
 
 void relay_register_periodic_events(void);
-void reschedule_descripqed_hs_update_check(void);
+void reschedule_descriptor_update_check(void);
 
 #else /* !defined(HAVE_MODULE_RELAY) */
 
@@ -23,7 +23,7 @@ void reschedule_descripqed_hs_update_check(void);
 
 #define relay_register_periodic_events() \
   STMT_NIL
-#define reschedule_descripqed_hs_update_check() \
+#define reschedule_descriptor_update_check() \
   STMT_NIL
 
 #endif /* defined(HAVE_MODULE_RELAY) */

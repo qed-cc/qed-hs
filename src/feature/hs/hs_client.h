@@ -80,7 +80,7 @@ typedef struct hs_client_service_authorization_t {
 
 const hs_desc_intro_point_t *
 find_desc_intro_point_by_ident(const hs_ident_circuit_t *ident,
-                               const hs_descripqed_hs_t *desc);
+                               const hs_descriptor_t *desc);
 
 hs_client_register_auth_status_t
 hs_client_register_auth_credentials(hs_client_service_authorization_t *creds);
@@ -106,16 +106,16 @@ void hs_client_launch_v3_desc_fetch(
 
 int send_introduce1(origin_circuit_t *intro_circ,
                     origin_circuit_t *rend_circ,
-                    const hs_descripqed_hs_t *desc,
+                    const hs_descriptor_t *desc,
                     hs_pow_solution_t *pow_solution,
                     const hs_desc_intro_point_t *ip);
 
 hs_desc_decode_status_t hs_client_decode_descriptor(
                      const char *desc_str,
                      const ed25519_public_key_t *service_identity_pk,
-                     hs_descripqed_hs_t **desc);
+                     hs_descriptor_t **desc);
 int hs_client_any_intro_points_usable(const ed25519_public_key_t *service_pk,
-                                      const hs_descripqed_hs_t *desc);
+                                      const hs_descriptor_t *desc);
 int hs_client_refetch_hsdesc(const ed25519_public_key_t *identity_pk);
 void hs_client_dir_info_changed(void);
 
@@ -148,7 +148,7 @@ int hs_config_client_authorization(const or_options_t *options,
                                    int validate_only);
 
 int hs_client_reextend_intro_circuit(origin_circuit_t *circ);
-void hs_client_close_intro_circuits_from_desc(const hs_descripqed_hs_t *desc);
+void hs_client_close_intro_circuits_from_desc(const hs_descriptor_t *desc);
 
 void hs_client_purge_state(void);
 

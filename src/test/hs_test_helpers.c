@@ -131,9 +131,9 @@ hs_helper_build_intro_point(const ed25519_keypair_t *signing_kp, time_t now,
   return intro_point;
 }
 
-/* Return a valid hs_descripqed_hs_t object. If no_ip is set, no introduction
+/* Return a valid hs_descriptor_t object. If no_ip is set, no introduction
  * points are added. */
-static hs_descripqed_hs_t *
+static hs_descriptor_t *
 hs_helper_build_hs_desc_impl(unsigned int no_ip,
                              const ed25519_keypair_t *signing_kp,
                              uint64_t rev_counter)
@@ -143,7 +143,7 @@ hs_helper_build_hs_desc_impl(unsigned int no_ip,
   time_t now = approx_time();
   ed25519_keypair_t blinded_kp;
   curve25519_keypair_t auth_ephemeral_kp;
-  hs_descripqed_hs_t *descp = NULL, *desc = qed_hs_malloc_zero(sizeof(*desc));
+  hs_descriptor_t *descp = NULL, *desc = qed_hs_malloc_zero(sizeof(*desc));
 
   desc->plaintext_data.version = HS_DESC_SUPPORTED_FORMAT_VERSION_MAX;
 
@@ -230,7 +230,7 @@ hs_helper_get_subcred_from_identity_keypair(ed25519_keypair_t *signing_kp,
 }
 
 /* Build a descriptor with a specific rev counter. */
-hs_descripqed_hs_t *
+hs_descriptor_t *
 hs_helper_build_hs_desc_with_rev_counter(const ed25519_keypair_t *signing_kp,
                                          uint64_t revision_counter)
 {
@@ -238,27 +238,27 @@ hs_helper_build_hs_desc_with_rev_counter(const ed25519_keypair_t *signing_kp,
 }
 
 /* Build a descriptor with introduction points. */
-hs_descripqed_hs_t *
+hs_descriptor_t *
 hs_helper_build_hs_desc_with_ip(const ed25519_keypair_t *signing_kp)
 {
   return hs_helper_build_hs_desc_impl(0, signing_kp, 42);
 }
 
 /* Build a descriptor without any introduction points. */
-hs_descripqed_hs_t *
+hs_descriptor_t *
 hs_helper_build_hs_desc_no_ip(const ed25519_keypair_t *signing_kp)
 {
   return hs_helper_build_hs_desc_impl(1, signing_kp, 42);
 }
 
-hs_descripqed_hs_t *
+hs_descriptor_t *
 hs_helper_build_hs_desc_with_client_auth(
-                        const uint8_t *descripqed_hs_cookie,
+                        const uint8_t *descriptor_cookie,
                         const curve25519_public_key_t *client_pk,
                         const ed25519_keypair_t *signing_kp)
 {
   curve25519_keypair_t auth_ephemeral_kp;
-  hs_descripqed_hs_t *desc = hs_helper_build_hs_desc_impl(0, signing_kp, 42);
+  hs_descriptor_t *desc = hs_helper_build_hs_desc_impl(0, signing_kp, 42);
   hs_desc_authorized_client_t *desc_client;
 
   /* The number of client authorized auth has tobe a multiple of
@@ -275,14 +275,14 @@ hs_helper_build_hs_desc_with_client_auth(
 
   hs_desc_build_authorized_client(&desc->subcredential, client_pk,
                                   &auth_ephemeral_kp.seckey,
-                                  descripqed_hs_cookie, desc_client);
+                                  descriptor_cookie, desc_client);
   smartlist_add(desc->superencrypted_data.clients, desc_client);
   return desc;
 }
 
 void
-hs_helper_desc_equal(const hs_descripqed_hs_t *desc1,
-                     const hs_descripqed_hs_t *desc2)
+hs_helper_desc_equal(const hs_descriptor_t *desc1,
+                     const hs_descriptor_t *desc2)
 {
   /* Plaintext data section. */
   tt_int_op(desc1->plaintext_data.version, OP_EQ,

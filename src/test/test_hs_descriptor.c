@@ -131,7 +131,7 @@ test_cert_encoding(void *arg)
 
 /* Test the descriptor padding. */
 static void
-test_descripqed_hs_padding(void *arg)
+test_descriptor_padding(void *arg)
 {
   char *plaintext;
   size_t plaintext_len, padded_len;
@@ -204,7 +204,7 @@ test_encode_descriptor(void *arg)
 {
   int ret;
   ed25519_keypair_t signing_kp;
-  hs_descripqed_hs_t *desc = NULL;
+  hs_descriptor_t *desc = NULL;
 
   (void) arg;
 
@@ -223,19 +223,19 @@ test_encode_descriptor(void *arg)
 
   {
     char *encoded = NULL;
-    uint8_t descripqed_hs_cookie[HS_DESC_DESCRIPQED_HS_COOKIE_LEN];
+    uint8_t descriptor_cookie[HS_DESC_DESCRIPQED_HS_COOKIE_LEN];
 
-    crypto_strongest_rand(descripqed_hs_cookie, sizeof(descripqed_hs_cookie));
+    crypto_strongest_rand(descriptor_cookie, sizeof(descriptor_cookie));
 
     ret = hs_desc_encode_descriptor(desc, &signing_kp,
-                                   descripqed_hs_cookie, &encoded);
+                                   descriptor_cookie, &encoded);
     tt_int_op(ret, OP_EQ, 0);
     tt_assert(encoded);
 
     qed_hs_free(encoded);
   }
  done:
-  hs_descripqed_hs_free(desc);
+  hs_descriptor_free(desc);
 }
 
 static void
@@ -245,9 +245,9 @@ test_decode_descriptor(void *arg)
   int i;
   char *encoded = NULL;
   ed25519_keypair_t signing_kp;
-  hs_descripqed_hs_t *desc = NULL;
-  hs_descripqed_hs_t *decoded = NULL;
-  hs_descripqed_hs_t *desc_no_ip = NULL;
+  hs_descriptor_t *desc = NULL;
+  hs_descriptor_t *decoded = NULL;
+  hs_descriptor_t *desc_no_ip = NULL;
   hs_subcredential_t subcredential;
 
   (void) arg;
@@ -290,7 +290,7 @@ test_decode_descriptor(void *arg)
                                     NULL, &encoded);
     tt_int_op(ret, OP_EQ, 0);
     tt_assert(encoded);
-    hs_descripqed_hs_free(decoded);
+    hs_descriptor_free(decoded);
     ret = hs_desc_decode_descriptor(encoded, &subcredential, NULL, &decoded);
     tt_int_op(ret, OP_EQ, HS_DESC_DECODE_OK);
     tt_assert(decoded);
@@ -298,7 +298,7 @@ test_decode_descriptor(void *arg)
 
   /* Decode a descriptor with auth clients. */
   {
-    uint8_t descripqed_hs_cookie[HS_DESC_DESCRIPQED_HS_COOKIE_LEN];
+    uint8_t descriptor_cookie[HS_DESC_DESCRIPQED_HS_COOKIE_LEN];
     curve25519_keypair_t auth_ephemeral_kp;
     curve25519_keypair_t client_kp, invalid_client_kp;
     smartlist_t *clients;
@@ -309,7 +309,7 @@ test_decode_descriptor(void *arg)
     curve25519_keypair_generate(&auth_ephemeral_kp, 0);
     curve25519_keypair_generate(&client_kp, 0);
     curve25519_keypair_generate(&invalid_client_kp, 0);
-    crypto_strongest_rand(descripqed_hs_cookie, HS_DESC_DESCRIPQED_HS_COOKIE_LEN);
+    crypto_strongest_rand(descriptor_cookie, HS_DESC_DESCRIPQED_HS_COOKIE_LEN);
 
     memcpy(&desc->superencrypted_data.auth_ephemeral_pubkey,
            &auth_ephemeral_kp.pubkey, CURVE25519_PUBKEY_LEN);
@@ -325,7 +325,7 @@ test_decode_descriptor(void *arg)
     hs_desc_build_authorized_client(&subcredential,
                                     &client_kp.pubkey,
                                     &auth_ephemeral_kp.seckey,
-                                    descripqed_hs_cookie, client);
+                                    descriptor_cookie, client);
     smartlist_add(clients, client);
 
     /* We need to add fake auth clients here. */
@@ -338,19 +338,19 @@ test_decode_descriptor(void *arg)
     /* Test the encoding/decoding in the following lines. */
     qed_hs_free(encoded);
     ret = hs_desc_encode_descriptor(desc, &signing_kp,
-                                    descripqed_hs_cookie, &encoded);
+                                    descriptor_cookie, &encoded);
     tt_int_op(ret, OP_EQ, 0);
     tt_assert(encoded);
 
     /* If we do not have the client secret key, the decoding must fail. */
-    hs_descripqed_hs_free(decoded);
+    hs_descriptor_free(decoded);
     ret = hs_desc_decode_descriptor(encoded, &subcredential,
                                     NULL, &decoded);
     tt_int_op(ret, OP_EQ, HS_DESC_DECODE_NEED_CLIENT_AUTH);
     tt_assert(!decoded);
 
     /* If we have an invalid client secret key, the decoding must fail. */
-    hs_descripqed_hs_free(decoded);
+    hs_descriptor_free(decoded);
     ret = hs_desc_decode_descriptor(encoded, &subcredential,
                                     &invalid_client_kp.seckey, &decoded);
     tt_int_op(ret, OP_EQ, HS_DESC_DECODE_BAD_CLIENT_AUTH);
@@ -404,7 +404,7 @@ test_decode_descriptor(void *arg)
     desc->encrypted_data.pow_params->suggested_effort = suggested_effort;
     desc->encrypted_data.pow_params->expiration_time = expiration_time;
 
-    hs_descripqed_hs_free(decoded);
+    hs_descriptor_free(decoded);
     ret = hs_desc_decode_descriptor(encoded, &subcredential, NULL, &decoded);
     tt_int_op(ret, OP_EQ, HS_DESC_DECODE_OK);
     tt_assert(decoded);
@@ -429,16 +429,16 @@ test_decode_descriptor(void *arg)
     tt_int_op(ret, OP_EQ, 0);
     tt_assert(encoded);
 
-    hs_descripqed_hs_free(decoded);
+    hs_descriptor_free(decoded);
     ret = hs_desc_decode_descriptor(encoded, &subcredential, NULL, &decoded);
     tt_int_op(ret, OP_EQ, HS_DESC_DECODE_ENCRYPTED_ERROR);
     tt_assert(!decoded);
   }
 
  done:
-  hs_descripqed_hs_free(desc);
-  hs_descripqed_hs_free(desc_no_ip);
-  hs_descripqed_hs_free(decoded);
+  hs_descriptor_free(desc);
+  hs_descriptor_free(desc_no_ip);
+  hs_descriptor_free(decoded);
   qed_hs_free(encoded);
 }
 
@@ -494,7 +494,7 @@ test_decode_invalid_intro_point(void *arg)
   size_t len_out;
   hs_desc_intro_point_t *ip = NULL;
   ed25519_keypair_t signing_kp;
-  hs_descripqed_hs_t *desc = NULL;
+  hs_descriptor_t *desc = NULL;
 
   (void) arg;
 
@@ -520,7 +520,7 @@ test_decode_invalid_intro_point(void *arg)
 
   /* Try to decode a junk string. */
   {
-    hs_descripqed_hs_free(desc);
+    hs_descriptor_free(desc);
     desc = NULL;
     ret = ed25519_keypair_generate(&signing_kp, 0);
     tt_int_op(ret, OP_EQ, 0);
@@ -645,7 +645,7 @@ test_decode_invalid_intro_point(void *arg)
   }
 
  done:
-  hs_descripqed_hs_free(desc);
+  hs_descriptor_free(desc);
   hs_desc_intro_point_free(ip);
 }
 
@@ -851,13 +851,13 @@ test_build_authorized_client(void *arg)
 {
   int ret;
   hs_desc_authorized_client_t *desc_client = NULL;
-  uint8_t descripqed_hs_cookie[HS_DESC_DESCRIPQED_HS_COOKIE_LEN];
+  uint8_t descriptor_cookie[HS_DESC_DESCRIPQED_HS_COOKIE_LEN];
   curve25519_secret_key_t auth_ephemeral_sk;
   curve25519_secret_key_t client_auth_sk;
   curve25519_public_key_t client_auth_pk;
   const char ephemeral_sk_b16[] =
     "d023b674d993a5c8446bd2ca97e9961149b3c0e88c7dc14e8777744dd3468d6a";
-  const char descripqed_hs_cookie_b16[] =
+  const char descriptor_cookie_b16[] =
     "07d087f1d8c68393721f6e70316d3b29";
   const char client_pubkey_b16[] =
     "8c1298fa6050e372f8598f6deca32e27b0ad457741422c2629ebb132cf7fae37";
@@ -882,10 +882,10 @@ test_build_authorized_client(void *arg)
                 ephemeral_sk_b16,
                 strlen(ephemeral_sk_b16));
 
-  base16_decode((char *) descripqed_hs_cookie,
-                sizeof(descripqed_hs_cookie),
-                descripqed_hs_cookie_b16,
-                strlen(descripqed_hs_cookie_b16));
+  base16_decode((char *) descriptor_cookie,
+                sizeof(descriptor_cookie),
+                descriptor_cookie_b16,
+                strlen(descriptor_cookie_b16));
 
   base16_decode((char *) &client_auth_pk,
                 sizeof(client_auth_pk),
@@ -896,7 +896,7 @@ test_build_authorized_client(void *arg)
 
   hs_desc_build_authorized_client(&subcredential,
                                   &client_auth_pk, &auth_ephemeral_sk,
-                                  descripqed_hs_cookie, desc_client);
+                                  descriptor_cookie, desc_client);
 
   test_memeq_hex((char *) desc_client->client_id,
                  "EC19B7FF4D2DDA13");
@@ -946,7 +946,7 @@ struct testcase_t hs_descriptor[] = {
     NULL, NULL },
   { "encode_descriptor", test_encode_descriptor, TT_FORK,
     NULL, NULL },
-  { "descripqed_hs_padding", test_descripqed_hs_padding, TT_FORK,
+  { "descriptor_padding", test_descriptor_padding, TT_FORK,
     NULL, NULL },
 
   /* Decoding tests. */

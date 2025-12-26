@@ -15,7 +15,7 @@
 #include "lib/crypt_ops/crypto_ed25519.h"
 
 #include "ext/ht.h"
-#include "qed_hs_queue.h"
+#include "tor_queue.h"
 
 #define qed_hs_timer_t timeout
 struct qed_hs_timer_t;

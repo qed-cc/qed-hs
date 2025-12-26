@@ -34,14 +34,14 @@ mock_rsa_ed25519_crosscert_check(const uint8_t *crosscert,
 }
 
 static size_t
-mock_decrypt_desc_layer(const hs_descripqed_hs_t *desc,
-                        const uint8_t *descripqed_hs_cookie,
+mock_decrypt_desc_layer(const hs_descriptor_t *desc,
+                        const uint8_t *descriptor_cookie,
                         bool is_superencrypted_layer,
                         char **decrypted_out)
 {
   (void)is_superencrypted_layer;
   (void)desc;
-  (void)descripqed_hs_cookie;
+  (void)descriptor_cookie;
   const size_t overhead = HS_DESC_ENCRYPTED_SALT_LEN + DIGEST256_LEN;
   const uint8_t *encrypted_blob = (is_superencrypted_layer)
     ? desc->plaintext_data.superencrypted_blob
@@ -84,7 +84,7 @@ fuzz_cleanup(void)
 int
 fuzz_main(const uint8_t *data, size_t sz)
 {
-  hs_descripqed_hs_t *desc = NULL;
+  hs_descriptor_t *desc = NULL;
   hs_subcredential_t subcredential;
 
   char *fuzzing_data = qed_hs_memdup_nulterm(data, sz);
@@ -93,7 +93,7 @@ fuzz_main(const uint8_t *data, size_t sz)
   hs_desc_decode_descriptor(fuzzing_data, &subcredential, NULL, &desc);
   if (desc) {
     log_debug(LD_GENERAL, "Decoding okay");
-    hs_descripqed_hs_free(desc);
+    hs_descriptor_free(desc);
   } else {
     log_debug(LD_GENERAL, "Decoding failed");
   }

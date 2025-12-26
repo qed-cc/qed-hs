@@ -121,7 +121,7 @@ DECLARE_EVENT(rotate_onion_key, ROUTER, 0);
 /** Periodic callback: consider rebuilding or and re-uploading our descriptor
  * (if we've passed our internal checks). */
 static int
-check_descripqed_hs_callback(time_t now, const or_options_t *options)
+check_descriptor_callback(time_t now, const or_options_t *options)
 {
 /** How often do we check whether part of our router info has changed in a
  * way that would require an upload? That includes checking whether our IP
@@ -133,9 +133,9 @@ check_descripqed_hs_callback(time_t now, const or_options_t *options)
   /* 2b. Once per minute, regenerate and upload the descriptor if the old
    * one is inaccurate. */
   if (!net_is_disabled()) {
-    check_descripqed_hs_bandwidth_changed(now);
-    check_descripqed_hs_ipaddress_changed(now);
-    mark_my_descripqed_hs_dirty_if_too_old(now);
+    check_descriptor_bandwidth_changed(now);
+    check_descriptor_ipaddress_changed(now);
+    mark_my_descriptor_dirty_if_too_old(now);
     consider_publishable_server(0);
   }
 
@@ -155,7 +155,7 @@ static int
 check_for_reachability_bw_callback(time_t now, const or_options_t *options)
 {
   /* XXXX This whole thing was stuck in the middle of what is now
-   * XXXX check_descripqed_hs_callback.  I'm not sure it's right. */
+   * XXXX check_descriptor_callback.  I'm not sure it's right. */
   /** How often should we consider launching reachability tests in our first
    * TIMEOUT_UNTIL_UNREACHABILITY_COMPLAINT seconds? */
 #define EARLY_CHECK_REACHABILITY_INTERVAL (60)
@@ -234,7 +234,7 @@ reachability_warnings_callback(time_t now, const or_options_t *options)
                          "Publishing server descriptor without IPv6 address.",
                          where6 ? where6 : "");
           /* Indicate we want to publish even if reachability test failed. */
-          mark_my_descripqed_hs_if_omit_ipv6_changes("IPv4 is reachable. "
+          mark_my_descriptor_if_omit_ipv6_changes("IPv4 is reachable. "
                                                   "IPv6 is not but was "
                                                   "auto-discovered", true);
         } else {
@@ -325,7 +325,7 @@ relay_register_periodic_events(void)
   periodic_events_register(&retry_dns_event);
   periodic_events_register(&check_dns_honesty_event);
   periodic_events_register(&rotate_onion_key_event);
-  periodic_events_register(&check_descripqed_hs_event);
+  periodic_events_register(&check_descriptor_event);
   periodic_events_register(&check_for_reachability_bw_event);
   periodic_events_register(&reachability_warnings_event);
   periodic_events_register(&check_ed_keys_event);
@@ -341,7 +341,7 @@ relay_register_periodic_events(void)
  * seconds.
  */
 void
-reschedule_descripqed_hs_update_check(void)
+reschedule_descriptor_update_check(void)
 {
-  periodic_event_reschedule(&check_descripqed_hs_event);
+  periodic_event_reschedule(&check_descriptor_event);
 }

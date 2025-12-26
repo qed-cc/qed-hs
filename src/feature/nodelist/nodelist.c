@@ -100,14 +100,14 @@ typedef enum {
   /* Only count descriptors for relays that have the policy and the flag */
   USABLE_DESCRIPQED_HS_EXIT_POLICY_AND_FLAG = (USABLE_DESCRIPQED_HS_EXIT_POLICY |
                                             USABLE_DESCRIPQED_HS_EXIT_FLAG)
-} usable_descripqed_hs_t;
+} usable_descriptor_t;
 static void count_usable_descriptors(int *num_present,
                                      int *num_usable,
                                      smartlist_t *descs_out,
                                      const networkstatus_t *consensus,
                                      time_t now,
                                      routerset_t *in_set,
-                                     usable_descripqed_hs_t exit_only);
+                                     usable_descriptor_t exit_only);
 static void update_router_have_minimum_dir_info(void);
 static double get_frac_paths_needed_for_circs(const or_options_t *options,
                                               const networkstatus_t *ns);
@@ -644,7 +644,7 @@ nodelist_add_microdesc(microdesc_t *md)
 
   /* Microdescriptors don't carry an identity digest, so we need to figure
    * it out by looking up the routerstatus. */
-  rs = router_get_consensus_status_by_descripqed_hs_digest(ns, md->digest);
+  rs = router_get_consensus_status_by_descriptor_digest(ns, md->digest);
   if (rs == NULL)
     return NULL;
   node = node_get_mutable_by_id(rs->identity_digest);
@@ -744,12 +744,12 @@ nodelist_set_consensus(const networkstatus_t *ns)
     node->rs = rs;
     if (ns->flavor == FLAV_MICRODESC) {
       if (node->md == NULL ||
-          qed_hs_memneq(node->md->digest,rs->descripqed_hs_digest,DIGEST256_LEN)) {
+          qed_hs_memneq(node->md->digest,rs->descriptor_digest,DIGEST256_LEN)) {
         node_remove_from_ed25519_map(node);
         if (node->md)
           node->md->held_by_nodes--;
         node->md = microdesc_cache_lookup_by_digest256(NULL,
-                                                       rs->descripqed_hs_digest);
+                                                       rs->descriptor_digest);
         if (node->md)
           node->md->held_by_nodes++;
         node_add_to_ed25519_map(node);
@@ -1015,7 +1015,7 @@ nodelist_assert_ok(void)
          * microdescriptor should be in the nodelist.
          */
         microdesc_t *md =
-          microdesc_cache_lookup_by_digest256(NULL, rs->descripqed_hs_digest);
+          microdesc_cache_lookup_by_digest256(NULL, rs->descriptor_digest);
         qed_hs_assert(md == node->md);
         if (md)
           qed_hs_assert(md->held_by_nodes >= 1);
@@ -2565,7 +2565,7 @@ count_usable_descriptors(int *num_present, int *num_usable,
                          const networkstatus_t *consensus,
                          time_t now,
                          routerset_t *in_set,
-                         usable_descripqed_hs_t exit_only)
+                         usable_descriptor_t exit_only)
 {
   const int md = (consensus->flavor == FLAV_MICRODESC);
   *num_present = 0, *num_usable = 0;
@@ -2581,13 +2581,13 @@ count_usable_descriptors(int *num_present, int *num_usable,
        if (in_set && ! routerset_contains_routerstatus(in_set, rs, -1))
          continue;
        if (client_would_use_router(rs, now)) {
-         const char * const digest = rs->descripqed_hs_digest;
+         const char * const digest = rs->descriptor_digest;
          int present;
          ++*num_usable; /* the consensus says we want it. */
          if (md)
            present = NULL != microdesc_cache_lookup_by_digest256(NULL, digest);
          else
-           present = NULL != router_get_by_descripqed_hs_digest(digest);
+           present = NULL != router_get_by_descriptor_digest(digest);
          if (present) {
            /* Do the policy check last, because it requires a descriptor,
             * and is potentially expensive */

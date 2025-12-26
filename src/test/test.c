@@ -61,17 +61,17 @@
 #include "feature/relay/onion_queue.h"
 
 static void
-test_nqed_hs_handshake(void *arg)
+test_ntor_handshake(void *arg)
 {
   /* client-side */
-  nqed_hs_handshake_state_t *c_state = NULL;
-  uint8_t c_buf[NQED_HS_ONIONSKIN_LEN];
+  ntor_handshake_state_t *c_state = NULL;
+  uint8_t c_buf[NTOR_ONIONSKIN_LEN];
   uint8_t c_keys[400];
 
   /* server-side */
   di_digest256_map_t *s_keymap=NULL;
   curve25519_keypair_t s_keypair;
-  uint8_t s_buf[NQED_HS_REPLY_LEN];
+  uint8_t s_buf[NTOR_REPLY_LEN];
   uint8_t s_keys[400];
 
   /* shared */
@@ -88,20 +88,20 @@ test_nqed_hs_handshake(void *arg)
   server_pubkey = &s_keypair.pubkey;
 
   /* client handshake 1. */
-  memset(c_buf, 0, NQED_HS_ONIONSKIN_LEN);
-  tt_int_op(0, OP_EQ, onion_skin_nqed_hs_create(node_id, server_pubkey,
+  memset(c_buf, 0, NTOR_ONIONSKIN_LEN);
+  tt_int_op(0, OP_EQ, onion_skin_ntor_create(node_id, server_pubkey,
                                           &c_state, c_buf));
 
   /* server handshake */
-  memset(s_buf, 0, NQED_HS_REPLY_LEN);
+  memset(s_buf, 0, NTOR_REPLY_LEN);
   memset(s_keys, 0, 40);
-  tt_int_op(0, OP_EQ, onion_skin_nqed_hs_server_handshake(c_buf, s_keymap, NULL,
+  tt_int_op(0, OP_EQ, onion_skin_ntor_server_handshake(c_buf, s_keymap, NULL,
                                                     node_id,
                                                     s_buf, s_keys, 400));
 
   /* client handshake 2 */
   memset(c_keys, 0, 40);
-  tt_int_op(0, OP_EQ, onion_skin_nqed_hs_client_handshake(c_state, s_buf,
+  tt_int_op(0, OP_EQ, onion_skin_ntor_client_handshake(c_state, s_buf,
                                                        c_keys, 400, NULL));
 
   tt_mem_op(c_keys,OP_EQ, s_keys, 400);
@@ -111,14 +111,14 @@ test_nqed_hs_handshake(void *arg)
   /* Now try with a bogus server response. Zero input should trigger
    * All The Problems. */
   memset(c_keys, 0, 400);
-  memset(s_buf, 0, NQED_HS_REPLY_LEN);
+  memset(s_buf, 0, NTOR_REPLY_LEN);
   const char *msg = NULL;
-  tt_int_op(-1, OP_EQ, onion_skin_nqed_hs_client_handshake(c_state, s_buf,
+  tt_int_op(-1, OP_EQ, onion_skin_ntor_client_handshake(c_state, s_buf,
                                                         c_keys, 400, &msg));
   tt_str_op(msg, OP_EQ, "Zero output from curve25519 handshake");
 
  done:
-  nqed_hs_handshake_state_free(c_state);
+  ntor_handshake_state_free(c_state);
   dimap_free(s_keymap, NULL);
 }
 
@@ -162,8 +162,8 @@ test_fast_handshake(void *arg)
 static void
 test_onion_queues(void *arg)
 {
-  uint8_t buf1[NQED_HS_ONIONSKIN_LEN] = {0};
-  uint8_t buf2[NQED_HS_ONIONSKIN_LEN] = {0};
+  uint8_t buf1[NTOR_ONIONSKIN_LEN] = {0};
+  uint8_t buf2[NTOR_ONIONSKIN_LEN] = {0};
 
   or_circuit_t *circ1 = or_circuit_new(0, NULL);
   or_circuit_t *circ2 = or_circuit_new(0, NULL);
@@ -175,9 +175,9 @@ test_onion_queues(void *arg)
   create1_ptr = create1; /* remember, but do not free */
 
   create_cell_init(create1, CELL_CREATE, ONION_HANDSHAKE_TYPE_NTOR,
-                   NQED_HS_ONIONSKIN_LEN, buf1);
+                   NTOR_ONIONSKIN_LEN, buf1);
   create_cell_init(create2, CELL_CREATE, ONION_HANDSHAKE_TYPE_NTOR,
-                   NQED_HS_ONIONSKIN_LEN, buf2);
+                   NTOR_ONIONSKIN_LEN, buf2);
 
   tt_int_op(0,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NTOR));
   tt_int_op(0,OP_EQ, onion_pending_add(circ1, create1));
@@ -219,7 +219,7 @@ test_onion_queues(void *arg)
 static void
 test_onion_queue_order(void *arg)
 {
-  uint8_t buf_ntor[NQED_HS_ONIONSKIN_LEN] = {0};
+  uint8_t buf_ntor[NTOR_ONIONSKIN_LEN] = {0};
   uint8_t buf_ntor3[CELL_PAYLOAD_SIZE] = {0};
 
   or_circuit_t *circ_ntor = or_circuit_new(0, NULL);
@@ -233,63 +233,63 @@ test_onion_queue_order(void *arg)
   (void)arg;
 
   create_cell_init(create_ntor1, CELL_CREATE, ONION_HANDSHAKE_TYPE_NTOR,
-                   NQED_HS_ONIONSKIN_LEN, buf_ntor);
+                   NTOR_ONIONSKIN_LEN, buf_ntor);
   create_cell_init(create_ntor2, CELL_CREATE, ONION_HANDSHAKE_TYPE_NTOR,
-                   NQED_HS_ONIONSKIN_LEN, buf_ntor);
-  create_cell_init(create_v3ntor1, CELL_CREATE2, ONION_HANDSHAKE_TYPE_NQED_HS_V3,
-                   NQED_HS_ONIONSKIN_LEN, buf_ntor3);
-  create_cell_init(create_v3ntor2, CELL_CREATE2, ONION_HANDSHAKE_TYPE_NQED_HS_V3,
-                   NQED_HS_ONIONSKIN_LEN, buf_ntor3);
+                   NTOR_ONIONSKIN_LEN, buf_ntor);
+  create_cell_init(create_v3ntor1, CELL_CREATE2, ONION_HANDSHAKE_TYPE_NTOR_V3,
+                   NTOR_ONIONSKIN_LEN, buf_ntor3);
+  create_cell_init(create_v3ntor2, CELL_CREATE2, ONION_HANDSHAKE_TYPE_NTOR_V3,
+                   NTOR_ONIONSKIN_LEN, buf_ntor3);
 
   /* sanity check queue init */
   tt_int_op(0,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NTOR));
-  tt_int_op(0,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NQED_HS_V3));
+  tt_int_op(0,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NTOR_V3));
 
   /* Now add interleaving ntor2 and ntor3, to ensure they share
    * the same queue and come out in this order */
   tt_int_op(0,OP_EQ, onion_pending_add(circ_ntor, create_ntor1));
   tt_int_op(0,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_TAP));
   tt_int_op(1,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NTOR));
-  tt_int_op(1,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NQED_HS_V3));
+  tt_int_op(1,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NTOR_V3));
 
   tt_int_op(0,OP_EQ, onion_pending_add(circ_ntor3, create_v3ntor1));
   tt_int_op(0,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_TAP));
   tt_int_op(2,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NTOR));
-  tt_int_op(2,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NQED_HS_V3));
+  tt_int_op(2,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NTOR_V3));
 
   tt_int_op(0,OP_EQ, onion_pending_add(circ_ntor, create_ntor2));
   tt_int_op(0,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_TAP));
   tt_int_op(3,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NTOR));
-  tt_int_op(3,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NQED_HS_V3));
+  tt_int_op(3,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NTOR_V3));
 
   tt_int_op(0,OP_EQ, onion_pending_add(circ_ntor3, create_v3ntor2));
   tt_int_op(0,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_TAP));
   tt_int_op(4,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NTOR));
-  tt_int_op(4,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NQED_HS_V3));
+  tt_int_op(4,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NTOR_V3));
 
   /* Now remove 5 tasks, ensuring order and queue sizes */
   tt_ptr_op(circ_ntor, OP_EQ, onion_next_task(&onionskin));
   tt_int_op(0,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_TAP));
   tt_int_op(3,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NTOR));
-  tt_int_op(3,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NQED_HS_V3));
+  tt_int_op(3,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NTOR_V3));
   tt_ptr_op(onionskin, OP_EQ, create_ntor1);
 
   tt_ptr_op(circ_ntor3, OP_EQ, onion_next_task(&onionskin));
   tt_int_op(0,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_TAP));
   tt_int_op(2,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NTOR));
-  tt_int_op(2,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NQED_HS_V3));
+  tt_int_op(2,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NTOR_V3));
   tt_ptr_op(onionskin, OP_EQ, create_v3ntor1);
 
   tt_ptr_op(circ_ntor, OP_EQ, onion_next_task(&onionskin));
   tt_int_op(0,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_TAP));
   tt_int_op(1,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NTOR));
-  tt_int_op(1,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NQED_HS_V3));
+  tt_int_op(1,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NTOR_V3));
   tt_ptr_op(onionskin, OP_EQ, create_ntor2);
 
   tt_ptr_op(circ_ntor3, OP_EQ, onion_next_task(&onionskin));
   tt_int_op(0,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_TAP));
   tt_int_op(0,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NTOR));
-  tt_int_op(0,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NQED_HS_V3));
+  tt_int_op(0,OP_EQ, onion_num_pending(ONION_HANDSHAKE_TYPE_NTOR_V3));
   tt_ptr_op(onionskin, OP_EQ, create_v3ntor2);
 
   clear_pending_onions();
@@ -576,7 +576,7 @@ test_circuit_timeout(void *arg)
 static struct testcase_t test_array[] = {
   ENT(onion_queues),
   ENT(onion_queue_order),
-  { "nqed_hs_handshake", test_nqed_hs_handshake, 0, NULL, NULL },
+  { "ntor_handshake", test_ntor_handshake, 0, NULL, NULL },
   { "fast_handshake", test_fast_handshake, 0, NULL, NULL },
   FORK(circuit_timeout),
   FORK(circuit_timeout_xm_alpha),
@@ -656,7 +656,7 @@ struct testgroup_t testgroups[] = {
   { "hs_dos/", hs_dos_tests },
   { "hs_intropoint/", hs_intropoint_tests },
   { "hs_metrics/", hs_metrics_tests },
-  { "hs_ntor/", hs_nqed_hs_tests },
+  { "hs_ntor/", hs_ntor_tests },
   { "hs_ob/", hs_ob_tests },
   { "hs_pow/", hs_pow_tests },
   { "hs_service/", hs_service_tests },
@@ -667,7 +667,7 @@ struct testgroup_t testgroups[] = {
   { "netinfo/", netinfo_tests },
   { "nodelist/", nodelist_tests },
   { "oom/", oom_tests },
-  { "onion-handshake/ntor-v3/", nqed_hs_v3_tests },
+  { "onion-handshake/ntor-v3/", ntor_v3_tests },
   { "oos/", oos_tests },
   { "options/", options_tests },
   { "options/act/", options_act_tests },

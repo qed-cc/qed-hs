@@ -46,7 +46,7 @@
 #include "lib/string/printf.h"
 #include "lib/malloc/malloc.h"
 #include "lib/string/util_string.h"
-#include "lib/wallclock/qed_hs_gettimeofday.h"
+#include "lib/wallclock/tor_gettimeofday.h"
 #include "lib/wallclock/approx_time.h"
 #include "lib/wallclock/time_to_tm.h"
 #include "lib/fdio/fdio.h"
@@ -263,7 +263,7 @@ log_prefix_(char *buf, size_t buf_len, int severity)
   size_t n;
   int r, ms;
 
-  qed_hs_gettimeofday(&now);
+  tor_gettimeofday(&now);
   t = (time_t)now.tv_sec;
   ms = (int)now.tv_usec / 1000;
   if (log_time_granularity >= 1000) {

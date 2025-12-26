@@ -79,10 +79,10 @@ check_create_cell(const create_cell_t *cell, int unknown_ok)
       return -1;
     break;
   case ONION_HANDSHAKE_TYPE_NTOR:
-    if (cell->handshake_len != NQED_HS_ONIONSKIN_LEN)
+    if (cell->handshake_len != NTOR_ONIONSKIN_LEN)
       return -1;
     break;
-  case ONION_HANDSHAKE_TYPE_NQED_HS_V3:
+  case ONION_HANDSHAKE_TYPE_NTOR_V3:
     /* ntor v3 has variable length fields that are checked
      * elsewhere. Fall through to always valid here. */
     break;
@@ -144,7 +144,7 @@ parse_create2_payload(create_cell_t *cell_out, const uint8_t *p, size_t p_len)
  * ntor even when A doesn't understand EXTEND2 and so can't generate a
  * CREATE2 cell.
  **/
-#define NQED_HS_CREATE_MAGIC "ntorNTORntorNTOR"
+#define NTOR_CREATE_MAGIC "ntorNTORntorNTOR"
 
 /** Parse a CREATE, CREATE_FAST, or CREATE2 cell from <b>cell_in</b> into
  * <b>cell_out</b>. Return 0 on success, -1 on failure. (We reject some
@@ -457,13 +457,13 @@ create_cell_format_impl(cell_t *cell_out, const create_cell_t *cell_in,
 
   switch (cell_in->cell_type) {
   case CELL_CREATE:
-    if (BUG(cell_in->handshake_type == ONION_HANDSHAKE_TYPE_NQED_HS_V3)) {
+    if (BUG(cell_in->handshake_type == ONION_HANDSHAKE_TYPE_NTOR_V3)) {
       log_warn(LD_BUG, "Create cells cannot contain ntorv3.");
       return -1;
     }
 
     if (cell_in->handshake_type == ONION_HANDSHAKE_TYPE_NTOR) {
-      memcpy(p, NQED_HS_CREATE_MAGIC, 16);
+      memcpy(p, NTOR_CREATE_MAGIC, 16);
       p += 16;
       space -= 16;
     }

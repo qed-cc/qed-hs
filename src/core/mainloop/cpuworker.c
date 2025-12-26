@@ -389,7 +389,7 @@ cpuworker_onion_handshake_replyfn(void *work_)
        needless, but let's leave it in to be safe. */
     struct timeval tv_end, tv_diff;
     int64_t usec_roundtrip;
-    qed_hs_gettimeofday(&tv_end);
+    tor_gettimeofday(&tv_end);
     timersub(&tv_end, &rpl.started_at, &tv_diff);
     usec_roundtrip = ((int64_t)tv_diff.tv_sec)*1000000 + tv_diff.tv_usec;
     if (usec_roundtrip >= 0 &&
@@ -497,7 +497,7 @@ cpuworker_onion_handshake_threadfn(void *state_, void *work_)
   rpl.started_at = req.started_at;
   rpl.handshake_type = cc->handshake_type;
   if (req.timed)
-    qed_hs_gettimeofday(&tv_start);
+    tor_gettimeofday(&tv_start);
   n = onion_skin_server_handshake(cc->handshake_type,
                                   cc->onionskin, cc->handshake_len,
                                   onion_keys,
@@ -534,7 +534,7 @@ cpuworker_onion_handshake_threadfn(void *state_, void *work_)
   if (req.timed) {
     struct timeval tv_diff;
     int64_t usec;
-    qed_hs_gettimeofday(&tv_end);
+    tor_gettimeofday(&tv_end);
     timersub(&tv_end, &tv_start, &tv_diff);
     usec = ((int64_t)tv_diff.tv_sec)*1000000 + tv_diff.tv_usec;
     if (usec < 0 || usec > MAX_BELIEVABLE_ONIONSKIN_DELAY)
@@ -628,7 +628,7 @@ assign_onionskin_to_cpuworker(or_circuit_t *circ,
   qed_hs_free(onionskin);
 
   if (should_time)
-    qed_hs_gettimeofday(&req.started_at);
+    tor_gettimeofday(&req.started_at);
 
   /* Copy the current cached consensus params relevant to
    * circuit negotiation into the CPU worker context */

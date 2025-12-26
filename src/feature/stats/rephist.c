@@ -2084,7 +2084,7 @@ static digestmap_t *served_descs = NULL;
 
 /** Number of how many descriptors were downloaded in total during this
  * interval. */
-static unsigned long total_descripqed_hs_downloads;
+static unsigned long total_descriptor_downloads;
 
 /** Start time of served descs stats or 0 if we're not collecting those. */
 static time_t start_of_served_descs_stats_interval;
@@ -2099,7 +2099,7 @@ rep_hist_desc_stats_init(time_t now)
     return; // Already initialized
   }
   served_descs = digestmap_new();
-  total_descripqed_hs_downloads = 0;
+  total_descriptor_downloads = 0;
   start_of_served_descs_stats_interval = now;
 }
 
@@ -2119,7 +2119,7 @@ rep_hist_desc_stats_term(void)
   digestmap_free(served_descs, NULL);
   served_descs = NULL;
   start_of_served_descs_stats_interval = 0;
-  total_descripqed_hs_downloads = 0;
+  total_descriptor_downloads = 0;
 }
 
 /** Helper for rep_hist_desc_stats_write(). Return a newly allocated string
@@ -2169,7 +2169,7 @@ rep_hist_format_desc_stats(time_t now)
                "max=%d q3=%d md=%d q1=%d min=%d\n",
                t,
                (unsigned) (now - start_of_served_descs_stats_interval),
-               total_descripqed_hs_downloads,
+               total_descriptor_downloads,
                size, max, q3, md, q1, min);
 
   return result;
@@ -2223,7 +2223,7 @@ rep_hist_note_desc_served(const char * desc)
   if (count != INT_MAX)
     ++count;
   digestmap_set(served_descs, desc, (void*)count);
-  total_descripqed_hs_downloads++;
+  total_descriptor_downloads++;
 }
 
 /*** Connection statistics ***/
@@ -2246,30 +2246,30 @@ static uint64_t stats_n_onionskin_dropped[MAX_ONION_STAT_TYPE+1] = {0};
 /* We use a scale here so we can represent percentages with decimal points by
  * scaling the value by this factor and so 0.5% becomes a value of 500.
  * Default is 1% and thus min and max range is 0 to 100%. */
-#define OVERLOAD_ONIONSKIN_NQED_HS_PERCENT_SCALE 1000.0
-#define OVERLOAD_ONIONSKIN_NQED_HS_PERCENT_DEFAULT 1000
-#define OVERLOAD_ONIONSKIN_NQED_HS_PERCENT_MIN 0
-#define OVERLOAD_ONIONSKIN_NQED_HS_PERCENT_MAX 100000
+#define OVERLOAD_ONIONSKIN_NTOR_PERCENT_SCALE 1000.0
+#define OVERLOAD_ONIONSKIN_NTOR_PERCENT_DEFAULT 1000
+#define OVERLOAD_ONIONSKIN_NTOR_PERCENT_MIN 0
+#define OVERLOAD_ONIONSKIN_NTOR_PERCENT_MAX 100000
 
 /** Consensus parameter: indicate what fraction of ntor onionskin drop over the
  * total number of requests must be reached before we trigger a general
  * overload signal.*/
-static double overload_onionskin_nqed_hs_fraction =
-   OVERLOAD_ONIONSKIN_NQED_HS_PERCENT_DEFAULT /
-   OVERLOAD_ONIONSKIN_NQED_HS_PERCENT_SCALE / 100.0;
+static double overload_onionskin_ntor_fraction =
+   OVERLOAD_ONIONSKIN_NTOR_PERCENT_DEFAULT /
+   OVERLOAD_ONIONSKIN_NTOR_PERCENT_SCALE / 100.0;
 
 /* Number of seconds for the assessment period. Default is 6 hours (21600) and
  * the min max range is within a 32bit value. We align this period to the
  * Heartbeat so the logs would match this period more or less. */
-#define OVERLOAD_ONIONSKIN_NQED_HS_PERIOD_SECS_DEFAULT (60 * 60 * 6)
-#define OVERLOAD_ONIONSKIN_NQED_HS_PERIOD_SECS_MIN 0
-#define OVERLOAD_ONIONSKIN_NQED_HS_PERIOD_SECS_MAX INT32_MAX
+#define OVERLOAD_ONIONSKIN_NTOR_PERIOD_SECS_DEFAULT (60 * 60 * 6)
+#define OVERLOAD_ONIONSKIN_NTOR_PERIOD_SECS_MIN 0
+#define OVERLOAD_ONIONSKIN_NTOR_PERIOD_SECS_MAX INT32_MAX
 
 /** Consensus parameter: Period, in seconds, over which we count the number of
  * ntor onionskins requests and how many were dropped. After that period, we
  * assess if we trigger an overload or not. */
-static int32_t overload_onionskin_nqed_hs_period_secs =
-  OVERLOAD_ONIONSKIN_NQED_HS_PERIOD_SECS_DEFAULT;
+static int32_t overload_onionskin_ntor_period_secs =
+  OVERLOAD_ONIONSKIN_NTOR_PERIOD_SECS_DEFAULT;
 
 /** Structure containing information for an assessment period of the onionskin
  * drop overload general signal.
@@ -2279,10 +2279,10 @@ static int32_t overload_onionskin_nqed_hs_period_secs =
  * depending on some consensus parameters. */
 typedef struct {
   /** Total number of ntor onionskin requested for an assessment period. */
-  uint64_t n_nqed_hs_requested;
+  uint64_t n_ntor_requested;
 
   /** Total number of dropped ntor onionskins for an assessment period. */
-  uint64_t n_nqed_hs_dropped;
+  uint64_t n_ntor_dropped;
 
   /** When is the next assessment time of the general overload for ntor
    * onionskin drop. Once this time is reached, all stats are reset and this
@@ -2300,7 +2300,7 @@ static inline uint16_t
 onionskin_type_to_stat(uint16_t type)
 {
   if (BUG(type > MAX_ONION_STAT_TYPE)) {
-    return MAX_ONION_STAT_TYPE; // use nqed_hs_v3 if out of range
+    return MAX_ONION_STAT_TYPE; // use ntor_v3 if out of range
   }
 
   return type;
@@ -2332,29 +2332,29 @@ overload_general_onionskin_assessment(void)
   /* Make sure we have enough requests to be able to make a proper assessment.
    * We want to avoid 1 single request/drop to trigger an overload as we want
    * at least the number of requests to be above the scale of our fraction. */
-  if (overload_onionskin_assessment.n_nqed_hs_requested <
-      OVERLOAD_ONIONSKIN_NQED_HS_PERCENT_SCALE) {
+  if (overload_onionskin_assessment.n_ntor_requested <
+      OVERLOAD_ONIONSKIN_NTOR_PERCENT_SCALE) {
     goto done;
   }
 
   /* Lets see if we can signal a general overload. */
-  double fraction = (double) overload_onionskin_assessment.n_nqed_hs_dropped /
-                    (double) overload_onionskin_assessment.n_nqed_hs_requested;
-  if (fraction >= overload_onionskin_nqed_hs_fraction) {
+  double fraction = (double) overload_onionskin_assessment.n_ntor_dropped /
+                    (double) overload_onionskin_assessment.n_ntor_requested;
+  if (fraction >= overload_onionskin_ntor_fraction) {
     log_notice(LD_HIST, "General overload -> Ntor dropped (%" PRIu64 ") "
                "fraction %.4f%% is above threshold of %.4f%%",
-               overload_onionskin_assessment.n_nqed_hs_dropped,
+               overload_onionskin_assessment.n_ntor_dropped,
                fraction * 100.0,
-               overload_onionskin_nqed_hs_fraction * 100.0);
+               overload_onionskin_ntor_fraction * 100.0);
     rep_hist_note_overload(OVERLOAD_GENERAL);
   }
 
  reset:
   /* Reset counters for the next period. */
-  overload_onionskin_assessment.n_nqed_hs_dropped = 0;
-  overload_onionskin_assessment.n_nqed_hs_requested = 0;
+  overload_onionskin_assessment.n_ntor_dropped = 0;
+  overload_onionskin_assessment.n_ntor_requested = 0;
   overload_onionskin_assessment.next_assessment_time =
-    approx_time() + overload_onionskin_nqed_hs_period_secs;
+    approx_time() + overload_onionskin_ntor_period_secs;
 
  done:
   return;
@@ -2370,11 +2370,11 @@ rep_hist_note_circuit_handshake_requested(uint16_t type)
 
   /* Only relays get to record requested onionskins. */
   if (stat == ONION_HANDSHAKE_TYPE_NTOR ||
-      stat == ONION_HANDSHAKE_TYPE_NQED_HS_V3) {
+      stat == ONION_HANDSHAKE_TYPE_NTOR_V3) {
     /* Assess if we've reached the overload general signal. */
     overload_general_onionskin_assessment();
 
-    overload_onionskin_assessment.n_nqed_hs_requested++;
+    overload_onionskin_assessment.n_ntor_requested++;
   }
 }
 
@@ -2398,9 +2398,9 @@ rep_hist_note_circuit_handshake_dropped(uint16_t type)
 
   /* Only relays get to record requested onionskins. */
   if (stat == ONION_HANDSHAKE_TYPE_NTOR ||
-      stat == ONION_HANDSHAKE_TYPE_NQED_HS_V3) {
+      stat == ONION_HANDSHAKE_TYPE_NTOR_V3) {
     /* Note the dropped ntor in the overload assessment object. */
-    overload_onionskin_assessment.n_nqed_hs_dropped++;
+    overload_onionskin_assessment.n_ntor_dropped++;
   }
 }
 
@@ -2443,8 +2443,8 @@ rep_hist_log_circuit_handshake_stats(time_t now)
              onion_handshakes_requested[ONION_HANDSHAKE_TYPE_TAP],
              onion_handshakes_assigned[ONION_HANDSHAKE_TYPE_NTOR],
              onion_handshakes_requested[ONION_HANDSHAKE_TYPE_NTOR],
-             onion_handshakes_assigned[ONION_HANDSHAKE_TYPE_NQED_HS_V3],
-             onion_handshakes_requested[ONION_HANDSHAKE_TYPE_NQED_HS_V3]);
+             onion_handshakes_assigned[ONION_HANDSHAKE_TYPE_NTOR_V3],
+             onion_handshakes_requested[ONION_HANDSHAKE_TYPE_NTOR_V3]);
   memset(onion_handshakes_assigned, 0, sizeof(onion_handshakes_assigned));
   memset(onion_handshakes_requested, 0, sizeof(onion_handshakes_requested));
 }
@@ -3002,7 +3002,7 @@ rep_hist_free_all(void)
     circuits_for_buffer_stats = NULL;
   }
   rep_hist_desc_stats_term();
-  total_descripqed_hs_downloads = 0;
+  total_descriptor_downloads = 0;
 
   qed_hs_assert_nonfatal(rephist_total_alloc == 0);
   qed_hs_assert_nonfatal_once(rephist_total_num == 0);
@@ -3013,18 +3013,18 @@ rep_hist_free_all(void)
 void
 rep_hist_consensus_has_changed(const networkstatus_t *ns)
 {
-  overload_onionskin_nqed_hs_fraction =
-    networkstatus_get_param(ns, "overload_onionskin_nqed_hs_scale_percent",
-                            OVERLOAD_ONIONSKIN_NQED_HS_PERCENT_DEFAULT,
-                            OVERLOAD_ONIONSKIN_NQED_HS_PERCENT_MIN,
-                            OVERLOAD_ONIONSKIN_NQED_HS_PERCENT_MAX) /
-    OVERLOAD_ONIONSKIN_NQED_HS_PERCENT_SCALE / 100.0;
+  overload_onionskin_ntor_fraction =
+    networkstatus_get_param(ns, "overload_onionskin_ntor_scale_percent",
+                            OVERLOAD_ONIONSKIN_NTOR_PERCENT_DEFAULT,
+                            OVERLOAD_ONIONSKIN_NTOR_PERCENT_MIN,
+                            OVERLOAD_ONIONSKIN_NTOR_PERCENT_MAX) /
+    OVERLOAD_ONIONSKIN_NTOR_PERCENT_SCALE / 100.0;
 
-  overload_onionskin_nqed_hs_period_secs =
-    networkstatus_get_param(ns, "overload_onionskin_nqed_hs_period_secs",
-                            OVERLOAD_ONIONSKIN_NQED_HS_PERIOD_SECS_DEFAULT,
-                            OVERLOAD_ONIONSKIN_NQED_HS_PERIOD_SECS_MIN,
-                            OVERLOAD_ONIONSKIN_NQED_HS_PERIOD_SECS_MAX);
+  overload_onionskin_ntor_period_secs =
+    networkstatus_get_param(ns, "overload_onionskin_ntor_period_secs",
+                            OVERLOAD_ONIONSKIN_NTOR_PERIOD_SECS_DEFAULT,
+                            OVERLOAD_ONIONSKIN_NTOR_PERIOD_SECS_MIN,
+                            OVERLOAD_ONIONSKIN_NTOR_PERIOD_SECS_MAX);
 }
 
 /** Relay Only: return the total number of DROP cell received. */

@@ -694,7 +694,7 @@ get_socks_args_by_bridge_addrport(const qed_hs_addr_t *addr, uint16_t port)
 
 /** We need to ask <b>bridge</b> for its server descriptor. */
 static void
-launch_direct_bridge_descripqed_hs_fetch(bridge_info_t *bridge)
+launch_direct_bridge_descriptor_fetch(bridge_info_t *bridge)
 {
   const or_options_t *options = get_options();
   circuit_guard_state_t *guard_state = NULL;
@@ -758,13 +758,13 @@ launch_direct_bridge_descripqed_hs_fetch(bridge_info_t *bridge)
 /** Fetching the bridge descriptor from the bridge authority returned a
  * "not found". Fall back to trying a direct fetch. */
 void
-retry_bridge_descripqed_hs_fetch_directly(const char *digest)
+retry_bridge_descriptor_fetch_directly(const char *digest)
 {
   bridge_info_t *bridge = find_bridge_by_digest(digest);
   if (!bridge)
     return; /* not found? oh well. */
 
-  launch_direct_bridge_descripqed_hs_fetch(bridge);
+  launch_direct_bridge_descriptor_fetch(bridge);
 }
 
 /** For each bridge in our list for which we don't currently have a
@@ -830,7 +830,7 @@ fetch_bridge_descriptors(const or_options_t *options, time_t now)
 
       if (ask_bridge_directly) {
         /* we need to ask the bridge itself for its descriptor. */
-        launch_direct_bridge_descripqed_hs_fetch(bridge);
+        launch_direct_bridge_descriptor_fetch(bridge);
       } else {
         /* We have a digest and we want to ask an authority. We could
          * combine all the requests into one, but that may give more

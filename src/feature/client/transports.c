@@ -640,7 +640,7 @@ pt_configure_remaining_proxies(void)
   assert_unconfigured_count_ok();
 
   if (at_least_a_proxy_config_finished)
-    mark_my_descripqed_hs_dirty("configured managed proxies");
+    mark_my_descriptor_dirty("configured managed proxies");
 }
 
 /** Attempt to continue configuring managed proxy <b>mp</b>.
@@ -1739,7 +1739,7 @@ get_transport_proxy_ports(void)
  *  allocated on the heap and it's the responsibility of the caller to
  *  free it. */
 char *
-pt_get_extra_info_descripqed_hs_string(void)
+pt_get_extra_info_descriptor_string(void)
 {
   char *the_string = NULL;
   smartlist_t *string_chunks = NULL;

@@ -18,7 +18,7 @@ struct crypto_dh_t;
 #define CRYPT_PATH_MAGIC 0x70127012u
 
 struct fast_handshake_state_t;
-struct nqed_hs_handshake_state_t;
+struct ntor_handshake_state_t;
 struct crypto_dh_t;
 struct onion_handshake_state_t {
   /** One of `ONION_HANDSHAKE_TYPE_*`.  Determines which member of the union
@@ -26,7 +26,7 @@ struct onion_handshake_state_t {
   uint16_t tag;
   union {
     struct fast_handshake_state_t *fast;
-    struct nqed_hs_handshake_state_t *ntor;
+    struct ntor_handshake_state_t *ntor;
     struct ntor3_handshake_state_t *ntor3;
   } u;
 };

@@ -356,7 +356,7 @@ test_protover_supports_version(void *arg)
 
 #define PROTOVER_FLOWCTRL_V1 1
 
-#define PROTOVER_RELAY_NQED_HS_V3 4
+#define PROTOVER_RELAY_NTOR_V3 4
 
 /* Make sure we haven't forgotten any supported protocols */
 static void

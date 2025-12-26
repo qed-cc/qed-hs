@@ -76,7 +76,7 @@ test_router_dump_router_to_string_no_bridge_distribution_method(void *arg)
   const char* needle = "bridge-distribution-request any";
   or_options_t* options = get_options_mutable();
   routerinfo_t* router = NULL;
-  curve25519_keypair_t nqed_hs_keypair;
+  curve25519_keypair_t ntor_keypair;
   ed25519_keypair_t signing_keypair;
   ed25519_keypair_t identity_keypair;
   char* desc = NULL;
@@ -89,7 +89,7 @@ test_router_dump_router_to_string_no_bridge_distribution_method(void *arg)
   options->BridgeRelay = 1;
 
   /* Generate keys which router_dump_router_to_string() expects to exist. */
-  tt_int_op(0, OP_EQ, curve25519_keypair_generate(&nqed_hs_keypair, 0));
+  tt_int_op(0, OP_EQ, curve25519_keypair_generate(&ntor_keypair, 0));
   tt_int_op(0, OP_EQ, ed25519_keypair_generate(&signing_keypair, 0));
   tt_int_op(0, OP_EQ, ed25519_keypair_generate(&identity_keypair, 0));
 
@@ -109,14 +109,14 @@ test_router_dump_router_to_string_no_bridge_distribution_method(void *arg)
   /* The real router_get_my_routerinfo() looks up onion_curve25519_pkey using
    * get_current_curve25519_keypair(), but we don't initialise static data in
    * this test. */
-  router->onion_curve25519_pkey = &nqed_hs_keypair.pubkey;
+  router->onion_curve25519_pkey = &ntor_keypair.pubkey;
 
   /* Generate our server descriptor and ensure that the substring
    * "bridge-distribution-request any" occurs somewhere within it. */
   desc = router_dump_router_to_string(router,
                                       ident_key,
                                       tap_key,
-                                      &nqed_hs_keypair,
+                                      &ntor_keypair,
                                       &signing_keypair);
   tt_ptr_op(desc, OP_NE, NULL);
   found = strstr(desc, needle);
@@ -170,7 +170,7 @@ mock_we_are_hibernating(void)
 }
 
 static void
-test_router_check_descripqed_hs_bandwidth_changed(void *arg)
+test_router_check_descriptor_bandwidth_changed(void *arg)
 {
   (void)arg;
   routerinfo_t routerinfo;
@@ -186,7 +186,7 @@ test_router_check_descripqed_hs_bandwidth_changed(void *arg)
   routerinfo.bandwidthcapacity = 0;
   MOCK(get_uptime, mock_get_uptime_3h);
   setup_full_capture_of_logs(LOG_INFO);
-  check_descripqed_hs_bandwidth_changed(time(NULL));
+  check_descriptor_bandwidth_changed(time(NULL));
   expect_log_msg_not_containing(
      "Measured bandwidth has changed; rebuilding descriptor.");
   teardown_capture_of_logs();
@@ -196,7 +196,7 @@ test_router_check_descripqed_hs_bandwidth_changed(void *arg)
    * Uptime: 10800, last_changed: 0, Previous bw: 10000, Current bw: 0 */
   routerinfo.bandwidthcapacity = 10000;
   setup_full_capture_of_logs(LOG_INFO);
-  check_descripqed_hs_bandwidth_changed(time(NULL));
+  check_descriptor_bandwidth_changed(time(NULL));
   expect_log_msg_containing(
      "Measured bandwidth has changed; rebuilding descriptor.");
   teardown_capture_of_logs();
@@ -209,7 +209,7 @@ test_router_check_descripqed_hs_bandwidth_changed(void *arg)
   MOCK(we_are_hibernating, mock_we_are_hibernating);
   routerinfo.bandwidthcapacity = 10000;
   setup_full_capture_of_logs(LOG_INFO);
-  check_descripqed_hs_bandwidth_changed(time(NULL));
+  check_descriptor_bandwidth_changed(time(NULL));
   expect_log_msg_not_containing(
      "Measured bandwidth has changed; rebuilding descriptor.");
   teardown_capture_of_logs();
@@ -219,7 +219,7 @@ test_router_check_descripqed_hs_bandwidth_changed(void *arg)
   /* When uptime is less than 24h, last_changed is not more than 3h ago
    * Uptime: 10800, last_changed: x, Previous bw: 10000, Current bw: 0 */
   setup_full_capture_of_logs(LOG_INFO);
-  check_descripqed_hs_bandwidth_changed(time(NULL));
+  check_descriptor_bandwidth_changed(time(NULL));
   expect_log_msg_not_containing(
      "Measured bandwidth has changed; rebuilding descriptor.");
   teardown_capture_of_logs();
@@ -228,7 +228,7 @@ test_router_check_descripqed_hs_bandwidth_changed(void *arg)
    * Uptime: 10800, last_changed: x, Previous bw: 10000, Current bw: 20001 */
   MOCK(bwhist_bandwidth_assess, mock_rep_hist_bandwidth_assess);
   setup_full_capture_of_logs(LOG_INFO);
-  check_descripqed_hs_bandwidth_changed(time(NULL) + 6*60*60 + 1);
+  check_descriptor_bandwidth_changed(time(NULL) + 6*60*60 + 1);
   expect_log_msg_containing(
      "Measured bandwidth has changed; rebuilding descriptor.");
   UNMOCK(get_uptime);
@@ -238,7 +238,7 @@ test_router_check_descripqed_hs_bandwidth_changed(void *arg)
   /* When uptime is more than 24h */
   MOCK(get_uptime, mock_get_uptime_1d);
   setup_full_capture_of_logs(LOG_INFO);
-  check_descripqed_hs_bandwidth_changed(time(NULL));
+  check_descriptor_bandwidth_changed(time(NULL));
   expect_log_msg_not_containing(
      "Measured bandwidth has changed; rebuilding descriptor.");
   teardown_capture_of_logs();
@@ -286,31 +286,31 @@ test_router_mark_if_too_old(void *arg)
   // no reason to mark this time.
   desc_clean_since = now-10;
   desc_dirty_reason = NULL;
-  mark_my_descripqed_hs_dirty_if_too_old(now);
+  mark_my_descriptor_dirty_if_too_old(now);
   tt_i64_op(desc_clean_since, OP_EQ, now-10);
 
   // Doesn't appear in consensus?  Still don't mark it.
   mock_ns = NULL;
-  mark_my_descripqed_hs_dirty_if_too_old(now);
+  mark_my_descriptor_dirty_if_too_old(now);
   tt_i64_op(desc_clean_since, OP_EQ, now-10);
   mock_ns = &ns;
 
   // No new descriptor in a long time?  Mark it.
   desc_clean_since = now - 3600 * 96;
-  mark_my_descripqed_hs_dirty_if_too_old(now);
+  mark_my_descriptor_dirty_if_too_old(now);
   tt_i64_op(desc_clean_since, OP_EQ, 0);
   tt_str_op(desc_dirty_reason, OP_EQ, "time for new descriptor");
 
   desc_clean_since = now - 10;
   desc_dirty_reason = NULL;
-  mark_my_descripqed_hs_dirty_if_too_old(now);
+  mark_my_descriptor_dirty_if_too_old(now);
   tt_i64_op(desc_clean_since, OP_EQ, now - 10);
 
   // Version in consensus marked as stale?  We'll mark it.
   desc_clean_since = now - 2 * 3600;
   desc_dirty_reason = NULL;
   mock_rs->is_staledesc = 1;
-  mark_my_descripqed_hs_dirty_if_too_old(now);
+  mark_my_descriptor_dirty_if_too_old(now);
   tt_i64_op(desc_clean_since, OP_EQ, 0);
   tt_str_op(desc_dirty_reason, OP_EQ,
             "listed as stale in consensus");
@@ -319,7 +319,7 @@ test_router_mark_if_too_old(void *arg)
   desc_clean_since = now - 2 * 3600;
   desc_dirty_reason = NULL;
   mock_rs = NULL;
-  mark_my_descripqed_hs_dirty_if_too_old(now);
+  mark_my_descriptor_dirty_if_too_old(now);
   tt_i64_op(desc_clean_since, OP_EQ, 0);
   tt_str_op(desc_dirty_reason, OP_EQ,
             "not listed in consensus");
@@ -588,7 +588,7 @@ test_router_get_advertised_or_port_localhost(void *arg)
   { #name, test_router_ ## name, flags, NULL, NULL }
 
 struct testcase_t router_tests[] = {
-  ROUTER_TEST(check_descripqed_hs_bandwidth_changed, TT_FORK),
+  ROUTER_TEST(check_descriptor_bandwidth_changed, TT_FORK),
   ROUTER_TEST(dump_router_to_string_no_bridge_distribution_method, TT_FORK),
   ROUTER_TEST(mark_if_too_old, TT_FORK),
   ROUTER_TEST(get_my_family, TT_FORK),

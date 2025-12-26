@@ -37,7 +37,7 @@ timer_cb(qed_hs_timer_t *t, void *arg, const monotime_t *now_mono)
 {
   struct timeval now;
 
-  qed_hs_gettimeofday(&now);
+  tor_gettimeofday(&now);
   qed_hs_timer_t **t_ptr = arg;
   qed_hs_assert(*t_ptr == t);
   int idx = (int) (t_ptr - timers);
@@ -71,7 +71,7 @@ main(int argc, char **argv)
   int i;
   int ret;
   struct timeval now;
-  qed_hs_gettimeofday(&now);
+  tor_gettimeofday(&now);
   monotime_get(&started_at);
   for (i = 0; i < N_TIMERS; ++i) {
     struct timeval delay;

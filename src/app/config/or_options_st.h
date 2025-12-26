@@ -16,7 +16,7 @@
 #include "core/or/or.h"
 #include "lib/cc/torint.h"
 #include "lib/net/address.h"
-#include "app/config/qed_hs_cmdline_mode.h"
+#include "app/config/tor_cmdline_mode.h"
 
 struct smartlist_t;
 struct config_line_t;

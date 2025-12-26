@@ -349,7 +349,7 @@ circuit_get_best(const entry_connection_t *conn,
              purpose == CIRCUIT_PURPOSE_C_INTRODUCE_ACK_WAIT ||
              purpose == CIRCUIT_PURPOSE_C_REND_JOINED);
 
-  qed_hs_gettimeofday(&now);
+  tor_gettimeofday(&now);
   now_sec = now.tv_sec;
 
   // Prefer pre-built conflux circuits here, if available but only for general
@@ -456,7 +456,7 @@ circuit_expire_building(void)
   cpath_build_state_t *build_state;
   int any_opened_circs = 0;
 
-  qed_hs_gettimeofday(&now);
+  tor_gettimeofday(&now);
 
   /* Check to see if we have any opened circuits. If we don't,
    * we want to be more lenient with timeouts, in case the
@@ -1447,7 +1447,7 @@ circuit_expire_old_circuits_clientside(void)
 {
   struct timeval cutoff, now;
 
-  qed_hs_gettimeofday(&now);
+  tor_gettimeofday(&now);
   last_expired_clientside_circuits = now.tv_sec;
 
   SMARTLIST_FOREACH_BEGIN(circuit_get_global_list(), circuit_t *, circ) {
@@ -2160,7 +2160,7 @@ circuit_launch_by_extend_info(uint8_t purpose,
        * Technically, the code should reset this when the
        * create cell is finally sent, but we're close enough
        * here. */
-      qed_hs_gettimeofday(&circ->base_.timestamp_began);
+      tor_gettimeofday(&circ->base_.timestamp_began);
 
       control_event_circuit_cannibalized(circ, old_purpose,
                                          &old_timestamp_began);

@@ -5,7 +5,7 @@
 /* See LICENSE for licensing information */
 
 /**
- * @file onion_nqed_hs_v3.c
+ * @file onion_ntor_v3.c
  * @brief Implements the version 3 ntor handshake as first specified in
  * proposal 332.
  *
@@ -18,10 +18,10 @@
  * unless both parties use the same value for their verification stream.
  **/
 
-#define ONION_NQED_HS_V3_PRIVATE
+#define ONION_NTOR_V3_PRIVATE
 
 #include "orconfig.h"
-#include "core/crypto/onion_nqed_hs_v3.h"
+#include "core/crypto/onion_ntor_v3.h"
 
 #include "lib/arch/bytes.h"
 #include "lib/crypt_ops/crypto_digest.h"

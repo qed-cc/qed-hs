@@ -5,7 +5,7 @@ dnl Copyright (c) 2007-2008, Roger Dingledine, Nick Mathewson
 dnl Copyright (c) 2007-2019, The Tor Project, Inc.
 dnl See LICENSE for licensing information
 
-AC_DEFUN([TOR_EXTEND_CODEPATH],
+AC_DEFUN([QED_HS_EXTEND_CODEPATH],
 [
   if test -d "$1/lib"; then
     LDFLAGS="-L$1/lib $LDFLAGS"
@@ -19,37 +19,37 @@ AC_DEFUN([TOR_EXTEND_CODEPATH],
   fi
 ])
 
-AC_DEFUN([TOR_DEFINE_CODEPATH],
+AC_DEFUN([QED_HS_DEFINE_CODEPATH],
 [
   if test x$1 = "x(system)"; then
-    TOR_LDFLAGS_$2=""
-    TOR_CPPFLAGS_$2=""
+    QED_HS_LDFLAGS_$2=""
+    QED_HS_CPPFLAGS_$2=""
   else
    if test -d "$1/lib"; then
-     TOR_LDFLAGS_$2="-L$1/lib"
-     TOR_LIBDIR_$2="$1/lib"
+     QED_HS_LDFLAGS_$2="-L$1/lib"
+     QED_HS_LIBDIR_$2="$1/lib"
    else
-     TOR_LDFLAGS_$2="-L$1"
-     TOR_LIBDIR_$2="$1"
+     QED_HS_LDFLAGS_$2="-L$1"
+     QED_HS_LIBDIR_$2="$1"
    fi
    if test -d "$1/include"; then
-     TOR_CPPFLAGS_$2="-I$1/include"
+     QED_HS_CPPFLAGS_$2="-I$1/include"
    else
-     TOR_CPPFLAGS_$2="-I$1"
+     QED_HS_CPPFLAGS_$2="-I$1"
    fi
   fi
-  AC_SUBST(TOR_CPPFLAGS_$2)
-  AC_SUBST(TOR_LDFLAGS_$2)
+  AC_SUBST(QED_HS_CPPFLAGS_$2)
+  AC_SUBST(QED_HS_LDFLAGS_$2)
 ])
 
 dnl 1: flags
 dnl 2: try to link too if this is nonempty.
 dnl 3: what to do on success compiling
 dnl 4: what to do on failure compiling
-AC_DEFUN([TOR_TRY_COMPILE_WITH_CFLAGS], [
+AC_DEFUN([QED_HS_TRY_COMPILE_WITH_CFLAGS], [
   AS_VAR_PUSHDEF([VAR],[tor_cv_cflags_$1])
   AC_CACHE_CHECK([whether the compiler accepts $1], VAR, [
-    tor_saved_CFLAGS="$CFLAGS"
+    qed_hs_saved_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS -pedantic -Werror $1"
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
                    [AS_VAR_SET(VAR,yes)],
@@ -61,7 +61,7 @@ AC_DEFUN([TOR_TRY_COMPILE_WITH_CFLAGS], [
                   [AS_VAR_SET(can_link,no)])
       AS_VAR_POPDEF([can_link])
     fi
-    CFLAGS="$tor_saved_CFLAGS"
+    CFLAGS="$qed_hs_saved_CFLAGS"
   ])
   if test x$VAR = xyes; then
      $3
@@ -74,19 +74,19 @@ AC_DEFUN([TOR_TRY_COMPILE_WITH_CFLAGS], [
 dnl 1:flags
 dnl 2:also try to link (yes: non-empty string)
 dnl   will set yes or no in $tor_can_link_$1 (as modified by AS_VAR_PUSHDEF)
-AC_DEFUN([TOR_CHECK_CFLAGS], [
-  TOR_TRY_COMPILE_WITH_CFLAGS($1, $2, CFLAGS="$CFLAGS $1", true)
+AC_DEFUN([QED_HS_CHECK_CFLAGS], [
+  QED_HS_TRY_COMPILE_WITH_CFLAGS($1, $2, CFLAGS="$CFLAGS $1", true)
 ])
 
 dnl 1:flags
 dnl 2:extra ldflags
 dnl 3:extra libraries
-AC_DEFUN([TOR_CHECK_LDFLAGS], [
+AC_DEFUN([QED_HS_CHECK_LDFLAGS], [
   AS_VAR_PUSHDEF([VAR],[tor_cv_ldflags_$1])
   AC_CACHE_CHECK([whether the linker accepts $1], VAR, [
-    tor_saved_CFLAGS="$CFLAGS"
-    tor_saved_LDFLAGS="$LDFLAGS"
-    tor_saved_LIBS="$LIBS"
+    qed_hs_saved_CFLAGS="$CFLAGS"
+    qed_hs_saved_LDFLAGS="$LDFLAGS"
+    qed_hs_saved_LIBS="$LIBS"
     CFLAGS="$CFLAGS -pedantic -Werror"
     LDFLAGS="$LDFLAGS $2 $1"
     LIBS="$LIBS $3"
@@ -96,9 +96,9 @@ AC_DEFUN([TOR_CHECK_LDFLAGS], [
                   [AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
                                    [AS_VAR_SET(VAR,yes)],
                                    [AS_VAR_SET(VAR,no)])])
-    CFLAGS="$tor_saved_CFLAGS"
-    LDFLAGS="$tor_saved_LDFLAGS"
-    LIBS="$tor_saved_LIBS"
+    CFLAGS="$qed_hs_saved_CFLAGS"
+    LDFLAGS="$qed_hs_saved_LDFLAGS"
+    LIBS="$qed_hs_saved_LIBS"
   ])
   if test x$VAR = xyes; then
     LDFLAGS="$LDFLAGS $1"
@@ -107,7 +107,7 @@ AC_DEFUN([TOR_CHECK_LDFLAGS], [
 ])
 
 dnl 1:libname
-AC_DEFUN([TOR_WARN_MISSING_LIB], [
+AC_DEFUN([QED_HS_WARN_MISSING_LIB], [
 h=""
 if test x$2 = xdevpkg; then
   h=" headers for"
@@ -136,7 +136,7 @@ fi
 dnl Look for a library, and its associated includes, and how to link
 dnl against it.
 dnl
-dnl TOR_SEARCH_LIBRARY(1:libname, 2:IGNORED, 3:linkargs, 4:headers,
+dnl QED_HS_SEARCH_LIBRARY(1:libname, 2:IGNORED, 3:linkargs, 4:headers,
 dnl                    5:prototype,
 dnl                    6:code, 7:IGNORED, 8:searchextra)
 dnl
@@ -144,7 +144,7 @@ dnl Special variables:
 dnl   ALT_{libname}_WITHVAL -- another possible value for --with-$1-dir.
 dnl       Used to support renaming --with-ssl-dir to --with-openssl-dir
 dnl
-AC_DEFUN([TOR_SEARCH_LIBRARY], [
+AC_DEFUN([QED_HS_SEARCH_LIBRARY], [
 try$1dir=""
 AC_ARG_WITH($1-dir,
   AS_HELP_STRING(--with-$1-dir=PATH, [specify path to $1 installation]),
@@ -157,17 +157,17 @@ if test "x$try$1dir" = x && test "x$ALT_$1_WITHVAL" != x ; then
   try$1dir="$ALT_$1_WITHVAL"
 fi
 
-tor_saved_LIBS="$LIBS"
-tor_saved_LDFLAGS="$LDFLAGS"
-tor_saved_CPPFLAGS="$CPPFLAGS"
+qed_hs_saved_LIBS="$LIBS"
+qed_hs_saved_LDFLAGS="$LDFLAGS"
+qed_hs_saved_CPPFLAGS="$CPPFLAGS"
 AC_CACHE_CHECK([for $1 directory], tor_cv_library_$1_dir, [
   tor_$1_dir_found=no
   tor_$1_any_linkable=no
 
   for tor_trydir in "$try$1dir" "(system)" "$prefix" /usr/local /usr/pkg $8; do
-    LDFLAGS="$tor_saved_LDFLAGS"
-    LIBS="$3 $tor_saved_LIBS"
-    CPPFLAGS="$tor_saved_CPPFLAGS"
+    LDFLAGS="$qed_hs_saved_LDFLAGS"
+    LIBS="$3 $qed_hs_saved_LIBS"
+    CPPFLAGS="$qed_hs_saved_CPPFLAGS"
 
     if test -z "$tor_trydir" ; then
       continue;
@@ -181,7 +181,7 @@ AC_CACHE_CHECK([for $1 directory], tor_cv_library_$1_dir, [
     # If this isn't blank, try adding the directory (or appropriate
     # include/libs subdirectories) to the command line.
     if test "$tor_trydir" != "(system)"; then
-      TOR_EXTEND_CODEPATH($tor_trydir)
+      QED_HS_EXTEND_CODEPATH($tor_trydir)
     fi
 
     # Can we link against (but not necessarily run, or find the headers for)
@@ -205,26 +205,26 @@ AC_CACHE_CHECK([for $1 directory], tor_cv_library_$1_dir, [
   if test "$tor_$1_dir_found" = no; then
     if test "$tor_$1_any_linkable" = no ; then
       AC_MSG_WARN([Could not find a linkable $1.  If you have it installed somewhere unusual, you can specify an explicit path using --with-$1-dir])
-      TOR_WARN_MISSING_LIB($1, pkg)
+      QED_HS_WARN_MISSING_LIB($1, pkg)
       AC_MSG_ERROR([Missing libraries; unable to proceed.])
     else
       AC_MSG_WARN([We found the libraries for $1, but we could not find the C header files.  You may need to install a devel package.])
-      TOR_WARN_MISSING_LIB($1, devpkg)
+      QED_HS_WARN_MISSING_LIB($1, devpkg)
       AC_MSG_ERROR([Missing headers; unable to proceed.])
     fi
   fi
 
-  LDFLAGS="$tor_saved_LDFLAGS"
-  LIBS="$tor_saved_LIBS"
-  CPPFLAGS="$tor_saved_CPPFLAGS"
+  LDFLAGS="$qed_hs_saved_LDFLAGS"
+  LIBS="$qed_hs_saved_LIBS"
+  CPPFLAGS="$qed_hs_saved_CPPFLAGS"
 ]) dnl end cache check
 
 LIBS="$3 $LIBS"
 if test "$tor_cv_library_$1_dir" != "(system)"; then
-   TOR_EXTEND_CODEPATH($tor_cv_library_$1_dir)
+   QED_HS_EXTEND_CODEPATH($tor_cv_library_$1_dir)
 fi
 
-TOR_DEFINE_CODEPATH($tor_cv_library_$1_dir, $1)
+QED_HS_DEFINE_CODEPATH($tor_cv_library_$1_dir, $1)
 
 if test "$cross_compiling" != yes; then
   AC_CACHE_CHECK([whether we need extra options to link $1],
@@ -262,13 +262,13 @@ if test "$cross_compiling" != yes; then
   ]) dnl end cache check check for extra options.
 
   if test "$tor_cv_library_$1_linker_option" != "(none)" ; then
-    TOR_LDFLAGS_$1="$TOR_LDFLAGS_$1 $tor_cv_library_$1_linker_option"
+    QED_HS_LDFLAGS_$1="$QED_HS_LDFLAGS_$1 $tor_cv_library_$1_linker_option"
   fi
 fi # cross-compile
 
-LIBS="$tor_saved_LIBS"
-LDFLAGS="$tor_saved_LDFLAGS"
-CPPFLAGS="$tor_saved_CPPFLAGS"
+LIBS="$qed_hs_saved_LIBS"
+LDFLAGS="$qed_hs_saved_LDFLAGS"
+CPPFLAGS="$qed_hs_saved_CPPFLAGS"
 
 ]) dnl end defun
 
@@ -277,7 +277,7 @@ dnl Apple has a nasty habit of putting functions in their libraries (so that
 dnl AC_CHECK_FUNCS passes) but not actually declaring them in the headers.
 dnl
 dnl TOR_CHECK_PROTYPE(1:functionname, 2:macroname, 2: includes)
-AC_DEFUN([TOR_CHECK_PROTOTYPE], [
+AC_DEFUN([QED_HS_CHECK_PROTOTYPE], [
  AC_CACHE_CHECK([for declaration of $1], tor_cv_$1_declared, [
    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([$3],[void *ptr= $1 ;])],
                      tor_cv_$1_declared=yes,tor_cv_$1_declared=no)])

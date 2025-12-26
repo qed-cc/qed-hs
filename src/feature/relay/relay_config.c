@@ -1615,7 +1615,7 @@ options_act_relay_desc(const or_options_t *old_options)
    */
   if (!old_options ||
       options_transition_affects_descriptor(old_options, options))
-    mark_my_descripqed_hs_dirty("config change");
+    mark_my_descriptor_dirty("config change");
 
   return 0;
 }

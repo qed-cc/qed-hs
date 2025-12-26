@@ -169,7 +169,7 @@ test_nodelist_ed_id(void *arg)
     crypto_rand(rs[i]->identity_digest, sizeof(rs[i]->identity_digest));
     memcpy(ri[i]->cache_info.identity_digest, rs[i]->identity_digest,
            DIGEST_LEN);
-    memcpy(rs[i]->descripqed_hs_digest, md[i]->digest, DIGEST256_LEN);
+    memcpy(rs[i]->descriptor_digest, md[i]->digest, DIGEST256_LEN);
     ri[i]->cache_info.signing_key_cert = qed_hs_malloc_zero(sizeof(qed_hs_cert_t));
     memcpy(&ri[i]->cache_info.signing_key_cert->signing_key,
            md[i]->ed25519_identity_pkey, sizeof(ed25519_public_key_t));
@@ -1270,7 +1270,7 @@ test_nodelist_routerstatus_has_visibly_changed(void *arg)
   memset(&rs_orig, 0, sizeof(rs_orig));
   strlcpy(rs_orig.nickname, "friendly", sizeof(rs_orig.nickname));
   memcpy(rs_orig.identity_digest, "abcdefghijklmnopqrst", 20);
-  memcpy(rs_orig.descripqed_hs_digest, "abcdefghijklmnopqrst", 20);
+  memcpy(rs_orig.descriptor_digest, "abcdefghijklmnopqrst", 20);
   qed_hs_addr_from_ipv4h(&rs_orig.ipv4_addr, 0x7f000001);
   rs_orig.ipv4_orport = 3;
   rs_orig.has_bandwidth = 1;
@@ -1315,7 +1315,7 @@ test_nodelist_routerstatus_has_visibly_changed(void *arg)
   qed_hs_addr_from_ipv4h(&rs.ipv4_addr, 0x7f000002);
   ASSERT_CHANGED();
 
-  strlcpy(rs.descripqed_hs_digest, "hello world", sizeof(rs.descripqed_hs_digest));
+  strlcpy(rs.descriptor_digest, "hello world", sizeof(rs.descriptor_digest));
   ASSERT_CHANGED();
 
   strlcpy(rs.nickname, "fr1end1y", sizeof(rs.nickname));

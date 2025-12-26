@@ -71,9 +71,9 @@ typedef struct hs_ident_circuit_t {
    * e2e encryption with the service. */
   curve25519_keypair_t rendezvous_client_kp;
 
-  /** (Only rendezvous circuit) The NQED_HS_KEY_SEED needed for key derivation for
+  /** (Only rendezvous circuit) The NTOR_KEY_SEED needed for key derivation for
    * the e2e encryption with the client on the circuit. */
-  uint8_t rendezvous_nqed_hs_key_seed[DIGEST256_LEN];
+  uint8_t rendezvous_ntor_key_seed[DIGEST256_LEN];
 
   /** (Only rendezvous circuit) Number of streams associated with this
    * rendezvous circuit. We track this because there is a check on a maximum

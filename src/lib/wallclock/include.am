@@ -9,7 +9,7 @@ endif
 src_lib_libqed_hs_wallclock_a_SOURCES =			\
 	src/lib/wallclock/approx_time.c			\
 	src/lib/wallclock/time_to_tm.c			\
-	src/lib/wallclock/qed_hs_gettimeofday.c
+	src/lib/wallclock/tor_gettimeofday.c
 
 src_lib_libqed_hs_wallclock_testing_a_SOURCES = \
 	$(src_lib_libqed_hs_wallclock_a_SOURCES)
@@ -21,5 +21,5 @@ noinst_HEADERS +=					\
 	src/lib/wallclock/approx_time.h			\
 	src/lib/wallclock/timeval.h			\
 	src/lib/wallclock/time_to_tm.h			\
-	src/lib/wallclock/qed_hs_gettimeofday.h		\
+	src/lib/wallclock/tor_gettimeofday.h		\
 	src/lib/wallclock/wallclock_sys.h

@@ -49,7 +49,7 @@
  * Almost nothing in Tor should use a routerinfo_t to refer directly to
  * a relay; instead, almost everything should use node_t (implemented in
  * nodelist.c), which provides a common interface to routerinfo_t,
- * routerstatus_t, and microdescripqed_hs_t.
+ * routerstatus_t, and microdescriptor_t.
  *
  * <br>
  *
@@ -121,11 +121,11 @@
 /* Typed wrappers for different digestmap types; used to avoid type
  * confusion. */
 
-DECLARE_TYPED_DIGESTMAP_FNS(sdmap, digest_sd_map_t, signed_descripqed_hs_t)
+DECLARE_TYPED_DIGESTMAP_FNS(sdmap, digest_sd_map_t, signed_descriptor_t)
 DECLARE_TYPED_DIGESTMAP_FNS(rimap, digest_ri_map_t, routerinfo_t)
 DECLARE_TYPED_DIGESTMAP_FNS(eimap, digest_ei_map_t, extrainfo_t)
 #define SDMAP_FOREACH(map, keyvar, valvar)                              \
-  DIGESTMAP_FOREACH(sdmap_to_digestmap(map), keyvar, signed_descripqed_hs_t *, \
+  DIGESTMAP_FOREACH(sdmap_to_digestmap(map), keyvar, signed_descriptor_t *, \
                     valvar)
 #define RIMAP_FOREACH(map, keyvar, valvar) \
   DIGESTMAP_FOREACH(rimap_to_digestmap(map), keyvar, routerinfo_t *, valvar)
@@ -136,9 +136,9 @@ DECLARE_TYPED_DIGESTMAP_FNS(eimap, digest_ei_map_t, extrainfo_t)
 #define sdmap_free(map, fn) MAP_FREE_AND_NULL(sdmap, (map), (fn))
 
 /* static function prototypes */
-static int signed_desc_digest_is_recognized(signed_descripqed_hs_t *desc);
-static const char *signed_descripqed_hs_get_body_impl(
-                                              const signed_descripqed_hs_t *desc,
+static int signed_desc_digest_is_recognized(signed_descriptor_t *desc);
+static const char *signed_descriptor_get_body_impl(
+                                              const signed_descriptor_t *desc,
                                               int with_annotations);
 
 /****************************************************************************/
@@ -153,7 +153,7 @@ static smartlist_t *warned_nicknames = NULL;
 /** The last time we tried to download any routerdesc, or 0 for "never".  We
  * use this to rate-limit download attempts when the number of routerdescs to
  * download is low. */
-static time_t last_descripqed_hs_download_attempted = 0;
+static time_t last_descriptor_download_attempted = 0;
 
 /* Router descriptor storage.
  *
@@ -183,7 +183,7 @@ router_should_rebuild_store(desc_store_t *store)
 /** Return the desc_store_t in <b>rl</b> that should be used to store
  * <b>sd</b>. */
 static inline desc_store_t *
-desc_get_store(routerlist_t *rl, const signed_descripqed_hs_t *sd)
+desc_get_store(routerlist_t *rl, const signed_descriptor_t *sd)
 {
   if (sd->is_extrainfo)
     return &rl->extrainfo_store;
@@ -191,16 +191,16 @@ desc_get_store(routerlist_t *rl, const signed_descripqed_hs_t *sd)
     return &rl->desc_store;
 }
 
-/** Add the signed_descripqed_hs_t in <b>desc</b> to the router
+/** Add the signed_descriptor_t in <b>desc</b> to the router
  * journal; change its saved_location to SAVED_IN_JOURNAL and set its
  * offset appropriately. */
 static int
-signed_desc_append_to_journal(signed_descripqed_hs_t *desc,
+signed_desc_append_to_journal(signed_descriptor_t *desc,
                               desc_store_t *store)
 {
   char *fname = get_cachedir_fname_suffix(store->fname_base, ".new");
-  const char *body = signed_descripqed_hs_get_body_impl(desc,1);
-  size_t len = desc->signed_descripqed_hs_len + desc->annotations_len;
+  const char *body = signed_descriptor_get_body_impl(desc,1);
+  size_t len = desc->signed_descriptor_len + desc->annotations_len;
 
   if (append_bytes_to_file(fname, body, len, 1)) {
     log_warn(LD_FS, "Unable to store router descriptor");
@@ -217,12 +217,12 @@ signed_desc_append_to_journal(signed_descripqed_hs_t *desc,
 }
 
 /** Sorting helper: return &lt;0, 0, or &gt;0 depending on whether the
- * signed_descripqed_hs_t* in *<b>a</b> is older, the same age as, or newer than
- * the signed_descripqed_hs_t* in *<b>b</b>. */
+ * signed_descriptor_t* in *<b>a</b> is older, the same age as, or newer than
+ * the signed_descriptor_t* in *<b>b</b>. */
 static int
 compare_signed_descriptors_by_age_(const void **_a, const void **_b)
 {
-  const signed_descripqed_hs_t *r1 = *_a, *r2 = *_b;
+  const signed_descriptor_t *r1 = *_a, *r2 = *_b;
   return (int)(r1->published_on - r2->published_on);
 }
 
@@ -286,7 +286,7 @@ router_rebuild_store(int flags, desc_store_t *store)
       smartlist_add(signed_descriptors, &ei->cache_info);
     }
   } else {
-    SMARTLIST_FOREACH(routerlist->old_routers, signed_descripqed_hs_t *, sd,
+    SMARTLIST_FOREACH(routerlist->old_routers, signed_descriptor_t *, sd,
                       smartlist_add(signed_descriptors, sd));
     SMARTLIST_FOREACH(routerlist->routers, routerinfo_t *, ri,
                       smartlist_add(signed_descriptors, &ri->cache_info));
@@ -295,9 +295,9 @@ router_rebuild_store(int flags, desc_store_t *store)
   smartlist_sort(signed_descriptors, compare_signed_descriptors_by_age_);
 
   /* Now, add the appropriate members to chunk_list */
-  SMARTLIST_FOREACH_BEGIN(signed_descriptors, signed_descripqed_hs_t *, sd) {
+  SMARTLIST_FOREACH_BEGIN(signed_descriptors, signed_descriptor_t *, sd) {
       sized_chunk_t *c;
-      const char *body = signed_descripqed_hs_get_body_impl(sd, 1);
+      const char *body = signed_descriptor_get_body_impl(sd, 1);
       if (!body) {
         log_warn(LD_BUG, "No descriptor available for router.");
         goto done;
@@ -307,7 +307,7 @@ router_rebuild_store(int flags, desc_store_t *store)
       }
       c = qed_hs_malloc(sizeof(sized_chunk_t));
       c->bytes = body;
-      c->len = sd->signed_descripqed_hs_len + sd->annotations_len;
+      c->len = sd->signed_descriptor_len + sd->annotations_len;
       total_expected_len += c->len;
       smartlist_add(chunk_list, c);
   } SMARTLIST_FOREACH_END(sd);
@@ -352,16 +352,16 @@ router_rebuild_store(int flags, desc_store_t *store)
   log_info(LD_DIR, "Reconstructing pointers into cache");
 
   offset = 0;
-  SMARTLIST_FOREACH_BEGIN(signed_descriptors, signed_descripqed_hs_t *, sd) {
+  SMARTLIST_FOREACH_BEGIN(signed_descriptors, signed_descriptor_t *, sd) {
       if (sd->do_not_cache)
         continue;
       sd->saved_location = SAVED_IN_CACHE;
       if (store->mmap) {
-        qed_hs_free(sd->signed_descripqed_hs_body); // sets it to null
+        qed_hs_free(sd->signed_descriptor_body); // sets it to null
         sd->saved_offset = offset;
       }
-      offset += sd->signed_descripqed_hs_len + sd->annotations_len;
-      signed_descripqed_hs_get_body(sd); /* reconstruct and assert */
+      offset += sd->signed_descriptor_len + sd->annotations_len;
+      signed_descriptor_get_body(sd); /* reconstruct and assert */
   } SMARTLIST_FOREACH_END(sd);
 
   qed_hs_free(fname);
@@ -782,8 +782,8 @@ router_get_by_id_digest(const char *digest)
 
 /** Return the router in our routerlist whose 20-byte descriptor
  * is <b>digest</b>.  Return NULL if no such router is known. */
-signed_descripqed_hs_t *
-router_get_by_descripqed_hs_digest(const char *digest)
+signed_descriptor_t *
+router_get_by_descriptor_digest(const char *digest)
 {
   qed_hs_assert(digest);
 
@@ -795,7 +795,7 @@ router_get_by_descripqed_hs_digest(const char *digest)
 /** Return the signed descriptor for the router in our routerlist whose
  * 20-byte extra-info digest is <b>digest</b>.  Return NULL if no such router
  * is known. */
-MOCK_IMPL(signed_descripqed_hs_t *,
+MOCK_IMPL(signed_descriptor_t *,
 router_get_by_extrainfo_digest,(const char *digest))
 {
   qed_hs_assert(digest);
@@ -808,8 +808,8 @@ router_get_by_extrainfo_digest,(const char *digest))
 /** Return the signed descriptor for the extrainfo_t in our routerlist whose
  * extra-info-digest is <b>digest</b>. Return NULL if no such extra-info
  * document is known. */
-MOCK_IMPL(signed_descripqed_hs_t *,
-extrainfo_get_by_descripqed_hs_digest,(const char *digest))
+MOCK_IMPL(signed_descriptor_t *,
+extrainfo_get_by_descriptor_digest,(const char *digest))
 {
   extrainfo_t *ei;
   qed_hs_assert(digest);
@@ -820,7 +820,7 @@ extrainfo_get_by_descripqed_hs_digest,(const char *digest))
 
 /** Return a pointer to the signed textual representation of a descriptor.
  * The returned string is not guaranteed to be NUL-terminated: the string's
- * length will be in desc-\>signed_descripqed_hs_len.
+ * length will be in desc-\>signed_descriptor_len.
  *
  * If <b>with_annotations</b> is set, the returned string will include
  * the annotations
@@ -830,11 +830,11 @@ extrainfo_get_by_descripqed_hs_digest,(const char *digest))
  * The caller must not free the string returned.
  */
 static const char *
-signed_descripqed_hs_get_body_impl(const signed_descripqed_hs_t *desc,
+signed_descriptor_get_body_impl(const signed_descriptor_t *desc,
                                 int with_annotations)
 {
   const char *r = NULL;
-  size_t len = desc->signed_descripqed_hs_len;
+  size_t len = desc->signed_descriptor_len;
   off_t offset = desc->saved_offset;
   if (with_annotations)
     len += desc->annotations_len;
@@ -855,7 +855,7 @@ signed_descripqed_hs_get_body_impl(const signed_descripqed_hs_t *desc,
     }
   }
   if (!r) /* no mmap, or not in cache. */
-    r = desc->signed_descripqed_hs_body +
+    r = desc->signed_descriptor_body +
       (with_annotations ? 0 : desc->annotations_len);
 
   qed_hs_assert(r);
@@ -874,22 +874,22 @@ signed_descripqed_hs_get_body_impl(const signed_descripqed_hs_t *desc,
 
 /** Return a pointer to the signed textual representation of a descriptor.
  * The returned string is not guaranteed to be NUL-terminated: the string's
- * length will be in desc-\>signed_descripqed_hs_len.
+ * length will be in desc-\>signed_descriptor_len.
  *
  * The caller must not free the string returned.
  */
 const char *
-signed_descripqed_hs_get_body(const signed_descripqed_hs_t *desc)
+signed_descriptor_get_body(const signed_descriptor_t *desc)
 {
-  return signed_descripqed_hs_get_body_impl(desc, 0);
+  return signed_descriptor_get_body_impl(desc, 0);
 }
 
-/** As signed_descripqed_hs_get_body(), but points to the beginning of the
+/** As signed_descriptor_get_body(), but points to the beginning of the
  * annotations section rather than the beginning of the descriptor. */
 const char *
-signed_descripqed_hs_get_annotations(const signed_descripqed_hs_t *desc)
+signed_descriptor_get_annotations(const signed_descriptor_t *desc)
 {
-  return signed_descripqed_hs_get_body_impl(desc, 1);
+  return signed_descriptor_get_body_impl(desc, 1);
 }
 
 /** Return the current list of all known routers. */
@@ -924,7 +924,7 @@ routerinfo_free_(routerinfo_t *router)
   if (!router)
     return;
 
-  qed_hs_free(router->cache_info.signed_descripqed_hs_body);
+  qed_hs_free(router->cache_info.signed_descriptor_body);
   qed_hs_free(router->nickname);
   qed_hs_free(router->platform);
   qed_hs_free(router->protocol_list);
@@ -958,37 +958,37 @@ extrainfo_free_(extrainfo_t *extrainfo)
   if (!extrainfo)
     return;
   qed_hs_cert_free(extrainfo->cache_info.signing_key_cert);
-  qed_hs_free(extrainfo->cache_info.signed_descripqed_hs_body);
+  qed_hs_free(extrainfo->cache_info.signed_descriptor_body);
   qed_hs_free(extrainfo->pending_sig);
 
   memset(extrainfo, 88, sizeof(extrainfo_t)); /* debug bad memory usage */
   qed_hs_free(extrainfo);
 }
 
-#define signed_descripqed_hs_free(val) \
-  FREE_AND_NULL(signed_descripqed_hs_t, signed_descripqed_hs_free_, (val))
+#define signed_descriptor_free(val) \
+  FREE_AND_NULL(signed_descriptor_t, signed_descriptor_free_, (val))
 
 /** Release storage held by <b>sd</b>. */
 static void
-signed_descripqed_hs_free_(signed_descripqed_hs_t *sd)
+signed_descriptor_free_(signed_descriptor_t *sd)
 {
   if (!sd)
     return;
 
-  qed_hs_free(sd->signed_descripqed_hs_body);
+  qed_hs_free(sd->signed_descriptor_body);
   qed_hs_cert_free(sd->signing_key_cert);
 
-  memset(sd, 99, sizeof(signed_descripqed_hs_t)); /* Debug bad mem usage */
+  memset(sd, 99, sizeof(signed_descriptor_t)); /* Debug bad mem usage */
   qed_hs_free(sd);
 }
 
 /** Reset the given signed descriptor <b>sd</b> by freeing the allocated
  * memory inside the object and by zeroing its content. */
 static void
-signed_descripqed_hs_reset(signed_descripqed_hs_t *sd)
+signed_descriptor_reset(signed_descriptor_t *sd)
 {
   qed_hs_assert(sd);
-  qed_hs_free(sd->signed_descripqed_hs_body);
+  qed_hs_free(sd->signed_descriptor_body);
   qed_hs_cert_free(sd->signing_key_cert);
   memset(sd, 0, sizeof(*sd));
 }
@@ -996,28 +996,28 @@ signed_descripqed_hs_reset(signed_descripqed_hs_t *sd)
 /** Copy src into dest, and steal all references inside src so that when
  * we free src, we don't mess up dest. */
 static void
-signed_descripqed_hs_move(signed_descripqed_hs_t *dest,
-                       signed_descripqed_hs_t *src)
+signed_descriptor_move(signed_descriptor_t *dest,
+                       signed_descriptor_t *src)
 {
   qed_hs_assert(dest != src);
   /* Cleanup destination object before overwriting it.*/
-  signed_descripqed_hs_reset(dest);
-  memcpy(dest, src, sizeof(signed_descripqed_hs_t));
-  src->signed_descripqed_hs_body = NULL;
+  signed_descriptor_reset(dest);
+  memcpy(dest, src, sizeof(signed_descriptor_t));
+  src->signed_descriptor_body = NULL;
   src->signing_key_cert = NULL;
   dest->routerlist_index = -1;
 }
 
-/** Extract a signed_descripqed_hs_t from a general routerinfo, and free the
+/** Extract a signed_descriptor_t from a general routerinfo, and free the
  * routerinfo.
  */
-static signed_descripqed_hs_t *
-signed_descripqed_hs_from_routerinfo(routerinfo_t *ri)
+static signed_descriptor_t *
+signed_descriptor_from_routerinfo(routerinfo_t *ri)
 {
-  signed_descripqed_hs_t *sd;
+  signed_descriptor_t *sd;
   qed_hs_assert(ri->purpose == ROUTER_PURPOSE_GENERAL);
-  sd = qed_hs_malloc_zero(sizeof(signed_descripqed_hs_t));
-  signed_descripqed_hs_move(sd, &ri->cache_info);
+  sd = qed_hs_malloc_zero(sizeof(signed_descriptor_t));
+  signed_descriptor_move(sd, &ri->cache_info);
   routerinfo_free(ri);
   return sd;
 }
@@ -1041,8 +1041,8 @@ routerlist_free_(routerlist_t *rl)
   eimap_free(rl->extra_info_map, extrainfo_free_void);
   SMARTLIST_FOREACH(rl->routers, routerinfo_t *, r,
                     routerinfo_free(r));
-  SMARTLIST_FOREACH(rl->old_routers, signed_descripqed_hs_t *, sd,
-                    signed_descripqed_hs_free(sd));
+  SMARTLIST_FOREACH(rl->old_routers, signed_descriptor_t *, sd,
+                    signed_descriptor_free(sd));
   smartlist_free(rl->routers);
   smartlist_free(rl->old_routers);
   if (rl->desc_store.mmap) {
@@ -1070,9 +1070,9 @@ dump_routerlist_mem_usage(int severity)
   if (!routerlist)
     return;
   SMARTLIST_FOREACH(routerlist->routers, routerinfo_t *, r,
-                    livedescs += r->cache_info.signed_descripqed_hs_len);
-  SMARTLIST_FOREACH(routerlist->old_routers, signed_descripqed_hs_t *, sd,
-                    olddescs += sd->signed_descripqed_hs_len);
+                    livedescs += r->cache_info.signed_descriptor_len);
+  SMARTLIST_FOREACH(routerlist->old_routers, signed_descriptor_t *, sd,
+                    olddescs += sd->signed_descriptor_len);
 
   qed_hs_log(severity, LD_DIR,
       "In %d live descriptors: %"PRIu64" bytes.  "
@@ -1111,7 +1111,7 @@ static void
 routerlist_insert(routerlist_t *rl, routerinfo_t *ri)
 {
   routerinfo_t *ri_old;
-  signed_descripqed_hs_t *sd_old;
+  signed_descriptor_t *sd_old;
   {
     const routerinfo_t *ri_generated = router_get_my_routerinfo();
     qed_hs_assert(ri_generated != ri);
@@ -1122,19 +1122,19 @@ routerlist_insert(routerlist_t *rl, routerinfo_t *ri)
   qed_hs_assert(!ri_old);
 
   sd_old = sdmap_set(rl->desc_digest_map,
-                     ri->cache_info.signed_descripqed_hs_digest,
+                     ri->cache_info.signed_descriptor_digest,
                      &(ri->cache_info));
   if (sd_old) {
     int idx = sd_old->routerlist_index;
     sd_old->routerlist_index = -1;
     smartlist_del(rl->old_routers, idx);
     if (idx < smartlist_len(rl->old_routers)) {
-       signed_descripqed_hs_t *d = smartlist_get(rl->old_routers, idx);
+       signed_descriptor_t *d = smartlist_get(rl->old_routers, idx);
        d->routerlist_index = idx;
     }
-    rl->desc_store.bytes_dropped += sd_old->signed_descripqed_hs_len;
+    rl->desc_store.bytes_dropped += sd_old->signed_descriptor_len;
     sdmap_remove(rl->desc_by_eid_map, sd_old->extra_info_digest);
-    signed_descripqed_hs_free(sd_old);
+    signed_descriptor_free(sd_old);
   }
 
   if (!qed_hs_digest_is_zero(ri->cache_info.extra_info_digest))
@@ -1159,8 +1159,8 @@ extrainfo_insert,(routerlist_t *rl, extrainfo_t *ei, int warn_if_incompatible))
   const char *compatibility_error_msg;
   routerinfo_t *ri = rimap_get(rl->identity_map,
                                ei->cache_info.identity_digest);
-  signed_descripqed_hs_t *sd =
-    sdmap_get(rl->desc_by_eid_map, ei->cache_info.signed_descripqed_hs_digest);
+  signed_descriptor_t *sd =
+    sdmap_get(rl->desc_by_eid_map, ei->cache_info.signed_descriptor_digest);
   extrainfo_t *ei_tmp;
   const int severity = warn_if_incompatible ? LOG_WARN : LOG_INFO;
 
@@ -1187,7 +1187,7 @@ extrainfo_insert,(routerlist_t *rl, extrainfo_t *ei, int warn_if_incompatible))
                    "No entry found in extrainfo map.");
     goto done;
   }
-  if (qed_hs_memneq(ei->cache_info.signed_descripqed_hs_digest,
+  if (qed_hs_memneq(ei->cache_info.signed_descriptor_digest,
                  sd->extra_info_digest, DIGEST_LEN)) {
     static ratelim_t digest_mismatch_ratelim = RATELIM_INIT(1800);
     /* The sd we got from the map doesn't match the digest we used to look
@@ -1217,12 +1217,12 @@ extrainfo_insert,(routerlist_t *rl, extrainfo_t *ei, int warn_if_incompatible))
    * this extrainfo. */
 
   ei_tmp = eimap_set(rl->extra_info_map,
-                     ei->cache_info.signed_descripqed_hs_digest,
+                     ei->cache_info.signed_descriptor_digest,
                      ei);
   r = ROUTER_ADDED_SUCCESSFULLY;
   if (ei_tmp) {
     rl->extrainfo_store.bytes_dropped +=
-      ei_tmp->cache_info.signed_descripqed_hs_len;
+      ei_tmp->cache_info.signed_descriptor_len;
     extrainfo_free(ei_tmp);
   }
 
@@ -1254,9 +1254,9 @@ routerlist_insert_old(routerlist_t *rl, routerinfo_t *ri)
   if (should_cache_old_descriptors() &&
       ri->purpose == ROUTER_PURPOSE_GENERAL &&
       !sdmap_get(rl->desc_digest_map,
-                 ri->cache_info.signed_descripqed_hs_digest)) {
-    signed_descripqed_hs_t *sd = signed_descripqed_hs_from_routerinfo(ri);
-    sdmap_set(rl->desc_digest_map, sd->signed_descripqed_hs_digest, sd);
+                 ri->cache_info.signed_descriptor_digest)) {
+    signed_descriptor_t *sd = signed_descriptor_from_routerinfo(ri);
+    sdmap_set(rl->desc_digest_map, sd->signed_descriptor_digest, sd);
     smartlist_add(rl->old_routers, sd);
     sd->routerlist_index = smartlist_len(rl->old_routers)-1;
     if (!qed_hs_digest_is_zero(sd->extra_info_digest))
@@ -1304,24 +1304,24 @@ routerlist_remove(routerlist_t *rl, routerinfo_t *ri, int make_old, time_t now)
 
   if (make_old && should_cache_old_descriptors() &&
       ri->purpose == ROUTER_PURPOSE_GENERAL) {
-    signed_descripqed_hs_t *sd;
-    sd = signed_descripqed_hs_from_routerinfo(ri);
+    signed_descriptor_t *sd;
+    sd = signed_descriptor_from_routerinfo(ri);
     smartlist_add(rl->old_routers, sd);
     sd->routerlist_index = smartlist_len(rl->old_routers)-1;
-    sdmap_set(rl->desc_digest_map, sd->signed_descripqed_hs_digest, sd);
+    sdmap_set(rl->desc_digest_map, sd->signed_descriptor_digest, sd);
     if (!qed_hs_digest_is_zero(sd->extra_info_digest))
       sdmap_set(rl->desc_by_eid_map, sd->extra_info_digest, sd);
   } else {
-    signed_descripqed_hs_t *sd_tmp;
+    signed_descriptor_t *sd_tmp;
     sd_tmp = sdmap_remove(rl->desc_digest_map,
-                          ri->cache_info.signed_descripqed_hs_digest);
+                          ri->cache_info.signed_descriptor_digest);
     qed_hs_assert(sd_tmp == &(ri->cache_info));
-    rl->desc_store.bytes_dropped += ri->cache_info.signed_descripqed_hs_len;
+    rl->desc_store.bytes_dropped += ri->cache_info.signed_descriptor_len;
     ei_tmp = eimap_remove(rl->extra_info_map,
                           ri->cache_info.extra_info_digest);
     if (ei_tmp) {
       rl->extrainfo_store.bytes_dropped +=
-        ei_tmp->cache_info.signed_descripqed_hs_len;
+        ei_tmp->cache_info.signed_descriptor_len;
       extrainfo_free(ei_tmp);
     }
     if (!qed_hs_digest_is_zero(ri->cache_info.extra_info_digest))
@@ -1333,13 +1333,13 @@ routerlist_remove(routerlist_t *rl, routerinfo_t *ri, int make_old, time_t now)
 #endif
 }
 
-/** Remove a signed_descripqed_hs_t <b>sd</b> from <b>rl</b>-\>old_routers, and
+/** Remove a signed_descriptor_t <b>sd</b> from <b>rl</b>-\>old_routers, and
  * adjust <b>rl</b> as appropriate.  <b>idx</b> is -1, or the index of
  * <b>sd</b>. */
 static void
-routerlist_remove_old(routerlist_t *rl, signed_descripqed_hs_t *sd, int idx)
+routerlist_remove_old(routerlist_t *rl, signed_descriptor_t *sd, int idx)
 {
-  signed_descripqed_hs_t *sd_tmp;
+  signed_descriptor_t *sd_tmp;
   extrainfo_t *ei_tmp;
   desc_store_t *store;
   if (idx == -1) {
@@ -1355,27 +1355,27 @@ routerlist_remove_old(routerlist_t *rl, signed_descripqed_hs_t *sd, int idx)
   sd->routerlist_index = -1;
   smartlist_del(rl->old_routers, idx);
   if (idx < smartlist_len(rl->old_routers)) {
-    signed_descripqed_hs_t *d = smartlist_get(rl->old_routers, idx);
+    signed_descriptor_t *d = smartlist_get(rl->old_routers, idx);
     d->routerlist_index = idx;
   }
   sd_tmp = sdmap_remove(rl->desc_digest_map,
-                        sd->signed_descripqed_hs_digest);
+                        sd->signed_descriptor_digest);
   qed_hs_assert(sd_tmp == sd);
   store = desc_get_store(rl, sd);
   if (store)
-    store->bytes_dropped += sd->signed_descripqed_hs_len;
+    store->bytes_dropped += sd->signed_descriptor_len;
 
   ei_tmp = eimap_remove(rl->extra_info_map,
                         sd->extra_info_digest);
   if (ei_tmp) {
     rl->extrainfo_store.bytes_dropped +=
-      ei_tmp->cache_info.signed_descripqed_hs_len;
+      ei_tmp->cache_info.signed_descriptor_len;
     extrainfo_free(ei_tmp);
   }
   if (!qed_hs_digest_is_zero(sd->extra_info_digest))
     sdmap_remove(rl->desc_by_eid_map, sd->extra_info_digest);
 
-  signed_descripqed_hs_free(sd);
+  signed_descriptor_free(sd);
 #ifdef DEBUG_ROUTERLIST
   routerlist_assert_ok(rl);
 #endif
@@ -1436,7 +1436,7 @@ routerlist_replace(routerlist_t *rl, routerinfo_t *ri_old,
                      ri_new->cache_info.identity_digest, ri_new);
   qed_hs_assert(!ri_tmp || ri_tmp == ri_old);
   sdmap_set(rl->desc_digest_map,
-            ri_new->cache_info.signed_descripqed_hs_digest,
+            ri_new->cache_info.signed_descriptor_digest,
             &(ri_new->cache_info));
 
   if (!qed_hs_digest_is_zero(ri_new->cache_info.extra_info_digest)) {
@@ -1444,19 +1444,19 @@ routerlist_replace(routerlist_t *rl, routerinfo_t *ri_old,
               &ri_new->cache_info);
   }
 
-  same_descriptors = qed_hs_memeq(ri_old->cache_info.signed_descripqed_hs_digest,
-                              ri_new->cache_info.signed_descripqed_hs_digest,
+  same_descriptors = qed_hs_memeq(ri_old->cache_info.signed_descriptor_digest,
+                              ri_new->cache_info.signed_descriptor_digest,
                               DIGEST_LEN);
 
   if (should_cache_old_descriptors() &&
       ri_old->purpose == ROUTER_PURPOSE_GENERAL &&
       !same_descriptors) {
-    /* ri_old is going to become a signed_descripqed_hs_t and go into
+    /* ri_old is going to become a signed_descriptor_t and go into
      * old_routers */
-    signed_descripqed_hs_t *sd = signed_descripqed_hs_from_routerinfo(ri_old);
+    signed_descriptor_t *sd = signed_descriptor_from_routerinfo(ri_old);
     smartlist_add(rl->old_routers, sd);
     sd->routerlist_index = smartlist_len(rl->old_routers)-1;
-    sdmap_set(rl->desc_digest_map, sd->signed_descripqed_hs_digest, sd);
+    sdmap_set(rl->desc_digest_map, sd->signed_descriptor_digest, sd);
     if (!qed_hs_digest_is_zero(sd->extra_info_digest))
       sdmap_set(rl->desc_by_eid_map, sd->extra_info_digest, sd);
   } else {
@@ -1464,7 +1464,7 @@ routerlist_replace(routerlist_t *rl, routerinfo_t *ri_old,
     if (!same_descriptors) {
       /* digests don't match; The sdmap_set above didn't replace */
       sdmap_remove(rl->desc_digest_map,
-                   ri_old->cache_info.signed_descripqed_hs_digest);
+                   ri_old->cache_info.signed_descriptor_digest);
 
       if (qed_hs_memneq(ri_old->cache_info.extra_info_digest,
                  ri_new->cache_info.extra_info_digest, DIGEST_LEN)) {
@@ -1472,7 +1472,7 @@ routerlist_replace(routerlist_t *rl, routerinfo_t *ri_old,
                               ri_old->cache_info.extra_info_digest);
         if (ei_tmp) {
           rl->extrainfo_store.bytes_dropped +=
-            ei_tmp->cache_info.signed_descripqed_hs_len;
+            ei_tmp->cache_info.signed_descriptor_len;
           extrainfo_free(ei_tmp);
         }
       }
@@ -1482,7 +1482,7 @@ routerlist_replace(routerlist_t *rl, routerinfo_t *ri_old,
                      ri_old->cache_info.extra_info_digest);
       }
     }
-    rl->desc_store.bytes_dropped += ri_old->cache_info.signed_descripqed_hs_len;
+    rl->desc_store.bytes_dropped += ri_old->cache_info.signed_descriptor_len;
     routerinfo_free(ri_old);
   }
 #ifdef DEBUG_ROUTERLIST
@@ -1493,19 +1493,19 @@ routerlist_replace(routerlist_t *rl, routerinfo_t *ri_old,
 /** Extract the descriptor <b>sd</b> from old_routerlist, and re-parse
  * it as a fresh routerinfo_t. */
 static routerinfo_t *
-routerlist_reparse_old(routerlist_t *rl, signed_descripqed_hs_t *sd)
+routerlist_reparse_old(routerlist_t *rl, signed_descriptor_t *sd)
 {
   routerinfo_t *ri;
   const char *body;
 
-  body = signed_descripqed_hs_get_annotations(sd);
+  body = signed_descriptor_get_annotations(sd);
 
   ri = router_parse_entry_from_string(body,
-                         body+sd->signed_descripqed_hs_len+sd->annotations_len,
+                         body+sd->signed_descriptor_len+sd->annotations_len,
                          0, 1, NULL, NULL);
   if (!ri)
     return NULL;
-  signed_descripqed_hs_move(&ri->cache_info, sd);
+  signed_descriptor_move(&ri->cache_info, sd);
 
   routerlist_remove_old(rl, sd, -1);
 
@@ -1549,7 +1549,7 @@ routerlist_reset_warnings(void)
 /** Return 1 if the signed descriptor of this router is older than
  *  <b>seconds</b> seconds.  Otherwise return 0. */
 MOCK_IMPL(int,
-router_descripqed_hs_is_older_than,(const routerinfo_t *router, int seconds))
+router_descriptor_is_older_than,(const routerinfo_t *router, int seconds))
 {
   return router->cache_info.published_on < approx_time() - seconds;
 }
@@ -1606,7 +1606,7 @@ router_add_to_routerlist(routerinfo_t *router, const char **msg,
 
   /* Make sure that we haven't already got this exact descriptor. */
   if (sdmap_get(routerlist->desc_digest_map,
-                router->cache_info.signed_descripqed_hs_digest)) {
+                router->cache_info.signed_descriptor_digest)) {
     /* If we have this descriptor already and the new descriptor is a bridge
      * descriptor, replace it. If we had a bridge descriptor before and the
      * new one is not a bridge descriptor, don't replace it. */
@@ -1673,8 +1673,8 @@ router_add_to_routerlist(routerinfo_t *router, const char **msg,
   if (consensus) {
     routerstatus_t *rs = networkstatus_vote_find_mutable_entry(
                                                      consensus, id_digest);
-    if (rs && qed_hs_memeq(rs->descripqed_hs_digest,
-                      router->cache_info.signed_descripqed_hs_digest,
+    if (rs && qed_hs_memeq(rs->descriptor_digest,
+                      router->cache_info.signed_descriptor_digest,
                       DIGEST_LEN)) {
       in_consensus = 1;
     }
@@ -1738,7 +1738,7 @@ router_add_to_routerlist(routerinfo_t *router, const char **msg,
   }
 
   if (!in_consensus && from_cache &&
-      router_descripqed_hs_is_older_than(router, OLD_ROUTER_DESC_MAX_AGE)) {
+      router_descriptor_is_older_than(router, OLD_ROUTER_DESC_MAX_AGE)) {
     *msg = "Router descriptor was really old.";
     routerinfo_free(router);
     return ROUTER_WAS_TOO_OLD;
@@ -1777,13 +1777,13 @@ router_add_extrainfo_to_routerlist(extrainfo_t *ei, const char **msg,
 }
 
 /** Sorting helper: return &lt;0, 0, or &gt;0 depending on whether the
- * signed_descripqed_hs_t* in *<b>a</b> has an identity digest preceding, equal
+ * signed_descriptor_t* in *<b>a</b> has an identity digest preceding, equal
  * to, or later than that of *<b>b</b>. */
 static int
 compare_old_routers_by_identity_(const void **_a, const void **_b)
 {
   int i;
-  const signed_descripqed_hs_t *r1 = *_a, *r2 = *_b;
+  const signed_descriptor_t *r1 = *_a, *r2 = *_b;
   if ((i = fast_memcmp(r1->identity_digest, r2->identity_digest, DIGEST_LEN)))
     return i;
   return (int)(r1->published_on - r2->published_on);
@@ -1829,9 +1829,9 @@ routerlist_remove_old_cached_routers_with_id(time_t now,
   const char *ident;
   qed_hs_assert(hi < smartlist_len(lst));
   qed_hs_assert(lo <= hi);
-  ident = ((signed_descripqed_hs_t*)smartlist_get(lst, lo))->identity_digest;
+  ident = ((signed_descriptor_t*)smartlist_get(lst, lo))->identity_digest;
   for (i = lo+1; i <= hi; ++i) {
-    signed_descripqed_hs_t *r = smartlist_get(lst, i);
+    signed_descriptor_t *r = smartlist_get(lst, i);
     qed_hs_assert(qed_hs_memeq(ident, r->identity_digest, DIGEST_LEN));
   }
 #endif /* 1 */
@@ -1849,12 +1849,12 @@ routerlist_remove_old_cached_routers_with_id(time_t now,
   /* Set lifespans to contain the lifespan and index of each server. */
   /* Set rmv[i-lo]=1 if we're going to remove a server for being too old. */
   for (i = lo; i <= hi; ++i) {
-    signed_descripqed_hs_t *r = smartlist_get(lst, i);
-    signed_descripqed_hs_t *r_next;
+    signed_descriptor_t *r = smartlist_get(lst, i);
+    signed_descriptor_t *r_next;
     lifespans[i-lo].idx = i;
     if (r->last_listed_as_valid_until >= now ||
         (retain && digestset_probably_contains(retain,
-                                               r->signed_descripqed_hs_digest))) {
+                                               r->signed_descriptor_digest))) {
       must_keep[i-lo] = 1;
     }
     if (i < hi) {
@@ -1909,7 +1909,7 @@ routerlist_remove_old_routers(void)
   time_t now = time(NULL);
   time_t cutoff;
   routerinfo_t *router;
-  signed_descripqed_hs_t *sd;
+  signed_descriptor_t *sd;
   digestset_t *retain;
   const networkstatus_t *consensus = networkstatus_get_latest_consensus();
 
@@ -1933,7 +1933,7 @@ routerlist_remove_old_routers(void)
   /* Retain anything listed in the consensus. */
   if (consensus) {
     SMARTLIST_FOREACH(consensus->routerstatus_list, routerstatus_t *, rs,
-          digestset_add(retain, rs->descripqed_hs_digest));
+          digestset_add(retain, rs->descriptor_digest));
   }
 
   /* If we have a consensus, we should consider pruning current routers that
@@ -1948,7 +1948,7 @@ routerlist_remove_old_routers(void)
       if (router->cache_info.published_on <= cutoff &&
           router->cache_info.last_listed_as_valid_until < now &&
           !digestset_probably_contains(retain,
-                          router->cache_info.signed_descripqed_hs_digest)) {
+                          router->cache_info.signed_descriptor_digest)) {
         /* Too old: remove it.  (If we're a cache, just move it into
          * old_routers.) */
         log_info(LD_DIR,
@@ -1968,7 +1968,7 @@ routerlist_remove_old_routers(void)
     sd = smartlist_get(routerlist->old_routers, i);
     if (sd->published_on <= cutoff &&
         sd->last_listed_as_valid_until < now &&
-        !digestset_probably_contains(retain, sd->signed_descripqed_hs_digest)) {
+        !digestset_probably_contains(retain, sd->signed_descriptor_digest)) {
       /* Too old.  Remove it. */
       routerlist_remove_old(routerlist, sd, i--);
     }
@@ -1994,14 +1994,14 @@ routerlist_remove_old_routers(void)
   smartlist_sort(routerlist->old_routers, compare_old_routers_by_identity_);
   /* Fix indices. */
   for (i = 0; i < smartlist_len(routerlist->old_routers); ++i) {
-    signed_descripqed_hs_t *r = smartlist_get(routerlist->old_routers, i);
+    signed_descriptor_t *r = smartlist_get(routerlist->old_routers, i);
     r->routerlist_index = i;
   }
 
   /* Iterate through the list from back to front, so when we remove descriptors
    * we don't mess up groups we haven't gotten to. */
   for (i = smartlist_len(routerlist->old_routers)-1; i >= 0; --i) {
-    signed_descripqed_hs_t *r = smartlist_get(routerlist->old_routers, i);
+    signed_descriptor_t *r = smartlist_get(routerlist->old_routers, i);
     if (!cur_id) {
       cur_id = r->identity_digest;
       hi = i;
@@ -2142,14 +2142,14 @@ router_load_single_router(const char *s, uint8_t purpose, int cache,
  * fingerprint is not on the list; after updating a router, remove its
  * fingerprint from the list.
  *
- * If <b>descripqed_hs_digests</b> is non-zero, then the requested_fingerprints
+ * If <b>descriptor_digests</b> is non-zero, then the requested_fingerprints
  * are descriptor digests. Otherwise they are identity digests.
  */
 int
 router_load_routers_from_string(const char *s, const char *eos,
                                 saved_location_t saved_location,
                                 smartlist_t *requested_fingerprints,
-                                int descripqed_hs_digests,
+                                int descriptor_digests,
                                 const char *prepend_annotations)
 {
   smartlist_t *routers = smartlist_new(), *changed = smartlist_new();
@@ -2172,8 +2172,8 @@ router_load_routers_from_string(const char *s, const char *eos,
     was_router_added_t r;
     char d[DIGEST_LEN];
     if (requested_fingerprints) {
-      base16_encode(fp, sizeof(fp), descripqed_hs_digests ?
-                      ri->cache_info.signed_descripqed_hs_digest :
+      base16_encode(fp, sizeof(fp), descriptor_digests ?
+                      ri->cache_info.signed_descriptor_digest :
                       ri->cache_info.identity_digest,
                     DIGEST_LEN);
       if (smartlist_contains_string(requested_fingerprints, fp)) {
@@ -2191,7 +2191,7 @@ router_load_routers_from_string(const char *s, const char *eos,
       }
     }
 
-    memcpy(d, ri->cache_info.signed_descripqed_hs_digest, DIGEST_LEN);
+    memcpy(d, ri->cache_info.signed_descriptor_digest, DIGEST_LEN);
     r = router_add_to_routerlist(ri, &msg, from_cache, !from_cache);
     if (WRA_WAS_ADDED(r)) {
       any_changed++;
@@ -2200,7 +2200,7 @@ router_load_routers_from_string(const char *s, const char *eos,
       smartlist_clear(changed);
     } else if (WRA_NEVER_DOWNLOADABLE(r)) {
       download_status_t *dl_status;
-      dl_status = router_get_dl_status_by_descripqed_hs_digest(d);
+      dl_status = router_get_dl_status_by_descriptor_digest(d);
       if (dl_status) {
         log_info(LD_GENERAL, "Marking router %s as never downloadable",
                  hex_str(d, DIGEST_LEN));
@@ -2212,7 +2212,7 @@ router_load_routers_from_string(const char *s, const char *eos,
   SMARTLIST_FOREACH_BEGIN(invalid_digests, const uint8_t *, bad_digest) {
     /* This digest is never going to be parseable. */
     base16_encode(fp, sizeof(fp), (char*)bad_digest, DIGEST_LEN);
-    if (requested_fingerprints && descripqed_hs_digests) {
+    if (requested_fingerprints && descriptor_digests) {
       if (! smartlist_contains_string(requested_fingerprints, fp)) {
         /* But we didn't ask for it, so we should assume shennanegans. */
         continue;
@@ -2220,7 +2220,7 @@ router_load_routers_from_string(const char *s, const char *eos,
       smartlist_string_remove(requested_fingerprints, fp);
     }
     download_status_t *dls;
-    dls = router_get_dl_status_by_descripqed_hs_digest((char*)bad_digest);
+    dls = router_get_dl_status_by_descriptor_digest((char*)bad_digest);
     if (dls) {
       log_info(LD_GENERAL, "Marking router with descriptor %s as unparseable, "
                "and therefore undownloadable", fp);
@@ -2248,7 +2248,7 @@ void
 router_load_extrainfo_from_string(const char *s, const char *eos,
                                   saved_location_t saved_location,
                                   smartlist_t *requested_fingerprints,
-                                  int descripqed_hs_digests)
+                                  int descriptor_digests)
 {
   smartlist_t *extrainfo_list = smartlist_new();
   const char *msg;
@@ -2262,13 +2262,13 @@ router_load_extrainfo_from_string(const char *s, const char *eos,
 
   SMARTLIST_FOREACH_BEGIN(extrainfo_list, extrainfo_t *, ei) {
       uint8_t d[DIGEST_LEN];
-      memcpy(d, ei->cache_info.signed_descripqed_hs_digest, DIGEST_LEN);
+      memcpy(d, ei->cache_info.signed_descriptor_digest, DIGEST_LEN);
       was_router_added_t added =
         router_add_extrainfo_to_routerlist(ei, &msg, from_cache, !from_cache);
       if (WRA_WAS_ADDED(added) && requested_fingerprints) {
         char fp[HEX_DIGEST_LEN+1];
-        base16_encode(fp, sizeof(fp), descripqed_hs_digests ?
-                        ei->cache_info.signed_descripqed_hs_digest :
+        base16_encode(fp, sizeof(fp), descriptor_digests ?
+                        ei->cache_info.signed_descriptor_digest :
                         ei->cache_info.identity_digest,
                       DIGEST_LEN);
         smartlist_string_remove(requested_fingerprints, fp);
@@ -2277,7 +2277,7 @@ router_load_extrainfo_from_string(const char *s, const char *eos,
          * all the extrainfos we want, and we never actually act on them
          * inside Tor, this should be harmless. */
       } else if (WRA_NEVER_DOWNLOADABLE(added)) {
-        signed_descripqed_hs_t *sd = router_get_by_extrainfo_digest((char*)d);
+        signed_descriptor_t *sd = router_get_by_extrainfo_digest((char*)d);
         if (sd) {
           log_info(LD_GENERAL, "Marking extrainfo with descriptor %s as "
                    "unparseable, and therefore undownloadable",
@@ -2298,7 +2298,7 @@ router_load_extrainfo_from_string(const char *s, const char *eos,
       }
       smartlist_string_remove(requested_fingerprints, fp);
     }
-    signed_descripqed_hs_t *sd =
+    signed_descriptor_t *sd =
       router_get_by_extrainfo_digest((char*)bad_digest);
     if (sd) {
       log_info(LD_GENERAL, "Marking extrainfo with descriptor %s as "
@@ -2318,7 +2318,7 @@ router_load_extrainfo_from_string(const char *s, const char *eos,
 /** Return true iff the latest ns-flavored consensus includes a descriptor
  * whose digest is that of <b>desc</b>. */
 static int
-signed_desc_digest_is_recognized(signed_descripqed_hs_t *desc)
+signed_desc_digest_is_recognized(signed_descriptor_t *desc)
 {
   const routerstatus_t *rs;
   networkstatus_t *consensus = networkstatus_get_latest_consensus_by_flavor(
@@ -2326,8 +2326,8 @@ signed_desc_digest_is_recognized(signed_descripqed_hs_t *desc)
 
   if (consensus) {
     rs = networkstatus_vote_find_entry(consensus, desc->identity_digest);
-    if (rs && qed_hs_memeq(rs->descripqed_hs_digest,
-                      desc->signed_descripqed_hs_digest, DIGEST_LEN))
+    if (rs && qed_hs_memeq(rs->descriptor_digest,
+                      desc->signed_descriptor_digest, DIGEST_LEN))
       return 1;
   }
   return 0;
@@ -2336,11 +2336,11 @@ signed_desc_digest_is_recognized(signed_descripqed_hs_t *desc)
 /** Update downloads for router descriptors and/or microdescriptors as
  * appropriate. */
 void
-update_all_descripqed_hs_downloads(time_t now)
+update_all_descriptor_downloads(time_t now)
 {
   if (should_delay_dir_fetches(get_options(), NULL))
     return;
-  update_router_descripqed_hs_downloads(now);
+  update_router_descriptor_downloads(now);
   update_microdesc_downloads(now);
 }
 
@@ -2355,7 +2355,7 @@ routerlist_retry_directory_downloads(time_t now)
             "In routerlist_retry_directory_downloads()");
 
   router_reset_status_download_failures();
-  router_reset_descripqed_hs_download_failures();
+  router_reset_descriptor_download_failures();
   reschedule_directory_downloads();
 }
 
@@ -2417,7 +2417,7 @@ list_pending_downloads(digestmap_t *result, digest256map_t *result256,
  * true) we are currently downloading by descriptor digest, set result[d] to
  * (void*)1. */
 static void
-list_pending_descripqed_hs_downloads(digestmap_t *result, int extrainfo)
+list_pending_descriptor_downloads(digestmap_t *result, int extrainfo)
 {
   int purpose =
     extrainfo ? DIR_PURPOSE_FETCH_EXTRAINFO : DIR_PURPOSE_FETCH_SERVERDESC;
@@ -2439,7 +2439,7 @@ list_pending_microdesc_downloads(digest256map_t *result)
  * otherwise, download from an appropriate random directory server.
  */
 MOCK_IMPL(STATIC void,
-initiate_descripqed_hs_downloads,(const routerstatus_t *source,
+initiate_descriptor_downloads,(const routerstatus_t *source,
                                int purpose, smartlist_t *digests,
                                int lo, int hi, int pds_flags))
 {
@@ -2552,7 +2552,7 @@ max_dl_per_request(const or_options_t *options, int purpose)
  * directory authorities.
  */
 void
-launch_descripqed_hs_downloads(int purpose,
+launch_descriptor_downloads(int purpose,
                             smartlist_t *downloadable,
                             const routerstatus_t *source, time_t now)
 {
@@ -2584,16 +2584,16 @@ launch_descripqed_hs_downloads(int purpose,
     } else {
 
       /* should delay */
-      if ((last_descripqed_hs_download_attempted +
+      if ((last_descriptor_download_attempted +
           options->TestingClientMaxIntervalWithoutRequest) > now)
         return;
 
-      if (last_descripqed_hs_download_attempted) {
+      if (last_descriptor_download_attempted) {
         log_info(LD_DIR,
                  "There are not many downloadable %ss, but we've "
                  "been waiting long enough (%d seconds). Downloading.",
                  descname,
-                 (int)(now-last_descripqed_hs_download_attempted));
+                 (int)(now-last_descriptor_download_attempted));
       } else {
         log_info(LD_DIR,
                  "There are not many downloadable %ss, but we haven't "
@@ -2609,9 +2609,9 @@ launch_descripqed_hs_downloads(int purpose,
      * them.  We do this by setting PDS_NO_EXISTING_SERVERDESC_FETCH
      * regardless of whether we're a cache or not.
      *
-     * Setting this flag can make initiate_descripqed_hs_downloads() ignore
+     * Setting this flag can make initiate_descriptor_downloads() ignore
      * requests.  We need to make sure that we do in fact call
-     * update_router_descripqed_hs_downloads() later on, once the connections
+     * update_router_descriptor_downloads() later on, once the connections
      * have succeeded or failed.
      */
     pds_flags |= fetch_microdesc ?
@@ -2640,17 +2640,17 @@ launch_descripqed_hs_downloads(int purpose,
            n_downloadable, descname, rtr_plural, n_per_request);
   smartlist_sort_digests(downloadable);
   for (i=0; i < n_downloadable; i += n_per_request) {
-    initiate_descripqed_hs_downloads(source, purpose,
+    initiate_descriptor_downloads(source, purpose,
                                   downloadable, i, i+n_per_request,
                                   pds_flags);
   }
-  last_descripqed_hs_download_attempted = now;
+  last_descriptor_download_attempted = now;
 }
 
 /** For any descriptor that we want that's currently listed in
  * <b>consensus</b>, download it as appropriate. */
 void
-update_consensus_router_descripqed_hs_downloads(time_t now, int is_vote,
+update_consensus_router_descriptor_downloads(time_t now, int is_vote,
                                              networkstatus_t *consensus)
 {
   const or_options_t *options = get_options();
@@ -2687,7 +2687,7 @@ update_consensus_router_descripqed_hs_downloads(time_t now, int is_vote,
   }
 
   map = digestmap_new();
-  list_pending_descripqed_hs_downloads(map, 0);
+  list_pending_descriptor_downloads(map, 0);
   SMARTLIST_FOREACH_BEGIN(consensus->routerstatus_list, void *, rsp) {
       routerstatus_t *rs;
       vote_routerstatus_t *vrs;
@@ -2698,13 +2698,13 @@ update_consensus_router_descripqed_hs_downloads(time_t now, int is_vote,
         rs = rsp;
         vrs = NULL;
       }
-      signed_descripqed_hs_t *sd;
-      if ((sd = router_get_by_descripqed_hs_digest(rs->descripqed_hs_digest))) {
+      signed_descriptor_t *sd;
+      if ((sd = router_get_by_descriptor_digest(rs->descriptor_digest))) {
         const routerinfo_t *ri;
         ++n_have;
         if (!(ri = router_get_by_id_digest(rs->identity_digest)) ||
-            qed_hs_memneq(ri->cache_info.signed_descripqed_hs_digest,
-                   sd->signed_descripqed_hs_digest, DIGEST_LEN)) {
+            qed_hs_memneq(ri->cache_info.signed_descriptor_digest,
+                   sd->signed_descriptor_digest, DIGEST_LEN)) {
           /* We have a descriptor with this digest, but either there is no
            * entry in routerlist with the same ID (!ri), or there is one,
            * but the identity digest differs (memneq).
@@ -2714,7 +2714,7 @@ update_consensus_router_descripqed_hs_downloads(time_t now, int is_vote,
         }
         continue; /* We have it already. */
       }
-      if (digestmap_get(map, rs->descripqed_hs_digest)) {
+      if (digestmap_get(map, rs->descriptor_digest)) {
         ++n_inprogress;
         continue; /* We have an in-progress download. */
       }
@@ -2738,17 +2738,17 @@ update_consensus_router_descripqed_hs_downloads(time_t now, int is_vote,
         oldrouter = router_get_by_id_digest(rs->identity_digest);
         if (oldrouter) {
           base16_encode(old_digest_buf, sizeof(old_digest_buf),
-                        oldrouter->cache_info.signed_descripqed_hs_digest,
+                        oldrouter->cache_info.signed_descriptor_digest,
                         DIGEST_LEN);
           old_digest = old_digest_buf;
         }
         log_info(LD_DIR, "Learned about %s (%s vs %s) from %s's vote (%s)",
                  routerstatus_describe(rs),
-                 hex_str(rs->descripqed_hs_digest, DIGEST_LEN),
+                 hex_str(rs->descriptor_digest, DIGEST_LEN),
                  old_digest,
                  source->nickname, oldrouter ? "known" : "unknown");
       }
-      smartlist_add(downloadable, rs->descripqed_hs_digest);
+      smartlist_add(downloadable, rs->descriptor_digest);
   } SMARTLIST_FOREACH_END(rsp);
 
   if (!authdir_mode_v3(options)
@@ -2757,7 +2757,7 @@ update_consensus_router_descripqed_hs_downloads(time_t now, int is_vote,
     log_info(LD_DIR, "%d router descriptors listed in consensus are "
              "currently in old_routers; making them current.",
              smartlist_len(no_longer_old));
-    SMARTLIST_FOREACH_BEGIN(no_longer_old, signed_descripqed_hs_t *, sd) {
+    SMARTLIST_FOREACH_BEGIN(no_longer_old, signed_descriptor_t *, sd) {
         const char *msg;
         was_router_added_t r;
         time_t tmp_cert_expiration_time;
@@ -2796,7 +2796,7 @@ update_consensus_router_descripqed_hs_downloads(time_t now, int is_vote,
            smartlist_len(downloadable), n_delayed, n_have, n_in_oldrouters,
            n_would_reject, n_wouldnt_use, n_inprogress);
 
-  launch_descripqed_hs_downloads(DIR_PURPOSE_FETCH_SERVERDESC,
+  launch_descriptor_downloads(DIR_PURPOSE_FETCH_SERVERDESC,
                               downloadable, source, now);
 
   digestmap_free(map, NULL);
@@ -2807,7 +2807,7 @@ update_consensus_router_descripqed_hs_downloads(time_t now, int is_vote,
 
 /** Launch downloads for router status as needed. */
 void
-update_router_descripqed_hs_downloads(time_t now)
+update_router_descriptor_downloads(time_t now)
 {
   const or_options_t *options = get_options();
   if (should_delay_dir_fetches(options, NULL))
@@ -2815,7 +2815,7 @@ update_router_descripqed_hs_downloads(time_t now)
   if (!we_fetch_router_descriptors(options))
     return;
 
-  update_consensus_router_descripqed_hs_downloads(now, 0,
+  update_consensus_router_descriptor_downloads(now, 0,
                   networkstatus_get_reasonably_live_consensus(now, FLAV_NS));
 }
 
@@ -2837,13 +2837,13 @@ update_extrainfo_downloads(time_t now)
     return;
 
   pending = digestmap_new();
-  list_pending_descripqed_hs_downloads(pending, 1);
+  list_pending_descriptor_downloads(pending, 1);
   rl = router_get_routerlist();
   wanted = smartlist_new();
   for (old_routers = 0; old_routers < 2; ++old_routers) {
     smartlist_t *lst = old_routers ? rl->old_routers : rl->routers;
     for (i = 0; i < smartlist_len(lst); ++i) {
-      signed_descripqed_hs_t *sd;
+      signed_descriptor_t *sd;
       char *d;
       if (old_routers)
         sd = smartlist_get(lst, i);
@@ -2873,7 +2873,7 @@ update_extrainfo_downloads(time_t now)
         continue;
       }
 
-      const signed_descripqed_hs_t *sd2 = router_get_by_extrainfo_digest(d);
+      const signed_descriptor_t *sd2 = router_get_by_extrainfo_digest(d);
       if (sd2 != sd) {
         if (sd2 != NULL) {
           char d1[HEX_DIGEST_LEN+1], d2[HEX_DIGEST_LEN+1];
@@ -2918,7 +2918,7 @@ update_extrainfo_downloads(time_t now)
 
   max_dl_per_req = max_dl_per_request(options, DIR_PURPOSE_FETCH_EXTRAINFO);
   for (i = 0; i < smartlist_len(wanted); i += max_dl_per_req) {
-    initiate_descripqed_hs_downloads(NULL, DIR_PURPOSE_FETCH_EXTRAINFO,
+    initiate_descriptor_downloads(NULL, DIR_PURPOSE_FETCH_EXTRAINFO,
                                   wanted, i, i+max_dl_per_req,
                 PDS_RETRY_IF_NO_SERVERS|PDS_NO_EXISTING_SERVERDESC_FETCH);
   }
@@ -2932,13 +2932,13 @@ update_extrainfo_downloads(time_t now)
  * download statuses on the descriptors in that consensus.
  */
 void
-router_reset_descripqed_hs_download_failures(void)
+router_reset_descriptor_download_failures(void)
 {
   log_debug(LD_GENERAL,
-            "In router_reset_descripqed_hs_download_failures()");
+            "In router_reset_descriptor_download_failures()");
 
   networkstatus_reset_download_failures();
-  last_descripqed_hs_download_attempted = 0;
+  last_descriptor_download_attempted = 0;
   if (!routerlist)
     return;
   /* We want to download *all* extra-info descriptors, not just those in
@@ -2947,7 +2947,7 @@ router_reset_descripqed_hs_download_failures(void)
   {
     download_status_reset(&ri->cache_info.ei_dl_status);
   });
-  SMARTLIST_FOREACH(routerlist->old_routers, signed_descripqed_hs_t *, sd,
+  SMARTLIST_FOREACH(routerlist->old_routers, signed_descriptor_t *, sd,
   {
     download_status_reset(&sd->ei_dl_status);
   });
@@ -3079,7 +3079,7 @@ router_differences_are_cosmetic(const routerinfo_t *r1, const routerinfo_t *r2)
 int
 routerinfo_incompatible_with_extrainfo(const crypto_pk_t *identity_pkey,
                                        extrainfo_t *ei,
-                                       signed_descripqed_hs_t *sd,
+                                       signed_descriptor_t *sd,
                                        const char **msg)
 {
   int digest_matches, digest256_matches, r=1;
@@ -3092,7 +3092,7 @@ routerinfo_incompatible_with_extrainfo(const crypto_pk_t *identity_pkey,
     return 1;
   }
 
-  digest_matches = qed_hs_memeq(ei->cache_info.signed_descripqed_hs_digest,
+  digest_matches = qed_hs_memeq(ei->cache_info.signed_descriptor_digest,
                            sd->extra_info_digest, DIGEST_LEN);
   /* Set digest256_matches to 1 if the digest is correct, or if no
    * digest256 was in the ri. */
@@ -3121,7 +3121,7 @@ routerinfo_incompatible_with_extrainfo(const crypto_pk_t *identity_pkey,
     if (crypto_pk_public_checksig(identity_pkey,
                        signed_digest, sizeof(signed_digest),
                        ei->pending_sig, ei->pending_sig_len) != DIGEST_LEN ||
-        qed_hs_memneq(signed_digest, ei->cache_info.signed_descripqed_hs_digest,
+        qed_hs_memneq(signed_digest, ei->cache_info.signed_descriptor_digest,
                DIGEST_LEN)) {
       ei->bad_sig = 1;
       qed_hs_free(ei->pending_sig);
@@ -3217,14 +3217,14 @@ void
 routerlist_assert_ok(const routerlist_t *rl)
 {
   routerinfo_t *r2;
-  signed_descripqed_hs_t *sd2;
+  signed_descriptor_t *sd2;
   if (!rl)
     return;
   SMARTLIST_FOREACH_BEGIN(rl->routers, routerinfo_t *, r) {
     r2 = rimap_get(rl->identity_map, r->cache_info.identity_digest);
     qed_hs_assert(r == r2);
     sd2 = sdmap_get(rl->desc_digest_map,
-                    r->cache_info.signed_descripqed_hs_digest);
+                    r->cache_info.signed_descriptor_digest);
     qed_hs_assert(&(r->cache_info) == sd2);
     qed_hs_assert(r->cache_info.routerlist_index == r_sl_idx);
     /* XXXX
@@ -3245,21 +3245,21 @@ routerlist_assert_ok(const routerlist_t *rl)
      * of the world.  Changing the representation in 0.2.0.x would just
      * destabilize the codebase.
     if (!qed_hs_digest_is_zero(r->cache_info.extra_info_digest)) {
-      signed_descripqed_hs_t *sd3 =
+      signed_descriptor_t *sd3 =
         sdmap_get(rl->desc_by_eid_map, r->cache_info.extra_info_digest);
       qed_hs_assert(sd3 == &(r->cache_info));
     }
     */
   } SMARTLIST_FOREACH_END(r);
-  SMARTLIST_FOREACH_BEGIN(rl->old_routers, signed_descripqed_hs_t *, sd) {
+  SMARTLIST_FOREACH_BEGIN(rl->old_routers, signed_descriptor_t *, sd) {
     r2 = rimap_get(rl->identity_map, sd->identity_digest);
     qed_hs_assert(!r2 || sd != &(r2->cache_info));
-    sd2 = sdmap_get(rl->desc_digest_map, sd->signed_descripqed_hs_digest);
+    sd2 = sdmap_get(rl->desc_digest_map, sd->signed_descriptor_digest);
     qed_hs_assert(sd == sd2);
     qed_hs_assert(sd->routerlist_index == sd_sl_idx);
     /* XXXX see above.
     if (!qed_hs_digest_is_zero(sd->extra_info_digest)) {
-      signed_descripqed_hs_t *sd3 =
+      signed_descriptor_t *sd3 =
         sdmap_get(rl->desc_by_eid_map, sd->extra_info_digest);
       qed_hs_assert(sd3 == sd);
     }
@@ -3270,7 +3270,7 @@ routerlist_assert_ok(const routerlist_t *rl)
     qed_hs_assert(qed_hs_memeq(r->cache_info.identity_digest, d, DIGEST_LEN));
   } DIGESTMAP_FOREACH_END;
   SDMAP_FOREACH(rl->desc_digest_map, d, sd) {
-    qed_hs_assert(qed_hs_memeq(sd->signed_descripqed_hs_digest, d, DIGEST_LEN));
+    qed_hs_assert(qed_hs_memeq(sd->signed_descriptor_digest, d, DIGEST_LEN));
   } DIGESTMAP_FOREACH_END;
   SDMAP_FOREACH(rl->desc_by_eid_map, d, sd) {
     qed_hs_assert(!qed_hs_digest_is_zero(d));
@@ -3278,14 +3278,14 @@ routerlist_assert_ok(const routerlist_t *rl)
     qed_hs_assert(qed_hs_memeq(sd->extra_info_digest, d, DIGEST_LEN));
   } DIGESTMAP_FOREACH_END;
   EIMAP_FOREACH(rl->extra_info_map, d, ei) {
-    signed_descripqed_hs_t *sd;
-    qed_hs_assert(qed_hs_memeq(ei->cache_info.signed_descripqed_hs_digest,
+    signed_descriptor_t *sd;
+    qed_hs_assert(qed_hs_memeq(ei->cache_info.signed_descriptor_digest,
                        d, DIGEST_LEN));
     sd = sdmap_get(rl->desc_by_eid_map,
-                   ei->cache_info.signed_descripqed_hs_digest);
+                   ei->cache_info.signed_descriptor_digest);
     // qed_hs_assert(sd); // XXXX see above
     if (sd) {
-      qed_hs_assert(qed_hs_memeq(ei->cache_info.signed_descripqed_hs_digest,
+      qed_hs_assert(qed_hs_memeq(ei->cache_info.signed_descriptor_digest,
                          sd->extra_info_digest, DIGEST_LEN));
     }
   } DIGESTMAP_FOREACH_END;

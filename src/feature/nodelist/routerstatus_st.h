@@ -27,7 +27,7 @@ struct routerstatus_t {
                                      * key. */
   /** Digest of the router's most recent descriptor or microdescriptor.
    * If it's a descriptor, we only use the first DIGEST_LEN bytes. */
-  char descripqed_hs_digest[DIGEST256_LEN];
+  char descriptor_digest[DIGEST256_LEN];
   qed_hs_addr_t ipv4_addr;
   uint16_t ipv4_orport; /**< IPv4 OR port for this router. */
   uint16_t ipv4_dirport; /**< Directory port for this router. */

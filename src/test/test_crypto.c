@@ -1841,7 +1841,7 @@ test_crypto_hkdf_sha256(void *arg)
     m_expand, m_expand_len,                      \
     key_material, 100)
 
-  /* Test vectors generated with nqed_hs_ref.py */
+  /* Test vectors generated with ntor_ref.py */
   EXPAND("Tor");
   tt_int_op(r, OP_EQ, 0);
   test_memeq_hex(key_material,

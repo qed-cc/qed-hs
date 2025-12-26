@@ -393,15 +393,15 @@ test_cfmt_create_cells(void *arg)
   /* A valid create2 cell with an ntor payload */
   memset(&cell, 0, sizeof(cell));
   memset(b, 0, sizeof(b));
-  crypto_rand((char*)b, NQED_HS_ONIONSKIN_LEN);
+  crypto_rand((char*)b, NTOR_ONIONSKIN_LEN);
   cell.command = CELL_CREATE2;
   memcpy(cell.payload, "\x00\x02\x00\x54", 4); /* ntor, 84 bytes long */
-  memcpy(cell.payload+4, b, NQED_HS_ONIONSKIN_LEN);
+  memcpy(cell.payload+4, b, NTOR_ONIONSKIN_LEN);
   tt_int_op(0, OP_EQ, create_cell_parse(&cc, &cell));
   tt_int_op(CELL_CREATE2, OP_EQ, cc.cell_type);
   tt_int_op(ONION_HANDSHAKE_TYPE_NTOR, OP_EQ, cc.handshake_type);
-  tt_int_op(NQED_HS_ONIONSKIN_LEN, OP_EQ, cc.handshake_len);
-  tt_mem_op(cc.onionskin,OP_EQ, b, NQED_HS_ONIONSKIN_LEN + 10);
+  tt_int_op(NTOR_ONIONSKIN_LEN, OP_EQ, cc.handshake_len);
+  tt_mem_op(cc.onionskin,OP_EQ, b, NTOR_ONIONSKIN_LEN + 10);
   tt_int_op(0, OP_EQ, create_cell_format(&cell2, &cc));
   tt_int_op(cell.command, OP_EQ, cell2.command);
   tt_mem_op(cell.payload,OP_EQ, cell2.payload, CELL_PAYLOAD_SIZE);
@@ -525,16 +525,16 @@ test_cfmt_extend_cells(void *arg)
   memset(&ec, 0xff, sizeof(ec));
   memset(p, 0, sizeof(p));
   memset(b, 0, sizeof(b));
-  crypto_rand((char*)b, NQED_HS_ONIONSKIN_LEN);
+  crypto_rand((char*)b, NTOR_ONIONSKIN_LEN);
   /* 2 items; one 18.244.0.1:61681 */
   memcpy(p, "\x02\x00\x06\x12\xf4\x00\x01\xf0\xf1", 9);
   /* The other is a digest. */
   memcpy(p+9, "\x02\x14" "anarchoindividualist", 22);
   /* Prep for the handshake: type and length */
   memcpy(p+31, "\x00\x02\x00\x54", 4);
-  memcpy(p+35, b, NQED_HS_ONIONSKIN_LEN);
+  memcpy(p+35, b, NTOR_ONIONSKIN_LEN);
   tt_int_op(0, OP_EQ, extend_cell_parse(&ec, RELAY_COMMAND_EXTEND2,
-                                     p, 35+NQED_HS_ONIONSKIN_LEN));
+                                     p, 35+NTOR_ONIONSKIN_LEN));
   tt_int_op(RELAY_COMMAND_EXTEND2, OP_EQ, ec.cell_type);
   tt_str_op("18.244.0.1", OP_EQ, fmt_addr(&ec.orport_ipv4.addr));
   tt_int_op(61681, OP_EQ, ec.orport_ipv4.port);
@@ -542,11 +542,11 @@ test_cfmt_extend_cells(void *arg)
   tt_mem_op(ec.node_id,OP_EQ, "anarchoindividualist", 20);
   tt_int_op(cc->cell_type, OP_EQ, CELL_CREATE2);
   tt_int_op(cc->handshake_type, OP_EQ, ONION_HANDSHAKE_TYPE_NTOR);
-  tt_int_op(cc->handshake_len, OP_EQ, NQED_HS_ONIONSKIN_LEN);
-  tt_mem_op(cc->onionskin,OP_EQ, b, NQED_HS_ONIONSKIN_LEN+20);
+  tt_int_op(cc->handshake_len, OP_EQ, NTOR_ONIONSKIN_LEN);
+  tt_mem_op(cc->onionskin,OP_EQ, b, NTOR_ONIONSKIN_LEN+20);
   tt_int_op(0, OP_EQ, extend_cell_format(&p2_cmd, &p2_len, p2, &ec));
   tt_int_op(p2_cmd, OP_EQ, RELAY_COMMAND_EXTEND2);
-  tt_int_op(p2_len, OP_EQ, 35+NQED_HS_ONIONSKIN_LEN);
+  tt_int_op(p2_len, OP_EQ, 35+NTOR_ONIONSKIN_LEN);
   tt_mem_op(p2,OP_EQ, p, RELAY_PAYLOAD_SIZE);
 
   /* Now let's do a fanciful EXTEND2 cell. */

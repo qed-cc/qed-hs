@@ -12,7 +12,7 @@
 #ifndef PACKED_CELL_ST_H
 #define PACKED_CELL_ST_H
 
-#include "qed_hs_queue.h"
+#include "tor_queue.h"
 
 /** A cell as packed for writing to the network. */
 struct packed_cell_t {

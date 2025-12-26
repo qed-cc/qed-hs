@@ -29,8 +29,8 @@
 /* Total counter of the cache size. */
 static size_t hs_cache_total_allocation = 0;
 
-static int cached_client_descripqed_hs_has_expired(time_t now,
-           const hs_cache_client_descripqed_hs_t *cached_desc);
+static int cached_client_descriptor_has_expired(time_t now,
+           const hs_cache_client_descriptor_t *cached_desc);
 
 /** Helper function: Return true iff the cache entry has a decrypted
  * descriptor.
@@ -41,7 +41,7 @@ static int cached_client_descripqed_hs_has_expired(time_t now,
  * descriptor thus this function MUST be used to safe guard access to the
  * decrypted desc object. */
 static inline bool
-entry_has_decrypted_descriptor(const hs_cache_client_descripqed_hs_t *entry)
+entry_has_decrypted_descriptor(const hs_cache_client_descriptor_t *entry)
 {
   qed_hs_assert(entry);
   return (entry->desc != NULL);
@@ -54,7 +54,7 @@ static digest256map_t *hs_cache_v3_dir;
 
 /** Remove a given descriptor from our cache. */
 static void
-remove_v3_desc_as_dir(const hs_cache_dir_descripqed_hs_t *desc)
+remove_v3_desc_as_dir(const hs_cache_dir_descriptor_t *desc)
 {
   qed_hs_assert(desc);
   digest256map_remove(hs_cache_v3_dir, desc->key);
@@ -62,14 +62,14 @@ remove_v3_desc_as_dir(const hs_cache_dir_descripqed_hs_t *desc)
 
 /** Store a given descriptor in our cache. */
 static void
-store_v3_desc_as_dir(hs_cache_dir_descripqed_hs_t *desc)
+store_v3_desc_as_dir(hs_cache_dir_descriptor_t *desc)
 {
   qed_hs_assert(desc);
   digest256map_set(hs_cache_v3_dir, desc->key, desc);
 }
 
 /** Query our cache and return the entry or NULL if not found. */
-STATIC hs_cache_dir_descripqed_hs_t *
+STATIC hs_cache_dir_descriptor_t *
 lookup_v3_desc_as_dir(const uint8_t *key)
 {
   qed_hs_assert(key);
@@ -77,11 +77,11 @@ lookup_v3_desc_as_dir(const uint8_t *key)
 }
 
 #define cache_dir_desc_free(val) \
-  FREE_AND_NULL(hs_cache_dir_descripqed_hs_t, cache_dir_desc_free_, (val))
+  FREE_AND_NULL(hs_cache_dir_descriptor_t, cache_dir_desc_free_, (val))
 
 /** Free a directory descriptor object. */
 static void
-cache_dir_desc_free_(hs_cache_dir_descripqed_hs_t *desc)
+cache_dir_desc_free_(hs_cache_dir_descriptor_t *desc)
 {
   if (desc == NULL) {
     return;
@@ -102,14 +102,14 @@ cache_dir_desc_free_void(void *ptr)
 /** Create a new directory cache descriptor object from a encoded descriptor.
  * On success, return the heap-allocated cache object, otherwise return NULL if
  * we can't decode the descriptor. */
-static hs_cache_dir_descripqed_hs_t *
+static hs_cache_dir_descriptor_t *
 cache_dir_desc_new(const char *desc)
 {
-  hs_cache_dir_descripqed_hs_t *dir_desc;
+  hs_cache_dir_descriptor_t *dir_desc;
 
   qed_hs_assert(desc);
 
-  dir_desc = qed_hs_malloc_zero(sizeof(hs_cache_dir_descripqed_hs_t));
+  dir_desc = qed_hs_malloc_zero(sizeof(hs_cache_dir_descriptor_t));
   dir_desc->plaintext_data =
     qed_hs_malloc_zero(sizeof(hs_desc_plaintext_data_t));
   dir_desc->encoded_desc = qed_hs_strdup(desc);
@@ -131,7 +131,7 @@ cache_dir_desc_new(const char *desc)
 
 /** Return the size of a cache entry in bytes. */
 static size_t
-cache_get_dir_entry_size(const hs_cache_dir_descripqed_hs_t *entry)
+cache_get_dir_entry_size(const hs_cache_dir_descriptor_t *entry)
 {
   return (sizeof(*entry) + hs_desc_plaintext_obj_size(entry->plaintext_data)
           + strlen(entry->encoded_desc));
@@ -142,9 +142,9 @@ cache_get_dir_entry_size(const hs_cache_dir_descripqed_hs_t *entry)
  * newer version in our cache. On error, caller is responsible to free the
  * given descriptor desc. */
 static int
-cache_store_v3_as_dir(hs_cache_dir_descripqed_hs_t *desc)
+cache_store_v3_as_dir(hs_cache_dir_descriptor_t *desc)
 {
-  hs_cache_dir_descripqed_hs_t *cache_entry;
+  hs_cache_dir_descriptor_t *cache_entry;
 
   qed_hs_assert(desc);
 
@@ -200,7 +200,7 @@ cache_lookup_v3_as_dir(const char *query, const char **desc_out)
 {
   int found = 0;
   ed25519_public_key_t blinded_key;
-  const hs_cache_dir_descripqed_hs_t *entry;
+  const hs_cache_dir_descriptor_t *entry;
 
   qed_hs_assert(query);
 
@@ -252,7 +252,7 @@ cache_clean_v3_by_downloaded_as_dir(const uint64_t target,
            target, max_remove_bytes);
 
   DIGEST256MAP_FOREACH_MODIFY(hs_cache_v3_dir, key,
-                              hs_cache_dir_descripqed_hs_t *, entry) {
+                              hs_cache_dir_descriptor_t *, entry) {
     /* Downloaded counter is above target, ignore. Record next lowest. */
     if (entry->n_downloaded > target) {
       if (lowest == 0 || lowest > entry->n_downloaded) {
@@ -308,7 +308,7 @@ cache_clean_v3_as_dir(time_t now, time_t global_cutoff)
   }
 
   DIGEST256MAP_FOREACH_MODIFY(hs_cache_v3_dir, key,
-                              hs_cache_dir_descripqed_hs_t *, entry) {
+                              hs_cache_dir_descriptor_t *, entry) {
     size_t entry_size;
     time_t cutoff = global_cutoff;
     if (!cutoff) {
@@ -347,7 +347,7 @@ cache_clean_v3_as_dir(time_t now, time_t global_cutoff)
 int
 hs_cache_store_as_dir(const char *desc)
 {
-  hs_cache_dir_descripqed_hs_t *dir_desc = NULL;
+  hs_cache_dir_descriptor_t *dir_desc = NULL;
 
   qed_hs_assert(desc);
 
@@ -407,7 +407,7 @@ hs_cache_lookup_as_dir(uint32_t version, const char *query,
 void
 hs_cache_mark_dowloaded_as_dir(const hs_ident_dir_conn_t *ident)
 {
-  hs_cache_dir_descripqed_hs_t *entry;
+  hs_cache_dir_descriptor_t *entry;
 
   qed_hs_assert(ident);
 
@@ -437,16 +437,16 @@ static digest256map_t *hs_cache_v3_client;
 static digest256map_t *hs_cache_client_intro_state;
 
 #define cache_client_desc_free(val) \
-  FREE_AND_NULL(hs_cache_client_descripqed_hs_t, cache_client_desc_free_, (val))
+  FREE_AND_NULL(hs_cache_client_descriptor_t, cache_client_desc_free_, (val))
 
 /** Free memory allocated by <b>desc</b>. */
 static void
-cache_client_desc_free_(hs_cache_client_descripqed_hs_t *desc)
+cache_client_desc_free_(hs_cache_client_descriptor_t *desc)
 {
   if (desc == NULL) {
     return;
   }
-  hs_descripqed_hs_free(desc->desc);
+  hs_descriptor_free(desc->desc);
   memwipe(&desc->key, 0, sizeof(desc->key));
   memwipe(desc->encoded_desc, 0, strlen(desc->encoded_desc));
   qed_hs_free(desc->encoded_desc);
@@ -457,13 +457,13 @@ cache_client_desc_free_(hs_cache_client_descripqed_hs_t *desc)
 static void
 cache_client_desc_free_void(void *ptr)
 {
-  hs_cache_client_descripqed_hs_t *desc = ptr;
+  hs_cache_client_descriptor_t *desc = ptr;
   cache_client_desc_free(desc);
 }
 
 /** Return the size of a client cache entry in bytes. */
 static size_t
-cache_get_client_entry_size(const hs_cache_client_descripqed_hs_t *entry)
+cache_get_client_entry_size(const hs_cache_client_descriptor_t *entry)
 {
   size_t size = 0;
 
@@ -486,7 +486,7 @@ cache_get_client_entry_size(const hs_cache_client_descripqed_hs_t *entry)
 
 /** Remove a given descriptor from our cache. */
 static void
-remove_v3_desc_as_client(const hs_cache_client_descripqed_hs_t *desc)
+remove_v3_desc_as_client(const hs_cache_client_descriptor_t *desc)
 {
   qed_hs_assert(desc);
   digest256map_remove(hs_cache_v3_client, desc->key.pubkey);
@@ -496,9 +496,9 @@ remove_v3_desc_as_client(const hs_cache_client_descripqed_hs_t *desc)
 
 /** Store a given descriptor in our cache. */
 static void
-store_v3_desc_as_client(hs_cache_client_descripqed_hs_t *desc)
+store_v3_desc_as_client(hs_cache_client_descriptor_t *desc)
 {
-  hs_cache_client_descripqed_hs_t *cached_desc;
+  hs_cache_client_descriptor_t *cached_desc;
 
   qed_hs_assert(desc);
 
@@ -516,11 +516,11 @@ store_v3_desc_as_client(hs_cache_client_descripqed_hs_t *desc)
 }
 
 /** Query our cache and return the entry or NULL if not found or if expired. */
-STATIC hs_cache_client_descripqed_hs_t *
+STATIC hs_cache_client_descriptor_t *
 lookup_v3_desc_as_client(const uint8_t *key)
 {
   time_t now = approx_time();
-  hs_cache_client_descripqed_hs_t *cached_desc;
+  hs_cache_client_descriptor_t *cached_desc;
 
   qed_hs_assert(key);
 
@@ -531,7 +531,7 @@ lookup_v3_desc_as_client(const uint8_t *key)
   }
 
   /* Don't return expired entries */
-  if (cached_client_descripqed_hs_has_expired(now, cached_desc)) {
+  if (cached_client_descriptor_has_expired(now, cached_desc)) {
     return NULL;
   }
 
@@ -542,15 +542,15 @@ lookup_v3_desc_as_client(const uint8_t *key)
  * <b>service_identity_pk</b> to decrypt it first.
  *
  * If everything goes well, allocate and return a new
- * hs_cache_client_descripqed_hs_t object. In case of error, return NULL. */
-static hs_cache_client_descripqed_hs_t *
+ * hs_cache_client_descriptor_t object. In case of error, return NULL. */
+static hs_cache_client_descriptor_t *
 cache_client_desc_new(const char *desc_str,
                       const ed25519_public_key_t *service_identity_pk,
                       hs_desc_decode_status_t *decode_status_out)
 {
   hs_desc_decode_status_t ret;
-  hs_descripqed_hs_t *desc = NULL;
-  hs_cache_client_descripqed_hs_t *client_desc = NULL;
+  hs_descriptor_t *desc = NULL;
+  hs_cache_client_descriptor_t *client_desc = NULL;
 
   qed_hs_assert(desc_str);
   qed_hs_assert(service_identity_pk);
@@ -576,7 +576,7 @@ cache_client_desc_new(const char *desc_str,
   }
 
   /* All is good: make a cache object for this descriptor */
-  client_desc = qed_hs_malloc_zero(sizeof(hs_cache_client_descripqed_hs_t));
+  client_desc = qed_hs_malloc_zero(sizeof(hs_cache_client_descriptor_t));
   ed25519_pubkey_copy(&client_desc->key, service_identity_pk);
   /* Set expiration time for this cached descriptor to be the start of the next
    * time period since that's when clients need to start using the next blinded
@@ -771,9 +771,9 @@ cache_client_intro_state_is_empty(const hs_cache_client_intro_state_t *cache)
  *  client-side HS cache if so. The client_desc is freed if we already have a
  *  fresher (higher revision counter count) in the cache. */
 static int
-cache_store_as_client(hs_cache_client_descripqed_hs_t *client_desc)
+cache_store_as_client(hs_cache_client_descriptor_t *client_desc)
 {
-  hs_cache_client_descripqed_hs_t *cache_entry;
+  hs_cache_client_descriptor_t *cache_entry;
 
   /* TODO: Heavy code duplication with cache_store_as_dir(). Consider
    * refactoring and uniting! */
@@ -830,8 +830,8 @@ cache_store_as_client(hs_cache_client_descripqed_hs_t *client_desc)
 /** Return true iff the cached client descriptor at <b>cached_desc</b> has
  * expired. */
 static int
-cached_client_descripqed_hs_has_expired(time_t now,
-                               const hs_cache_client_descripqed_hs_t *cached_desc)
+cached_client_descriptor_has_expired(time_t now,
+                               const hs_cache_client_descriptor_t *cached_desc)
 {
   /* We use the current consensus time to see if we should expire this
    * descriptor since we use consensus time for all other parts of the protocol
@@ -864,11 +864,11 @@ cache_clean_v3_as_client(time_t now)
   }
 
   DIGEST256MAP_FOREACH_MODIFY(hs_cache_v3_client, key,
-                              hs_cache_client_descripqed_hs_t *, entry) {
+                              hs_cache_client_descriptor_t *, entry) {
     size_t entry_size;
 
     /* If the entry has not expired, continue to the next cached entry */
-    if (!cached_client_descripqed_hs_has_expired(now, entry)) {
+    if (!cached_client_descriptor_has_expired(now, entry)) {
       continue;
     }
     /* Here, our entry has expired, remove and free. */
@@ -907,7 +907,7 @@ cache_clean_v3_as_client(time_t now)
 const char *
 hs_cache_lookup_encoded_as_client(const ed25519_public_key_t *key)
 {
-  hs_cache_client_descripqed_hs_t *cached_desc = NULL;
+  hs_cache_client_descriptor_t *cached_desc = NULL;
 
   qed_hs_assert(key);
 
@@ -924,10 +924,10 @@ hs_cache_lookup_encoded_as_client(const ed25519_public_key_t *key)
  *  its HS descriptor if it's stored in our cache, or NULL if not or if the
  *  descriptor was never decrypted. The later can happen if we are waiting for
  *  client authorization to be added. */
-const hs_descripqed_hs_t *
+const hs_descriptor_t *
 hs_cache_lookup_as_client(const ed25519_public_key_t *key)
 {
-  hs_cache_client_descripqed_hs_t *cached_desc = NULL;
+  hs_cache_client_descriptor_t *cached_desc = NULL;
 
   qed_hs_assert(key);
 
@@ -960,7 +960,7 @@ hs_cache_store_as_client(const char *desc_str,
                          const ed25519_public_key_t *identity_pk)
 {
   hs_desc_decode_status_t ret;
-  hs_cache_client_descripqed_hs_t *client_desc = NULL;
+  hs_cache_client_descriptor_t *client_desc = NULL;
 
   qed_hs_assert(desc_str);
   qed_hs_assert(identity_pk);
@@ -994,7 +994,7 @@ hs_cache_store_as_client(const char *desc_str,
 void
 hs_cache_remove_as_client(const ed25519_public_key_t *key)
 {
-  hs_cache_client_descripqed_hs_t *cached_desc = NULL;
+  hs_cache_client_descriptor_t *cached_desc = NULL;
 
   qed_hs_assert(key);
 
@@ -1036,7 +1036,7 @@ void
 hs_cache_purge_as_client(void)
 {
   DIGEST256MAP_FOREACH_MODIFY(hs_cache_v3_client, key,
-                              hs_cache_client_descripqed_hs_t *, entry) {
+                              hs_cache_client_descriptor_t *, entry) {
     size_t entry_size = cache_get_client_entry_size(entry);
     MAP_DEL_CURRENT(key);
     cache_client_desc_free(entry);
@@ -1123,7 +1123,7 @@ bool
 hs_cache_client_new_auth_parse(const ed25519_public_key_t *service_pk)
 {
   bool ret = false;
-  hs_cache_client_descripqed_hs_t *cached_desc = NULL;
+  hs_cache_client_descriptor_t *cached_desc = NULL;
 
   qed_hs_assert(service_pk);
 
@@ -1183,7 +1183,7 @@ hs_cache_handle_oom(size_t min_remove_bytes)
 
 /** Return the maximum size of a v3 HS descriptor. */
 unsigned int
-hs_cache_get_max_descripqed_hs_size(void)
+hs_cache_get_max_descriptor_size(void)
 {
   return (unsigned) networkstatus_get_param(NULL,
                                             "HSV3MaxDescriptorSize",
@@ -1267,7 +1267,7 @@ hs_cache_increment_allocation(size_t n)
 void
 dir_set_downloaded(const ed25519_public_key_t *pk, uint64_t value)
 {
-  hs_cache_dir_descripqed_hs_t *entry = lookup_v3_desc_as_dir(pk->pubkey);
+  hs_cache_dir_descriptor_t *entry = lookup_v3_desc_as_dir(pk->pubkey);
   if (entry) {
     entry->n_downloaded = value;
   }

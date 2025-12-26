@@ -980,7 +980,7 @@ control_event_stream_bandwidth(edge_connection_t *edge_conn)
     if (!edge_conn->n_read && !edge_conn->n_written)
       return 0;
 
-    qed_hs_gettimeofday(&now);
+    tor_gettimeofday(&now);
     format_iso_time_nospace_usec(tbuf, &now);
     send_control_event(EVENT_STREAM_BANDWIDTH_USED,
                        "650 STREAM_BW %"PRIu64" %lu %lu %s\r\n",
@@ -1014,7 +1014,7 @@ control_event_stream_bandwidth_used(void)
         if (!edge_conn->n_read && !edge_conn->n_written)
           continue;
 
-        qed_hs_gettimeofday(&now);
+        tor_gettimeofday(&now);
         format_iso_time_nospace_usec(tbuf, &now);
         send_control_event(EVENT_STREAM_BANDWIDTH_USED,
                            "650 STREAM_BW %"PRIu64" %lu %lu %s\r\n",
@@ -1078,7 +1078,7 @@ control_event_circ_bandwidth_used_for_circ(origin_circuit_t *ocirc)
   if (!ocirc->n_read_circ_bw && !ocirc->n_written_circ_bw)
     return 0;
 
-  qed_hs_gettimeofday(&now);
+  tor_gettimeofday(&now);
   format_iso_time_nospace_usec(tbuf, &now);
 
   char *ccontrol_buf = congestion_control_get_control_port_fields(ocirc);
@@ -1712,7 +1712,7 @@ control_event_networkstatus_changed_single(const routerstatus_t *rs)
 /** Our own router descriptor has changed; tell any controllers that care.
  */
 int
-control_event_my_descripqed_hs_changed(void)
+control_event_my_descriptor_changed(void)
 {
   send_control_event(EVENT_DESCCHANGED,  "650 DESCCHANGED\r\n");
   return 0;
@@ -1998,7 +1998,7 @@ rend_hsaddress_str_or_unknown(const char *onion_address)
  * <b>hsdir_index</b> is the HSDir fetch index value for v3, an hex string.
  */
 void
-control_event_hs_descripqed_hs_requested(const char *onion_address,
+control_event_hs_descriptor_requested(const char *onion_address,
                                       rend_auth_type_t auth_type,
                                       const char *id_digest,
                                       const char *desc_id,
@@ -2032,7 +2032,7 @@ control_event_hs_descripqed_hs_requested(const char *onion_address,
  * is ignored.
  */
 void
-control_event_hs_descripqed_hs_created(const char *onion_address,
+control_event_hs_descriptor_created(const char *onion_address,
                                     const char *desc_id,
                                     int replica)
 {
@@ -2060,7 +2060,7 @@ control_event_hs_descripqed_hs_created(const char *onion_address,
  * <b>desc_id</b> is the ID of requested hs descriptor.
  */
 void
-control_event_hs_descripqed_hs_upload(const char *onion_address,
+control_event_hs_descriptor_upload(const char *onion_address,
                                    const char *id_digest,
                                    const char *desc_id,
                                    const char *hsdir_index)
@@ -2087,12 +2087,12 @@ control_event_hs_descripqed_hs_upload(const char *onion_address,
 /** send HS_DESC event after got response from hs directory.
  *
  * NOTE: this is an internal function used by following functions:
- * control_event_hsv3_descripqed_hs_failed
+ * control_event_hsv3_descriptor_failed
  *
  * So do not call this function directly.
  */
 static void
-event_hs_descripqed_hs_receive_end(const char *action,
+event_hs_descriptor_receive_end(const char *action,
                                 const char *onion_address,
                                 const char *desc_id,
                                 rend_auth_type_t auth_type,
@@ -2126,13 +2126,13 @@ event_hs_descripqed_hs_receive_end(const char *action,
 /** send HS_DESC event after got response from hs directory.
  *
  * NOTE: this is an internal function used by following functions:
- * control_event_hs_descripqed_hs_uploaded
- * control_event_hs_descripqed_hs_upload_failed
+ * control_event_hs_descriptor_uploaded
+ * control_event_hs_descriptor_upload_failed
  *
  * So do not call this function directly.
  */
 void
-control_event_hs_descripqed_hs_upload_end(const char *action,
+control_event_hs_descriptor_upload_end(const char *action,
                                        const char *onion_address,
                                        const char *id_digest,
                                        const char *reason)
@@ -2161,7 +2161,7 @@ control_event_hs_descripqed_hs_upload_end(const char *action,
  *
  * Called when we successfully received a hidden service descriptor. */
 void
-control_event_hsv3_descripqed_hs_received(const char *onion_address,
+control_event_hsv3_descriptor_received(const char *onion_address,
                                        const char *desc_id,
                                        const char *hsdir_id_digest)
 {
@@ -2175,7 +2175,7 @@ control_event_hsv3_descripqed_hs_received(const char *onion_address,
    * whitespace before in order to not be next to the HsDir value. */
   qed_hs_asprintf(&desc_id_field, " %s", desc_id);
 
-  event_hs_descripqed_hs_receive_end("RECEIVED", onion_address, desc_id_field,
+  event_hs_descriptor_receive_end("RECEIVED", onion_address, desc_id_field,
                                   REND_NO_AUTH, hsdir_id_digest, NULL);
   qed_hs_free(desc_id_field);
 }
@@ -2185,14 +2185,14 @@ control_event_hsv3_descripqed_hs_received(const char *onion_address,
  * called when we successfully uploaded a hidden service descriptor.
  */
 void
-control_event_hs_descripqed_hs_uploaded(const char *id_digest,
+control_event_hs_descriptor_uploaded(const char *id_digest,
                                      const char *onion_address)
 {
   if (BUG(!id_digest)) {
     return;
   }
 
-  control_event_hs_descripqed_hs_upload_end("UPLOADED", onion_address,
+  control_event_hs_descriptor_upload_end("UPLOADED", onion_address,
                                          id_digest, NULL);
 }
 
@@ -2202,7 +2202,7 @@ control_event_hs_descripqed_hs_uploaded(const char *id_digest,
  * NULL, "UNKNOWN" is used.  If <b>reason</b> is not NULL, add it to REASON=
  * field. */
 void
-control_event_hsv3_descripqed_hs_failed(const char *onion_address,
+control_event_hsv3_descriptor_failed(const char *onion_address,
                                      const char *desc_id,
                                      const char *hsdir_id_digest,
                                      const char *reason)
@@ -2217,7 +2217,7 @@ control_event_hsv3_descripqed_hs_failed(const char *onion_address,
    * whitespace before in order to not be next to the HsDir value. */
   qed_hs_asprintf(&desc_id_field, " %s", desc_id);
 
-  event_hs_descripqed_hs_receive_end("FAILED", onion_address, desc_id_field,
+  event_hs_descriptor_receive_end("FAILED", onion_address, desc_id_field,
                                   REND_NO_AUTH, hsdir_id_digest, reason);
   qed_hs_free(desc_id_field);
 }
@@ -2228,7 +2228,7 @@ control_event_hsv3_descripqed_hs_failed(const char *onion_address,
  * string. The  <b>onion_address</b> or <b>desc_id</b> set to NULL will
  * not trigger the control event. */
 void
-control_event_hs_descripqed_hs_content(const char *onion_address,
+control_event_hs_descriptor_content(const char *onion_address,
                                     const char *desc_id,
                                     const char *hsdir_id_digest,
                                     const char *content)
@@ -2265,14 +2265,14 @@ control_event_hs_descripqed_hs_content(const char *onion_address,
  * is not NULL, add it to REASON= field.
  */
 void
-control_event_hs_descripqed_hs_upload_failed(const char *id_digest,
+control_event_hs_descriptor_upload_failed(const char *id_digest,
                                           const char *onion_address,
                                           const char *reason)
 {
   if (BUG(!id_digest)) {
     return;
   }
-  control_event_hs_descripqed_hs_upload_end("FAILED", onion_address,
+  control_event_hs_descriptor_upload_end("FAILED", onion_address,
                                          id_digest, reason);
 }
 

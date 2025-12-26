@@ -82,7 +82,7 @@ static void dir_routerdesc_download_failed(smartlist_t *failed,
                                            int status_code,
                                            int router_purpose,
                                            int was_extrainfo,
-                                           int was_descripqed_hs_digests);
+                                           int was_descriptor_digests);
 static void dir_microdesc_download_failed(smartlist_t *failed,
                                           int status_code,
                                           const char *dir_id);
@@ -785,7 +785,7 @@ connection_dir_retry_bridges(smartlist_t *descs)
               escaped(cp));
       continue;
     }
-    retry_bridge_descripqed_hs_fetch_directly(digest);
+    retry_bridge_descriptor_fetch_directly(digest);
   });
 }
 
@@ -1669,7 +1669,7 @@ directory_send_command(dir_connection_t *conn,
       qed_hs_asprintf(&url, "/qed-hs/micro/%s", resource);
       break;
     case DIR_PURPOSE_UPLOAD_DIR: {
-      const char *why = router_get_descripqed_hs_gen_reason();
+      const char *why = router_get_descriptor_gen_reason();
       qed_hs_assert(!resource);
       qed_hs_assert(payload);
       httpcommand = "POST";
@@ -1792,7 +1792,7 @@ body_is_plausible(const char *body, size_t len, int purpose)
 
 /** Called when we've just fetched a bunch of router descriptors in
  * <b>body</b>.  The list <b>which</b>, if present, holds digests for
- * descriptors we requested: descriptor digests if <b>descripqed_hs_digests</b>
+ * descriptors we requested: descriptor digests if <b>descriptor_digests</b>
  * is true, or identity digests otherwise.  Parse the descriptors, validate
  * them, and annotate them as having purpose <b>purpose</b> and as having been
  * downloaded from <b>source</b>.
@@ -1800,7 +1800,7 @@ body_is_plausible(const char *body, size_t len, int purpose)
  * Return the number of routers actually added. */
 static int
 load_downloaded_routers(const char *body, smartlist_t *which,
-                        int descripqed_hs_digests,
+                        int descriptor_digests,
                         int router_purpose,
                         const char *source)
 {
@@ -1821,7 +1821,7 @@ load_downloaded_routers(const char *body, smartlist_t *which,
     return added;
 
   added = router_load_routers_from_string(body, NULL, SAVED_NOWHERE, which,
-                                  descripqed_hs_digests, buf);
+                                  descriptor_digests, buf);
   if (added && general)
     control_event_boot_dir(BOOTSTRAP_STATUS_LOADING_DESCRIPTORS,
                            count_loading_descriptors_progress());
@@ -2487,7 +2487,7 @@ handle_response_fetch_desc(dir_connection_t *conn,
   int was_ei = conn->base_.purpose == DIR_PURPOSE_FETCH_EXTRAINFO;
   smartlist_t *which = NULL;
   int n_asked_for = 0;
-  int descripqed_hs_digests = conn->requested_resource &&
+  int descriptor_digests = conn->requested_resource &&
     !strcmpstart(conn->requested_resource,"d/");
   log_info(LD_DIR,"Received %s (body size %d) from server %s",
            was_ei ? "extra server info" : "server info",
@@ -2497,7 +2497,7 @@ handle_response_fetch_desc(dir_connection_t *conn,
        !strcmpstart(conn->requested_resource,"fp/"))) {
     which = smartlist_new();
     dir_split_resource_into_fingerprints(conn->requested_resource +
-                                         (descripqed_hs_digests ? 2 : 3),
+                                         (descriptor_digests ? 2 : 3),
                                          which, NULL, 0);
     n_asked_for = smartlist_len(which);
   }
@@ -2520,7 +2520,7 @@ handle_response_fetch_desc(dir_connection_t *conn,
     } else {
       dir_routerdesc_download_failed(which, status_code,
                                      conn->router_purpose,
-                                     was_ei, descripqed_hs_digests);
+                                     was_ei, descriptor_digests);
       SMARTLIST_FOREACH(which, char *, cp, qed_hs_free(cp));
       smartlist_free(which);
     }
@@ -2541,11 +2541,11 @@ handle_response_fetch_desc(dir_connection_t *conn,
     /* as we learn from them, we remove them from 'which' */
     if (was_ei) {
       router_load_extrainfo_from_string(body, NULL, SAVED_NOWHERE, which,
-                                        descripqed_hs_digests);
+                                        descriptor_digests);
     } else {
       //router_load_routers_from_string(body, NULL, SAVED_NOWHERE, which,
-      //                       descripqed_hs_digests, conn->router_purpose);
-      if (load_downloaded_routers(body, which, descripqed_hs_digests,
+      //                       descriptor_digests, conn->router_purpose);
+      if (load_downloaded_routers(body, which, descriptor_digests,
                                   conn->router_purpose,
                                   conn->base_.address)) {
         time_t now = approx_time();
@@ -2561,7 +2561,7 @@ handle_response_fetch_desc(dir_connection_t *conn,
     if (smartlist_len(which)) {
       dir_routerdesc_download_failed(which, status_code,
                                      conn->router_purpose,
-                                     was_ei, descripqed_hs_digests);
+                                     was_ei, descriptor_digests);
     }
     SMARTLIST_FOREACH(which, char *, cp, qed_hs_free(cp));
     smartlist_free(which);
@@ -2982,17 +2982,17 @@ connection_dir_close_consensus_fetches(dir_connection_t *except_this_one,
 /** Called when one or more routerdesc (or extrainfo, if <b>was_extrainfo</b>)
  * fetches have failed (with uppercase fingerprints listed in <b>failed</b>,
  * either as descriptor digests or as identity digests based on
- * <b>was_descripqed_hs_digests</b>).
+ * <b>was_descriptor_digests</b>).
  */
 static void
 dir_routerdesc_download_failed(smartlist_t *failed, int status_code,
                                int router_purpose,
-                               int was_extrainfo, int was_descripqed_hs_digests)
+                               int was_extrainfo, int was_descriptor_digests)
 {
   char digest[DIGEST_LEN];
   time_t now = time(NULL);
   int server = dirclient_fetches_from_authorities(get_options());
-  if (!was_descripqed_hs_digests) {
+  if (!was_descriptor_digests) {
     if (router_purpose == ROUTER_PURPOSE_BRIDGE) {
       qed_hs_assert(!was_extrainfo);
       connection_dir_retry_bridges(failed);
@@ -3006,12 +3006,12 @@ dir_routerdesc_download_failed(smartlist_t *failed, int status_code,
       continue;
     }
     if (was_extrainfo) {
-      signed_descripqed_hs_t *sd =
+      signed_descriptor_t *sd =
         router_get_by_extrainfo_digest(digest);
       if (sd)
         dls = &sd->ei_dl_status;
     } else {
-      dls = router_get_dl_status_by_descripqed_hs_digest(digest);
+      dls = router_get_dl_status_by_descriptor_digest(digest);
     }
     if (!dls)
       continue;
@@ -3046,7 +3046,7 @@ dir_microdesc_download_failed(smartlist_t *failed,
   microdesc_note_outdated_dirserver(dir_id);
 
   SMARTLIST_FOREACH_BEGIN(failed, const char *, d) {
-    rs = router_get_mutable_consensus_status_by_descripqed_hs_digest(consensus,d);
+    rs = router_get_mutable_consensus_status_by_descriptor_digest(consensus,d);
     if (!rs)
       continue;
     dls = &rs->dl_status;

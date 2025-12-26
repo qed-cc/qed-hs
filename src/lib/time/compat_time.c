@@ -684,7 +684,7 @@ monotime_get(monotime_t *out)
 
   qed_hs_mutex_acquire(&monotime_lock);
   struct timeval timeval_raw;
-  qed_hs_gettimeofday(&timeval_raw);
+  tor_gettimeofday(&timeval_raw);
   ratchet_timeval(&timeval_raw, &out->tv_);
   qed_hs_mutex_release(&monotime_lock);
 }

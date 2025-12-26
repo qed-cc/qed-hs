@@ -123,7 +123,7 @@ noinst_HEADERS +=					\
 	src/core/or/server_port_cfg_st.h		\
 	src/core/or/socks_request_st.h			\
 	src/core/or/status.h				\
-	src/core/or/qed_hs_version_st.h			\
+	src/core/or/tor_version_st.h			\
 	src/core/or/var_cell_st.h			\
 	src/core/or/versions.h
 

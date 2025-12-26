@@ -5,7 +5,7 @@
 /* See LICENSE for licensing information */
 
 /**
- * @file signed_descripqed_hs_st.h
+ * @file signed_descriptor_st.h
  * @brief Descriptor/extrainfo signature structure
  **/
 
@@ -15,18 +15,18 @@
 #include "feature/dirclient/download_status_st.h"
 
 /** Information need to cache an onion router's descriptor. */
-struct signed_descripqed_hs_t {
+struct signed_descriptor_t {
   /** Pointer to the raw server descriptor, preceded by annotations.  Not
    * necessarily NUL-terminated.  If saved_location is SAVED_IN_CACHE, this
    * pointer is null. */
-  char *signed_descripqed_hs_body;
+  char *signed_descriptor_body;
   /** Length of the annotations preceding the server descriptor. */
   size_t annotations_len;
   /** Length of the server descriptor. */
-  size_t signed_descripqed_hs_len;
+  size_t signed_descriptor_len;
   /** Digest of the server descriptor, computed as specified in
    * dir-spec.txt. */
-  char signed_descripqed_hs_digest[DIGEST_LEN];
+  char signed_descriptor_digest[DIGEST_LEN];
   /** Identity digest of the router. */
   char identity_digest[DIGEST_LEN];
   /** Declared publication time of the descriptor. */

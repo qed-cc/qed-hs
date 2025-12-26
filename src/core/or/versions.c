@@ -14,7 +14,7 @@
 #include "core/or/versions.h"
 #include "lib/crypt_ops/crypto_util.h"
 
-#include "core/or/qed_hs_version_st.h"
+#include "core/or/tor_version_st.h"
 
 /**
  * Return the approximate date when this release came out, or was
@@ -486,7 +486,7 @@ memoize_protover_summary(protover_summary_flags_t *out,
     protocol_list_supports_protocol(protocols, PRT_FLOWCTRL,
                                     PROTOVER_FLOWCTRL_CC) &&
     protocol_list_supports_protocol(protocols, PRT_RELAY,
-                                    PROTOVER_RELAY_NQED_HS_V3);
+                                    PROTOVER_RELAY_NTOR_V3);
 
   /* Conflux requires congestion control. */
   out->supports_conflux =

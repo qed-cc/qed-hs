@@ -124,7 +124,7 @@ test_circuitstats_hoplen(void *arg)
   // test relaxed functionality (which uses the close_ms timeout)
   get_circuit_build_times_mutable()->close_ms *= 2;
 
-  qed_hs_gettimeofday(&circ_start_time);
+  tor_gettimeofday(&circ_start_time);
   circ_start_time.tv_sec -= 119; // make us hit "relaxed" cutoff
 
   // Test 1: Build a fourhop circuit that should get marked
@@ -148,7 +148,7 @@ test_circuitstats_hoplen(void *arg)
   threehop = add_opened_threehop();
 
   /* This circuit should not timeout */
-  qed_hs_gettimeofday(&circ_start_time);
+  tor_gettimeofday(&circ_start_time);
   circ_start_time.tv_sec -= 59;
   fourhop = subtest_fourhop_circuit(circ_start_time, 0);
   circuit_expire_building();

@@ -12,11 +12,11 @@
 #ifndef EXTRAINFO_ST_H
 #define EXTRAINFO_ST_H
 
-#include "feature/nodelist/signed_descripqed_hs_st.h"
+#include "feature/nodelist/signed_descriptor_st.h"
 
 /** Information needed to keep and cache a signed extra-info document. */
 struct extrainfo_t {
-  signed_descripqed_hs_t cache_info;
+  signed_descriptor_t cache_info;
   /** SHA256 digest of this document */
   uint8_t digest256[DIGEST256_LEN];
   /** The router's nickname. */

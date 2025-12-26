@@ -123,7 +123,7 @@ typedef struct testing_hs_pow_service_t {
   hs_subcredential_t subcred;
   hs_service_intro_point_t *service_ip;
   hs_desc_intro_point_t *desc_ip;
-  hs_nqed_hs_intro_cell_keys_t intro_keys;
+  hs_ntor_intro_cell_keys_t intro_keys;
   origin_circuit_t *intro_circ;
   origin_circuit_t *rend_circ;
 } testing_hs_pow_service_t;
@@ -179,7 +179,7 @@ testing_hs_pow_service_new(void)
   tsvc->intro_circ->hs_ident = hs_ident;
   curve25519_keypair_generate(&hs_ident->rendezvous_client_kp, 0);
   tt_int_op(0, OP_EQ,
-            hs_nqed_hs_client_get_introduce1_keys(ip_auth_pubkey,
+            hs_ntor_client_get_introduce1_keys(ip_auth_pubkey,
                                                ip_enc_pubkey,
                                                &hs_ident->rendezvous_client_kp,
                                                &tsvc->subcred,
@@ -351,7 +351,7 @@ test_hs_pow_vectors(void *arg)
   testing_hs_pow_service_t *tsvc = testing_hs_pow_service_new();
   hs_pow_service_state_t *pow_state = qed_hs_malloc_zero(sizeof *pow_state);
   tsvc->service.state.pow_state = pow_state;
-  tsvc->service.desc_current = service_descripqed_hs_new();
+  tsvc->service.desc_current = service_descriptor_new();
   pow_state->rend_request_pqueue = smartlist_new();
 
   char *mem_op_hex_tmp = NULL;
@@ -488,7 +488,7 @@ test_hs_pow_vectors(void *arg)
   qed_hs_free(decrypted);
   trn_cell_introduce1_free(cell);
   trn_cell_introduce_encrypted_free(enc_cell);
-  service_descripqed_hs_free(tsvc->service.desc_current);
+  service_descriptor_free(tsvc->service.desc_current);
   testing_hs_pow_service_free(tsvc);
   hs_pow_remove_seed_from_cache(NULL);
 }

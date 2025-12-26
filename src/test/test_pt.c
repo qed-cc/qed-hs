@@ -409,7 +409,7 @@ test_pt_get_extrainfo_string(void *arg)
   /* Force these proxies to look "completed" or they won't generate output. */
   mp1->conf_state = mp2->conf_state = PT_PROTO_COMPLETED;
 
-  s = pt_get_extra_info_descripqed_hs_string();
+  s = pt_get_extra_info_descriptor_string();
   tt_assert(s);
   tt_str_op(s, OP_EQ,
             "transport hagbard 127.0.0.1:5555\n"

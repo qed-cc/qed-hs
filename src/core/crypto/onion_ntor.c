@@ -20,7 +20,7 @@
 
 #include "orconfig.h"
 
-#define ONION_NQED_HS_PRIVATE
+#define ONION_NTOR_PRIVATE
 
 #include "lib/crypt_ops/crypto_cipher.h"
 #include "lib/crypt_ops/crypto_digest.h"
@@ -35,7 +35,7 @@
 
 /** Free storage held in an ntor handshake state. */
 void
-nqed_hs_handshake_state_free_(nqed_hs_handshake_state_t *state)
+ntor_handshake_state_free_(ntor_handshake_state_t *state)
 {
   if (!state)
     return;
@@ -85,20 +85,20 @@ static const tweakset_t proto1_tweaks = {
 /**
  * Compute the first client-side step of the ntor handshake for communicating
  * with a server whose DIGEST_LEN-byte server identity is <b>router_id</b>,
- * and whose onion key is <b>router_key</b>. Store the NQED_HS_ONIONSKIN_LEN-byte
+ * and whose onion key is <b>router_key</b>. Store the NTOR_ONIONSKIN_LEN-byte
  * message in <b>onion_skin_out</b>, and store the handshake state in
  * *<b>handshake_state_out</b>.  Return 0 on success, -1 on failure.
  */
 int
-onion_skin_nqed_hs_create(const uint8_t *router_id,
+onion_skin_ntor_create(const uint8_t *router_id,
                        const curve25519_public_key_t *router_key,
-                       nqed_hs_handshake_state_t **handshake_state_out,
+                       ntor_handshake_state_t **handshake_state_out,
                        uint8_t *onion_skin_out)
 {
-  nqed_hs_handshake_state_t *state;
+  ntor_handshake_state_t *state;
   uint8_t *op;
 
-  state = qed_hs_malloc_zero(sizeof(nqed_hs_handshake_state_t));
+  state = qed_hs_malloc_zero(sizeof(ntor_handshake_state_t));
 
   memcpy(state->router_id, router_id, DIGEST_LEN);
   memcpy(&state->pubkey_B, router_key, sizeof(curve25519_public_key_t));
@@ -117,7 +117,7 @@ onion_skin_nqed_hs_create(const uint8_t *router_id,
   APPEND(op, router_id, DIGEST_LEN);
   APPEND(op, router_key->public_key, CURVE25519_PUBKEY_LEN);
   APPEND(op, state->pubkey_X.public_key, CURVE25519_PUBKEY_LEN);
-  qed_hs_assert(op == onion_skin_out + NQED_HS_ONIONSKIN_LEN);
+  qed_hs_assert(op == onion_skin_out + NTOR_ONIONSKIN_LEN);
 
   *handshake_state_out = state;
 
@@ -136,17 +136,17 @@ onion_skin_nqed_hs_create(const uint8_t *router_id,
 
 /**
  * Perform the server side of an ntor handshake. Given an
- * NQED_HS_ONIONSKIN_LEN-byte message in <b>onion_skin</b>, our own identity
+ * NTOR_ONIONSKIN_LEN-byte message in <b>onion_skin</b>, our own identity
  * fingerprint as <b>my_node_id</b>, and an associative array mapping public
  * onion keys to curve25519_keypair_t in <b>private_keys</b>, attempt to
  * perform the handshake.  Use <b>junk_keys</b> if present if the handshake
- * indicates an unrecognized public key.  Write an NQED_HS_REPLY_LEN-byte
+ * indicates an unrecognized public key.  Write an NTOR_REPLY_LEN-byte
  * message to send back to the client into <b>handshake_reply_out</b>, and
  * generate <b>key_out_len</b> bytes of key material in <b>key_out</b>. Return
  * 0 on success, -1 on failure.
  */
 int
-onion_skin_nqed_hs_server_handshake(const uint8_t *onion_skin,
+onion_skin_ntor_server_handshake(const uint8_t *onion_skin,
                                  const di_digest256_map_t *private_keys,
                                  const curve25519_keypair_t *junk_keys,
                                  const uint8_t *my_node_id,
@@ -246,13 +246,13 @@ onion_skin_nqed_hs_server_handshake(const uint8_t *onion_skin,
 
 /**
  * Perform the final client side of the ntor handshake, using the state in
- * <b>handshake_state</b> and the server's NQED_HS_REPLY_LEN-byte reply in
+ * <b>handshake_state</b> and the server's NTOR_REPLY_LEN-byte reply in
  * <b>handshake_reply</b>.  Generate <b>key_out_len</b> bytes of key material
  * in <b>key_out</b>. Return 0 on success, -1 on failure.
  */
 int
-onion_skin_nqed_hs_client_handshake(
-                             const nqed_hs_handshake_state_t *handshake_state,
+onion_skin_ntor_client_handshake(
+                             const ntor_handshake_state_t *handshake_state,
                              const uint8_t *handshake_reply,
                              uint8_t *key_out,
                              size_t key_out_len,

@@ -146,7 +146,7 @@ mock_relay_send_command_from_edge(streamid_t stream_id, circuit_t *circ,
 
 static unsigned int num_intro_points = 0;
 static unsigned int
-mock_count_desc_circuit_established(const hs_service_descripqed_hs_t *desc)
+mock_count_desc_circuit_established(const hs_service_descriptor_t *desc)
 {
   (void) desc;
   return num_intro_points;
@@ -213,9 +213,9 @@ test_e2e_rend_circuit_setup(void *arg)
 
   /* Setup the circuit: do the ntor key exchange */
   {
-    uint8_t nqed_hs_key_seed[DIGEST256_LEN] = {2};
-    retval = hs_circuit_setup_e2e_rend_circ(or_circ, nqed_hs_key_seed,
-                                            sizeof(nqed_hs_key_seed), 1);
+    uint8_t ntor_key_seed[DIGEST256_LEN] = {2};
+    retval = hs_circuit_setup_e2e_rend_circ(or_circ, ntor_key_seed,
+                                            sizeof(ntor_key_seed), 1);
     tt_int_op(retval, OP_EQ, 0);
   }
 
@@ -310,7 +310,7 @@ helper_create_service(void)
   ed25519_secret_key_generate(&service->keys.identity_sk, 0);
   ed25519_public_key_generate(&service->keys.identity_pk,
                               &service->keys.identity_sk);
-  service->desc_current = service_descripqed_hs_new();
+  service->desc_current = service_descriptor_new();
   tt_assert(service->desc_current);
   /* Register service to global map. */
   int ret = register_service(get_hs_service_map(), service);
@@ -725,7 +725,7 @@ test_service_intro_point(void *arg)
 
     service = hs_service_new(get_options());
     tt_assert(service);
-    service->desc_current = service_descripqed_hs_new();
+    service->desc_current = service_descriptor_new();
     tt_assert(service->desc_current);
     /* Add intropoint to descriptor map. */
     service_intro_point_add(service->desc_current->intro_points.map, ip);
@@ -735,10 +735,10 @@ test_service_intro_point(void *arg)
     tt_ptr_op(query, OP_EQ, NULL);
 
     /* While at it, can I find the descriptor with the intro point? */
-    hs_service_descripqed_hs_t *desc_lookup =
+    hs_service_descriptor_t *desc_lookup =
       service_desc_find_by_intro(service, ip);
     tt_mem_op(service->desc_current, OP_EQ, desc_lookup,
-              sizeof(hs_service_descripqed_hs_t));
+              sizeof(hs_service_descriptor_t));
 
     /* Remove object from service descriptor and make sure it is out. */
     service_intro_point_remove(service, ip);
@@ -798,13 +798,13 @@ test_helper_functions(void *arg)
   {
     hs_service_t *s_lookup = NULL;
     hs_service_intro_point_t *ip_lookup = NULL;
-    hs_service_descripqed_hs_t *desc_lookup = NULL;
+    hs_service_descriptor_t *desc_lookup = NULL;
 
     get_objects_from_ident(&ident, &s_lookup, &ip_lookup, &desc_lookup);
     tt_mem_op(s_lookup, OP_EQ, service, sizeof(hs_service_t));
     tt_mem_op(ip_lookup, OP_EQ, ip, sizeof(hs_service_intro_point_t));
     tt_mem_op(desc_lookup, OP_EQ, service->desc_current,
-              sizeof(hs_service_descripqed_hs_t));
+              sizeof(hs_service_descriptor_t));
     /* Reset */
     s_lookup = NULL; ip_lookup = NULL; desc_lookup = NULL;
 
@@ -812,7 +812,7 @@ test_helper_functions(void *arg)
     get_objects_from_ident(&ident, NULL, &ip_lookup, &desc_lookup);
     tt_mem_op(ip_lookup, OP_EQ, ip, sizeof(hs_service_intro_point_t));
     tt_mem_op(desc_lookup, OP_EQ, service->desc_current,
-              sizeof(hs_service_descripqed_hs_t));
+              sizeof(hs_service_descriptor_t));
     /* Reset. */
     s_lookup = NULL; ip_lookup = NULL; desc_lookup = NULL;
 
@@ -1411,7 +1411,7 @@ test_rotate_descriptors(void *arg)
   int ret;
   time_t next_rotation_time, now;
   hs_service_t *service = NULL;
-  hs_service_descripqed_hs_t *desc_next;
+  hs_service_descriptor_t *desc_next;
 
   (void) arg;
 
@@ -1439,7 +1439,7 @@ test_rotate_descriptors(void *arg)
   /* Create a service with a default descriptor and state. It's added to the
    * global map. */
   service = helper_create_service();
-  service_descripqed_hs_free(service->desc_current);
+  service_descriptor_free(service->desc_current);
   service->desc_current = NULL;
   /* This triggers a build for both descriptors. The time now is only used in
    * the descriptor certificate which is important to be now else the decoding
@@ -1550,7 +1550,7 @@ test_build_update_descriptors(void *arg)
   service = helper_create_service();
   tt_assert(service);
   /* Unfortunately, the helper creates a dummy descriptor so get rid of it. */
-  service_descripqed_hs_free(service->desc_current);
+  service_descriptor_free(service->desc_current);
   service->desc_current = NULL;
 
   /* We have a fresh service so this should trigger a build for both
@@ -1690,7 +1690,7 @@ test_build_update_descriptors(void *arg)
   service = helper_create_service();
   tt_assert(service);
   /* Unfortunately, the helper creates a dummy descriptor so get rid of it. */
-  service_descripqed_hs_free(service->desc_current);
+  service_descriptor_free(service->desc_current);
   service->desc_current = NULL;
 
   /* We have a fresh service so this should trigger a build for both
@@ -1717,7 +1717,7 @@ test_build_update_descriptors(void *arg)
   tt_u64_op(service->desc_next->next_upload_time, OP_EQ, 0);
 
   /* Let's remove the next descriptor to simulate a rotation. */
-  service_descripqed_hs_free(service->desc_next);
+  service_descriptor_free(service->desc_next);
   service->desc_next = NULL;
 
   build_all_descriptors(now);
@@ -1774,7 +1774,7 @@ test_build_descriptors(void *arg)
   {
     hs_service_t *service = helper_create_service();
     last_service = service;
-    service_descripqed_hs_free(service->desc_current);
+    service_descriptor_free(service->desc_current);
     service->desc_current = NULL;
 
     build_all_descriptors(now);
@@ -1794,7 +1794,7 @@ test_build_descriptors(void *arg)
   {
     hs_service_t *service = helper_create_service_with_clients(0);
     last_service = service;
-    service_descripqed_hs_free(service->desc_current);
+    service_descriptor_free(service->desc_current);
     service->desc_current = NULL;
 
     build_all_descriptors(now);
@@ -1811,7 +1811,7 @@ test_build_descriptors(void *arg)
   {
     hs_service_t *service = helper_create_service_with_clients(20);
     last_service = service;
-    service_descripqed_hs_free(service->desc_current);
+    service_descriptor_free(service->desc_current);
     service->desc_current = NULL;
 
     build_all_descriptors(now);
@@ -1828,7 +1828,7 @@ test_build_descriptors(void *arg)
   {
     hs_service_t *service = helper_create_service_with_clients(32);
     last_service = service;
-    service_descripqed_hs_free(service->desc_current);
+    service_descriptor_free(service->desc_current);
     service->desc_current = NULL;
 
     build_all_descriptors(now);
@@ -1888,7 +1888,7 @@ test_upload_descriptors(void *arg)
 
   /* Nothing should happen because we have 0 introduction circuit established
    * and we want (by default) 3 intro points. */
-  run_upload_descripqed_hs_event(now);
+  run_upload_descriptor_event(now);
   /* If no upload happened, this should be untouched. */
   tt_u64_op(service->desc_current->next_upload_time, OP_EQ, 0);
   /* We'll simulate that we've opened our intro point circuit and that we only
@@ -1897,7 +1897,7 @@ test_upload_descriptors(void *arg)
 
   /* Set our next upload time after now which will skip the upload. */
   service->desc_current->next_upload_time = now + 1000;
-  run_upload_descripqed_hs_event(now);
+  run_upload_descriptor_event(now);
   /* If no upload happened, this should be untouched. */
   tt_u64_op(service->desc_current->next_upload_time, OP_EQ, now + 1000);
 
@@ -1969,24 +1969,24 @@ test_rendezvous1_parsing(void *arg)
     service_circ = helper_create_origin_circuit(CIRCUIT_PURPOSE_S_CONNECT_REND,
                                                 flags);
     qed_hs_free(service_circ->hs_ident);
-    hs_nqed_hs_rend_cell_keys_t hs_nqed_hs_rend_cell_keys;
+    hs_ntor_rend_cell_keys_t hs_ntor_rend_cell_keys;
     uint8_t rendezvous_cookie[HS_REND_COOKIE_LEN];
     curve25519_keypair_generate(&ip_enc_kp, 0);
     curve25519_keypair_generate(&ephemeral_kp, 0);
     curve25519_keypair_generate(&client_kp, 0);
     ed25519_keypair_generate(&ip_auth_kp, 0);
-    retval = hs_nqed_hs_service_get_rendezvous1_keys(&ip_auth_kp.pubkey,
+    retval = hs_ntor_service_get_rendezvous1_keys(&ip_auth_kp.pubkey,
                                                   &ip_enc_kp,
                                                   &ephemeral_kp,
                                                   &client_kp.pubkey,
-                                                  &hs_nqed_hs_rend_cell_keys);
+                                                  &hs_ntor_rend_cell_keys);
     tt_int_op(retval, OP_EQ, 0);
 
     memset(rendezvous_cookie, 2, sizeof(rendezvous_cookie));
     service_circ->hs_ident =
       create_rp_circuit_identifier(service, rendezvous_cookie,
                                    &ephemeral_kp.pubkey,
-                                   &hs_nqed_hs_rend_cell_keys);
+                                   &hs_ntor_rend_cell_keys);
   }
 
   /* Send out the RENDEZVOUS1 and make sure that our mock func worked */
@@ -2438,9 +2438,9 @@ test_intro2_handling(void *arg)
 
   /* Create descriptors for x and load next descriptor with the x's
    * subcredential so that it can accept connections for itself. */
-  x_service.desc_current = service_descripqed_hs_new();
+  x_service.desc_current = service_descriptor_new();
   memset(x_service.desc_current->desc->subcredential.subcred, 'C',SUBCRED_LEN);
-  x_service.desc_next = service_descripqed_hs_new();
+  x_service.desc_next = service_descriptor_new();
   memcpy(&x_service.desc_next->desc->subcredential, &x_subcred, SUBCRED_LEN);
 
   /* Refresh OB keys */
@@ -2603,8 +2603,8 @@ test_intro2_handling(void *arg)
   replaycache_free(x_service.state.replay_cache_rend_cookie);
   smartlist_free(x_service.config.ob_master_pubkeys);
   qed_hs_free(x_service.state.ob_subcreds);
-  service_descripqed_hs_free(x_service.desc_current);
-  service_descripqed_hs_free(x_service.desc_next);
+  service_descriptor_free(x_service.desc_current);
+  service_descriptor_free(x_service.desc_next);
   hs_metrics_service_free(&x_service);
   service_intro_point_free(x_ip);
 
@@ -2672,7 +2672,7 @@ test_cannot_upload_descriptors(void *arg)
     service->desc_current->intro_points.map = tmp;
     service->desc_current->missing_intro_points = 1;
     setup_full_capture_of_logs(LOG_INFO);
-    run_upload_descripqed_hs_event(now);
+    run_upload_descriptor_event(now);
     digest256map_free(tmp, qed_hs_free_);
     service->desc_current->intro_points.map = cur;
     expect_log_msg_containing(
@@ -2686,7 +2686,7 @@ test_cannot_upload_descriptors(void *arg)
   /* 2. Testing non established intro points. */
   {
     setup_full_capture_of_logs(LOG_INFO);
-    run_upload_descripqed_hs_event(now);
+    run_upload_descriptor_event(now);
     expect_log_msg_containing(
       "Service [scrubbed] can't upload its current descriptor: "
       "Intro circuits aren't yet all established (0/3).");
@@ -2702,7 +2702,7 @@ test_cannot_upload_descriptors(void *arg)
   {
     service->desc_current->next_upload_time = now + 1000;
     setup_full_capture_of_logs(LOG_INFO);
-    run_upload_descripqed_hs_event(now);
+    run_upload_descriptor_event(now);
     expect_log_msg_containing(
       "Service [scrubbed] can't upload its current descriptor: "
       "Next upload time is");
@@ -2716,7 +2716,7 @@ test_cannot_upload_descriptors(void *arg)
     MOCK(networkstatus_get_reasonably_live_consensus,
          mock_networkstatus_get_reasonably_live_consensus_null);
     setup_full_capture_of_logs(LOG_INFO);
-    run_upload_descripqed_hs_event(now);
+    run_upload_descriptor_event(now);
     expect_log_msg_containing(
       "Service [scrubbed] can't upload its current descriptor: "
       "No reasonably live consensus");
@@ -2731,7 +2731,7 @@ test_cannot_upload_descriptors(void *arg)
     MOCK(router_have_minimum_dir_info,
          mock_router_have_minimum_dir_info_false);
     setup_full_capture_of_logs(LOG_INFO);
-    run_upload_descripqed_hs_event(now);
+    run_upload_descriptor_event(now);
     expect_log_msg_containing(
       "Service [scrubbed] can't upload its current descriptor: "
       "Not enough directory information");
@@ -2739,7 +2739,7 @@ test_cannot_upload_descriptors(void *arg)
 
     /* Running it again shouldn't trigger anything due to rate limitation. */
     setup_full_capture_of_logs(LOG_INFO);
-    run_upload_descripqed_hs_event(now);
+    run_upload_descriptor_event(now);
     expect_no_log_entry();
     teardown_capture_of_logs();
     UNMOCK(router_have_minimum_dir_info);
@@ -2751,7 +2751,7 @@ test_cannot_upload_descriptors(void *arg)
     MOCK(router_have_minimum_dir_info,
          mock_router_have_minimum_dir_info_false);
     setup_full_capture_of_logs(LOG_INFO);
-    run_upload_descripqed_hs_event(now);
+    run_upload_descriptor_event(now);
     expect_log_msg_containing(
       "Service [scrubbed] can't upload its current descriptor: "
       "Not enough directory information");

@@ -334,7 +334,7 @@ test_bwmgt_dir_conn_global_write_low(void *arg)
   rs = qed_hs_malloc_zero(sizeof(*rs));
   crypto_rand(rs->identity_digest, sizeof(rs->identity_digest));
   crypto_rand(md->digest, sizeof(md->digest));
-  memcpy(rs->descripqed_hs_digest, md->digest, DIGEST256_LEN);
+  memcpy(rs->descriptor_digest, md->digest, DIGEST256_LEN);
 
   /* Set IP address. */
   qed_hs_addr_copy(&rs->ipv4_addr, &relay_addr);

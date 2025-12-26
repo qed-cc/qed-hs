@@ -10,7 +10,7 @@
 #include "app/config/resolve_addr.h"
 #include "core/or/policies.h"
 #include "core/or/protover.h"
-#include "core/or/qed_hs_version_st.h"
+#include "core/or/tor_version_st.h"
 #include "core/or/versions.h"
 #include "feature/dirauth/bwauth.h"
 #include "feature/dirauth/dircollate.h"
@@ -150,9 +150,9 @@ authority_cert_dup(authority_cert_t *cert)
 
   memcpy(out, cert, sizeof(authority_cert_t));
   /* Now copy pointed-to things. */
-  out->cache_info.signed_descripqed_hs_body =
-    qed_hs_strndup(cert->cache_info.signed_descripqed_hs_body,
-                cert->cache_info.signed_descripqed_hs_len);
+  out->cache_info.signed_descriptor_body =
+    qed_hs_strndup(cert->cache_info.signed_descriptor_body,
+                cert->cache_info.signed_descriptor_len);
   out->cache_info.saved_location = SAVED_NOWHERE;
   out->identity_key = crypto_pk_dup_key(cert->identity_key);
   out->signing_key = crypto_pk_dup_key(cert->signing_key);
@@ -379,8 +379,8 @@ format_networkstatus_vote(crypto_pk_t *private_signing_key,
       smartlist_add_asprintf(chunks, "legacy-dir-key %s\n", fpbuf);
     }
 
-    smartlist_add(chunks, qed_hs_strndup(cert->cache_info.signed_descripqed_hs_body,
-                                      cert->cache_info.signed_descripqed_hs_len));
+    smartlist_add(chunks, qed_hs_strndup(cert->cache_info.signed_descriptor_body,
+                                      cert->cache_info.signed_descriptor_len));
   }
 
   SMARTLIST_FOREACH_BEGIN(v3_ns->routerstatus_list, vote_routerstatus_t *,
@@ -611,8 +611,8 @@ compare_vote_rs(const vote_routerstatus_t *a, const vote_routerstatus_t *b)
   if ((r = fast_memcmp(a->status.identity_digest, b->status.identity_digest,
                   DIGEST_LEN)))
     return r;
-  if ((r = fast_memcmp(a->status.descripqed_hs_digest,
-                       b->status.descripqed_hs_digest,
+  if ((r = fast_memcmp(a->status.descriptor_digest,
+                       b->status.descriptor_digest,
                        DIGEST_LEN)))
     return r;
   /* If we actually reached this point, then the identities and
@@ -2044,7 +2044,7 @@ networkstatus_compute_consensus(smartlist_t *votes,
       qed_hs_assert(fast_memeq(current_rsa_id,
                             rs->status.identity_digest,DIGEST_LEN));
       memcpy(rs_out.identity_digest, current_rsa_id, DIGEST_LEN);
-      memcpy(rs_out.descripqed_hs_digest, rs->status.descripqed_hs_digest,
+      memcpy(rs_out.descriptor_digest, rs->status.descriptor_digest,
              DIGEST_LEN);
       qed_hs_addr_copy(&rs_out.ipv4_addr, &rs->status.ipv4_addr);
       rs_out.ipv4_dirport = rs->status.ipv4_dirport;
@@ -2221,8 +2221,8 @@ networkstatus_compute_consensus(smartlist_t *votes,
                              vsr->status.identity_digest,
                              DIGEST_LEN));
           if (vsr->status.has_exitsummary &&
-               fast_memeq(rs_out.descripqed_hs_digest,
-                       vsr->status.descripqed_hs_digest,
+               fast_memeq(rs_out.descriptor_digest,
+                       vsr->status.descriptor_digest,
                        DIGEST_LEN)) {
             qed_hs_assert(vsr->status.exitsummary);
             smartlist_add(exitsummaries, vsr->status.exitsummary);
@@ -2240,7 +2240,7 @@ networkstatus_compute_consensus(smartlist_t *votes,
           char id[HEX_DIGEST_LEN+1];
           char dd[HEX_DIGEST_LEN+1];
           base16_encode(id, sizeof(dd), rs_out.identity_digest, DIGEST_LEN);
-          base16_encode(dd, sizeof(dd), rs_out.descripqed_hs_digest, DIGEST_LEN);
+          base16_encode(dd, sizeof(dd), rs_out.descriptor_digest, DIGEST_LEN);
           log_warn(LD_DIR, "The voters disagreed on the exit policy summary "
                    " for router %s with descriptor %s.  This really shouldn't"
                    " have happened.", id, dd);
@@ -2251,7 +2251,7 @@ networkstatus_compute_consensus(smartlist_t *votes,
           char id[HEX_DIGEST_LEN+1];
           char dd[HEX_DIGEST_LEN+1];
           base16_encode(id, sizeof(dd), rs_out.identity_digest, DIGEST_LEN);
-          base16_encode(dd, sizeof(dd), rs_out.descripqed_hs_digest, DIGEST_LEN);
+          base16_encode(dd, sizeof(dd), rs_out.descriptor_digest, DIGEST_LEN);
           log_warn(LD_DIR, "Not one of the voters that made us select"
                    "descriptor %s for router %s had an exit policy"
                    "summary", dd, id);
@@ -3164,7 +3164,7 @@ add_new_cert_if_needed(const struct authority_cert_t *cert)
                                      cert->signing_key_digest)) {
     /* Hey, it's a new cert! */
     trusted_dirs_load_certs_from_string(
-                               cert->cache_info.signed_descripqed_hs_body,
+                               cert->cache_info.signed_descriptor_body,
                                TRUSTED_DIRS_CERTS_SRC_FROM_VOTE, 1 /*flush*/,
                                NULL);
     if (!authority_cert_get_by_digests(cert->cache_info.identity_digest,
@@ -3265,7 +3265,7 @@ dirvote_add_vote(const char *vote_body, time_t time_posted,
   }
 
   /* Fetch any new router descriptors we just learned about */
-  update_consensus_router_descripqed_hs_downloads(time(NULL), 1, vote);
+  update_consensus_router_descriptor_downloads(time(NULL), 1, vote);
 
   /* Now see whether we already have a vote from this authority. */
   SMARTLIST_FOREACH_BEGIN(pending_vote_list, pending_vote_t *, v) {
@@ -4525,8 +4525,8 @@ routers_make_ed_keys_unique(smartlist_t *routers)
       const time_t ri2_pub = ri2->cache_info.published_on;
       if (ri2_pub < ri_pub ||
           (ri2_pub == ri_pub &&
-           fast_memcmp(ri->cache_info.signed_descripqed_hs_digest,
-                     ri2->cache_info.signed_descripqed_hs_digest,DIGEST_LEN)<0)) {
+           fast_memcmp(ri->cache_info.signed_descriptor_digest,
+                     ri2->cache_info.signed_descriptor_digest,DIGEST_LEN)<0)) {
         digest256map_set(by_ed_key, pk, ri);
         ri2->omit_from_vote = 1;
       } else {

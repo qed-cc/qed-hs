@@ -431,14 +431,14 @@ mock_directory_initiate_request(directory_request_t *req)
 }
 
 static int
-mock_hs_desc_encode_descriptor(const hs_descripqed_hs_t *desc,
+mock_hs_desc_encode_descriptor(const hs_descriptor_t *desc,
                                const ed25519_keypair_t *signing_kp,
-                               const uint8_t *descripqed_hs_cookie,
+                               const uint8_t *descriptor_cookie,
                                char **encoded_out)
 {
   (void)desc;
   (void)signing_kp;
-  (void)descripqed_hs_cookie;
+  (void)descriptor_cookie;
 
   qed_hs_asprintf(encoded_out, "lulu");
   return 0;
@@ -497,7 +497,7 @@ test_desc_reupload_logic(void *arg)
    **/
 
   /* Let's start by building our descriptor and service */
-  hs_service_descripqed_hs_t *desc = service_descripqed_hs_new();
+  hs_service_descriptor_t *desc = service_descriptor_new();
   hs_service_t *service = NULL;
   /* hex-encoded ed25519 pubkey used in hs_build_address.py */
   char pubkey_hex[] =
@@ -532,7 +532,7 @@ test_desc_reupload_logic(void *arg)
   }
 
   /* Now let's upload our desc to all hsdirs */
-  upload_descripqed_hs_to_all(service, desc);
+  upload_descriptor_to_all(service, desc);
   /* Check that previous hsdirs were populated */
   tt_int_op(smartlist_len(desc->previous_hsdirs), OP_EQ, 6);
 
@@ -570,7 +570,7 @@ test_desc_reupload_logic(void *arg)
   tt_int_op(smartlist_len(desc->previous_hsdirs), OP_EQ, 6);
 
   /* Now order another upload and see that we keep having 6 prev hsdirs */
-  upload_descripqed_hs_to_all(service, desc);
+  upload_descriptor_to_all(service, desc);
   /* Check that previous hsdirs were populated */
   tt_int_op(smartlist_len(desc->previous_hsdirs), OP_EQ, 6);
 
@@ -603,7 +603,7 @@ test_desc_reupload_logic(void *arg)
   tt_int_op(smartlist_len(desc->previous_hsdirs), OP_EQ, 0);
 
   /* Now reupload again: see that the prev hsdir set got populated again. */
-  upload_descripqed_hs_to_all(service, desc);
+  upload_descriptor_to_all(service, desc);
   tt_int_op(smartlist_len(desc->previous_hsdirs), OP_EQ, 6);
 
  done:
@@ -1706,7 +1706,7 @@ helper_test_hsdir_sync(networkstatus_t *ns,
                        int service_position, int client_position,
                        int client_fetches_next_desc)
 {
-  hs_service_descripqed_hs_t *desc;
+  hs_service_descriptor_t *desc;
   int retval;
 
   /** Test logic:
@@ -1728,7 +1728,7 @@ helper_test_hsdir_sync(networkstatus_t *ns,
   desc = client_fetches_next_desc ? service->desc_next : service->desc_current;
 
   /* Now let's upload our desc to all hsdirs */
-  upload_descripqed_hs_to_all(service, desc);
+  upload_descriptor_to_all(service, desc);
   /* Cleanup right now so we don't memleak on error. */
   cleanup_nodelist();
   /* Check that previous hsdirs were populated */
@@ -1783,7 +1783,7 @@ helper_test_hsdir_sync(networkstatus_t *ns,
  *  d) Scenario where service is between TP#N and SRV#N+1, but client is
  *     between SRV#N and TP#N.
  *
- * This test is important because it tests that upload_descripqed_hs_to_all() is
+ * This test is important because it tests that upload_descriptor_to_all() is
  * in synch with pick_hsdir_v3(). That's not the case for the
  * test_reachability() test which only compares the responsible hsdir sets.
  */

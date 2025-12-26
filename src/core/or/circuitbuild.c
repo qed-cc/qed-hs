@@ -818,7 +818,7 @@ circuit_deliver_create_cell,(circuit_t *circ,
         qed_hs_fragile_assert();
       }
 
-      qed_hs_gettimeofday(&circ->timestamp_began);
+      tor_gettimeofday(&circ->timestamp_began);
     }
 
     /* mark it so it gets better rate limiting treatment. */
@@ -882,7 +882,7 @@ circuit_pick_create_handshake(uint8_t *cell_type_out,
    * and only when it is enabled. */
   if (ei->exit_supports_congestion_control &&
       congestion_control_enabled())
-    *handshake_type_out = ONION_HANDSHAKE_TYPE_NQED_HS_V3;
+    *handshake_type_out = ONION_HANDSHAKE_TYPE_NTOR_V3;
   else
     *handshake_type_out = ONION_HANDSHAKE_TYPE_NTOR;
 }
@@ -2164,7 +2164,7 @@ circuit_extend_to_new_exit(origin_circuit_t *circ, extend_info_t *exit_ei)
   int err_reason = 0;
   warn_if_last_router_excluded(circ, exit_ei);
 
-  qed_hs_gettimeofday(&circ->base_.timestamp_began);
+  tor_gettimeofday(&circ->base_.timestamp_began);
 
   circuit_append_new_exit(circ, exit_ei);
   circuit_set_state(TO_CIRCUIT(circ), CIRCUIT_STATE_BUILDING);

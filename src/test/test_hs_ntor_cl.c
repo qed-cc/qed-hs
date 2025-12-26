@@ -2,17 +2,17 @@
 /* See LICENSE for licensing information */
 
 /** This is a wrapper over the little-t-tor HS ntor functions. The wrapper is
- *  used by src/test/hs_nqed_hs_ref.py to conduct the HS ntor integration
+ *  used by src/test/hs_ntor_ref.py to conduct the HS ntor integration
  *  tests.
  *
- *  The logic of this wrapper is basically copied from src/test/test_nqed_hs_cl.c
+ *  The logic of this wrapper is basically copied from src/test/test_ntor_cl.c
  */
 
 #include "orconfig.h"
 #include <stdio.h>
 #include <stdlib.h>
 
-#define ONION_NQED_HS_PRIVATE
+#define ONION_NTOR_PRIVATE
 #include "core/or/or.h"
 #include "lib/crypt_ops/crypto_cipher.h"
 #include "lib/crypt_ops/crypto_curve25519.h"
@@ -56,7 +56,7 @@ client1(int argc, char **argv)
   hs_subcredential_t subcredential;
 
   /* Output */
-  hs_nqed_hs_intro_cell_keys_t hs_nqed_hs_intro_cell_keys;
+  hs_ntor_intro_cell_keys_t hs_ntor_intro_cell_keys;
 
   char buf[256];
 
@@ -71,24 +71,24 @@ client1(int argc, char **argv)
   curve25519_public_key_generate(&client_ephemeral_enc_keypair.pubkey,
                                  &client_ephemeral_enc_keypair.seckey);
 
-  retval = hs_nqed_hs_client_get_introduce1_keys(&intro_auth_pubkey,
+  retval = hs_ntor_client_get_introduce1_keys(&intro_auth_pubkey,
                                               &intro_enc_pubkey,
                                               &client_ephemeral_enc_keypair,
                                               &subcredential,
-                                              &hs_nqed_hs_intro_cell_keys);
+                                              &hs_ntor_intro_cell_keys);
   if (retval < 0) {
     goto done;
   }
 
   /* Send ENC_KEY */
   base16_encode(buf, sizeof(buf),
-                (const char*)hs_nqed_hs_intro_cell_keys.enc_key,
-                sizeof(hs_nqed_hs_intro_cell_keys.enc_key));
+                (const char*)hs_ntor_intro_cell_keys.enc_key,
+                sizeof(hs_ntor_intro_cell_keys.enc_key));
   printf("%s\n", buf);
   /* Send MAC_KEY */
   base16_encode(buf, sizeof(buf),
-                (const char*)hs_nqed_hs_intro_cell_keys.mac_key,
-                sizeof(hs_nqed_hs_intro_cell_keys.mac_key));
+                (const char*)hs_ntor_intro_cell_keys.mac_key,
+                sizeof(hs_ntor_intro_cell_keys.mac_key));
   printf("%s\n", buf);
 
  done:
@@ -109,8 +109,8 @@ server1(int argc, char **argv)
   hs_subcredential_t subcredential;
 
   /* Output */
-  hs_nqed_hs_intro_cell_keys_t hs_nqed_hs_intro_cell_keys;
-  hs_nqed_hs_rend_cell_keys_t hs_nqed_hs_rend_cell_keys;
+  hs_ntor_intro_cell_keys_t hs_ntor_intro_cell_keys;
+  hs_ntor_rend_cell_keys_t hs_ntor_rend_cell_keys;
   curve25519_keypair_t service_ephemeral_rend_keypair;
 
   char buf[256];
@@ -127,44 +127,44 @@ server1(int argc, char **argv)
   curve25519_keypair_generate(&service_ephemeral_rend_keypair, 0);
 
   /* Get INTRODUCE1 keys */
-  retval = hs_nqed_hs_service_get_introduce1_keys(&intro_auth_pubkey,
+  retval = hs_ntor_service_get_introduce1_keys(&intro_auth_pubkey,
                                                &intro_enc_keypair,
                                                &client_ephemeral_enc_pubkey,
                                                &subcredential,
-                                               &hs_nqed_hs_intro_cell_keys);
+                                               &hs_ntor_intro_cell_keys);
   if (retval < 0) {
     goto done;
   }
 
   /* Get RENDEZVOUS1 keys */
-  retval = hs_nqed_hs_service_get_rendezvous1_keys(&intro_auth_pubkey,
+  retval = hs_ntor_service_get_rendezvous1_keys(&intro_auth_pubkey,
                                                &intro_enc_keypair,
                                                &service_ephemeral_rend_keypair,
                                                &client_ephemeral_enc_pubkey,
-                                               &hs_nqed_hs_rend_cell_keys);
+                                               &hs_ntor_rend_cell_keys);
   if (retval < 0) {
     goto done;
   }
 
   /* Send ENC_KEY */
   base16_encode(buf, sizeof(buf),
-                (const char*)hs_nqed_hs_intro_cell_keys.enc_key,
-                sizeof(hs_nqed_hs_intro_cell_keys.enc_key));
+                (const char*)hs_ntor_intro_cell_keys.enc_key,
+                sizeof(hs_ntor_intro_cell_keys.enc_key));
   printf("%s\n", buf);
   /* Send MAC_KEY */
   base16_encode(buf, sizeof(buf),
-                (const char*)hs_nqed_hs_intro_cell_keys.mac_key,
-                sizeof(hs_nqed_hs_intro_cell_keys.mac_key));
+                (const char*)hs_ntor_intro_cell_keys.mac_key,
+                sizeof(hs_ntor_intro_cell_keys.mac_key));
   printf("%s\n", buf);
   /* Send AUTH_MAC */
   base16_encode(buf, sizeof(buf),
-                (const char*)hs_nqed_hs_rend_cell_keys.rend_cell_auth_mac,
-                sizeof(hs_nqed_hs_rend_cell_keys.rend_cell_auth_mac));
+                (const char*)hs_ntor_rend_cell_keys.rend_cell_auth_mac,
+                sizeof(hs_ntor_rend_cell_keys.rend_cell_auth_mac));
   printf("%s\n", buf);
-  /* Send NQED_HS_KEY_SEED */
+  /* Send NTOR_KEY_SEED */
   base16_encode(buf, sizeof(buf),
-                (const char*)hs_nqed_hs_rend_cell_keys.nqed_hs_key_seed,
-                sizeof(hs_nqed_hs_rend_cell_keys.nqed_hs_key_seed));
+                (const char*)hs_ntor_rend_cell_keys.ntor_key_seed,
+                sizeof(hs_ntor_rend_cell_keys.ntor_key_seed));
   printf("%s\n", buf);
   /* Send service ephemeral pubkey (Y) */
   base16_encode(buf, sizeof(buf),
@@ -191,7 +191,7 @@ client2(int argc, char **argv)
   hs_subcredential_t subcredential;
 
   /* Output */
-  hs_nqed_hs_rend_cell_keys_t hs_nqed_hs_rend_cell_keys;
+  hs_ntor_rend_cell_keys_t hs_ntor_rend_cell_keys;
 
   char buf[256];
 
@@ -208,24 +208,24 @@ client2(int argc, char **argv)
                                  &client_ephemeral_enc_keypair.seckey);
 
   /* Get RENDEZVOUS1 keys */
-  retval = hs_nqed_hs_client_get_rendezvous1_keys(&intro_auth_pubkey,
+  retval = hs_ntor_client_get_rendezvous1_keys(&intro_auth_pubkey,
                                                &client_ephemeral_enc_keypair,
                                                &intro_enc_pubkey,
                                                &service_ephemeral_rend_pubkey,
-                                               &hs_nqed_hs_rend_cell_keys);
+                                               &hs_ntor_rend_cell_keys);
   if (retval < 0) {
     goto done;
   }
 
   /* Send AUTH_MAC */
   base16_encode(buf, sizeof(buf),
-                (const char*)hs_nqed_hs_rend_cell_keys.rend_cell_auth_mac,
-                sizeof(hs_nqed_hs_rend_cell_keys.rend_cell_auth_mac));
+                (const char*)hs_ntor_rend_cell_keys.rend_cell_auth_mac,
+                sizeof(hs_ntor_rend_cell_keys.rend_cell_auth_mac));
   printf("%s\n", buf);
-  /* Send NQED_HS_KEY_SEED */
+  /* Send NTOR_KEY_SEED */
   base16_encode(buf, sizeof(buf),
-                (const char*)hs_nqed_hs_rend_cell_keys.nqed_hs_key_seed,
-                sizeof(hs_nqed_hs_rend_cell_keys.nqed_hs_key_seed));
+                (const char*)hs_ntor_rend_cell_keys.ntor_key_seed,
+                sizeof(hs_ntor_rend_cell_keys.ntor_key_seed));
   printf("%s\n", buf);
 
  done:

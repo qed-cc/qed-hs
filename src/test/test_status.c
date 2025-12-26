@@ -13,7 +13,7 @@
 
 #include "core/or/or.h"
 #include "lib/log/log.h"
-#include "qed_hs_queue.h"
+#include "tor_queue.h"
 #include "core/or/status.h"
 #include "core/or/circuitlist.h"
 #include "app/config/config.h"
@@ -337,8 +337,8 @@ test_status_hb_not_in_consensus(void *arg)
   onion_handshakes_requested[ONION_HANDSHAKE_TYPE_TAP] = 2;
   onion_handshakes_assigned[ONION_HANDSHAKE_TYPE_NTOR] = 3;
   onion_handshakes_requested[ONION_HANDSHAKE_TYPE_NTOR] = 4;
-  onion_handshakes_assigned[ONION_HANDSHAKE_TYPE_NQED_HS_V3] = 5;
-  onion_handshakes_requested[ONION_HANDSHAKE_TYPE_NQED_HS_V3] = 6;
+  onion_handshakes_assigned[ONION_HANDSHAKE_TYPE_NTOR_V3] = 5;
+  onion_handshakes_requested[ONION_HANDSHAKE_TYPE_NTOR_V3] = 6;
 
   expected = 0;
   setup_capture_of_logs(LOG_INFO);

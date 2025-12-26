@@ -109,7 +109,7 @@ const token_rule_t routerdesc_token_table[] = {
   T1("master-key-ed25519",   K_MASTER_KEY_ED25519,  GE(1),   NO_OBJ ),
   T1("router-sig-ed25519",   K_ROUTER_SIG_ED25519,  GE(1),   NO_OBJ ),
   T01("onion-key-crosscert", K_ONION_KEY_CROSSCERT, NO_ARGS, NEED_OBJ ),
-  T1("ntor-onion-key-crosscert", K_NQED_HS_ONION_KEY_CROSSCERT,
+  T1("ntor-onion-key-crosscert", K_NTOR_ONION_KEY_CROSSCERT,
                                                     EQ(1),   NEED_OBJ ),
 
   T01("allow-single-hop-exits",K_ALLOW_SINGLE_HOP_EXITS,    NO_ARGS, NO_OBJ ),
@@ -244,7 +244,7 @@ find_start_of_next_router_or_extrainfo(const char **s_ptr,
  * router entry. Ignore any trailing router entries that are not complete.
  *
  * If <b>saved_location</b> isn't SAVED_IN_CACHE, make a local copy of each
- * descriptor in the signed_descripqed_hs_body field of each routerinfo_t.  If it
+ * descriptor in the signed_descriptor_body field of each routerinfo_t.  If it
  * isn't SAVED_NOWHERE, remember the offset of each descriptor.
  *
  * Returns 0 on success and -1 on failure.  Adds a digest to
@@ -262,7 +262,7 @@ router_parse_list_from_string(const char **s, const char *eos,
 {
   routerinfo_t *router;
   extrainfo_t *extrainfo;
-  signed_descripqed_hs_t *signed_desc = NULL;
+  signed_descriptor_t *signed_desc = NULL;
   void *elt;
   const char *end, *start;
   int have_extrainfo;
@@ -378,7 +378,7 @@ find_single_ipv6_orport(const smartlist_t *list,
 /** Helper function: reads a single router entry from *<b>s</b> ...
  * *<b>end</b>.  Mallocs a new router and returns it if all goes well, else
  * returns NULL.  If <b>cache_copy</b> is true, duplicate the contents of
- * s through end into the signed_descripqed_hs_body of the resulting
+ * s through end into the signed_descriptor_body of the resulting
  * routerinfo_t.
  *
  * If <b>end</b> is NULL, <b>s</b> must be properly NUL-terminated.
@@ -411,7 +411,7 @@ router_parse_entry_from_string(const char *s, const char *end,
   size_t prepend_len = prepend_annotations ? strlen(prepend_annotations) : 0;
   int ok = 1;
   memarea_t *area = NULL;
-  qed_hs_cert_t *nqed_hs_cc_cert = NULL;
+  qed_hs_cert_t *ntor_cc_cert = NULL;
   /* Do not set this to '1' until we have parsed everything that we intend to
    * parse that's covered by the hash. */
   int can_dl_again = 0;
@@ -498,12 +498,12 @@ router_parse_entry_from_string(const char *s, const char *end,
   router->cert_expiration_time = TIME_MAX;
   router->cache_info.routerlist_index = -1;
   router->cache_info.annotations_len = s-start_of_annotations + prepend_len;
-  router->cache_info.signed_descripqed_hs_len = end-s;
+  router->cache_info.signed_descriptor_len = end-s;
   if (cache_copy) {
-    size_t len = router->cache_info.signed_descripqed_hs_len +
+    size_t len = router->cache_info.signed_descriptor_len +
                  router->cache_info.annotations_len;
     char *signed_body =
-      router->cache_info.signed_descripqed_hs_body = qed_hs_malloc(len+1);
+      router->cache_info.signed_descriptor_body = qed_hs_malloc(len+1);
     if (prepend_annotations) {
       memcpy(signed_body, prepend_annotations, prepend_len);
       signed_body += prepend_len;
@@ -515,12 +515,12 @@ router_parse_entry_from_string(const char *s, const char *end,
      * We already wrote prepend_len bytes into the buffer; now we're
      * writing end-start_of_annotations -NM. */
     qed_hs_assert(signed_body+(end-start_of_annotations) ==
-               router->cache_info.signed_descripqed_hs_body+len);
+               router->cache_info.signed_descriptor_body+len);
     memcpy(signed_body, start_of_annotations, end-start_of_annotations);
-    router->cache_info.signed_descripqed_hs_body[len] = '\0';
-    qed_hs_assert(strlen(router->cache_info.signed_descripqed_hs_body) == len);
+    router->cache_info.signed_descriptor_body[len] = '\0';
+    qed_hs_assert(strlen(router->cache_info.signed_descriptor_body) == len);
   }
-  memcpy(router->cache_info.signed_descripqed_hs_digest, digest, DIGEST_LEN);
+  memcpy(router->cache_info.signed_descriptor_digest, digest, DIGEST_LEN);
 
   router->nickname = qed_hs_strdup(tok->args[0]);
   if (!is_legal_nickname(router->nickname)) {
@@ -633,12 +633,12 @@ router_parse_entry_from_string(const char *s, const char *end,
   }
 
   {
-    directory_token_t *ed_sig_tok, *ed_cert_tok, *cc_tap_tok, *cc_nqed_hs_tok,
+    directory_token_t *ed_sig_tok, *ed_cert_tok, *cc_tap_tok, *cc_ntor_tok,
       *master_key_tok;
     ed_sig_tok = find_by_keyword(tokens, K_ROUTER_SIG_ED25519);
     ed_cert_tok = find_by_keyword(tokens, K_IDENTITY_ED25519);
     master_key_tok = find_by_keyword(tokens, K_MASTER_KEY_ED25519);
-    cc_nqed_hs_tok = find_by_keyword(tokens, K_NQED_HS_ONION_KEY_CROSSCERT);
+    cc_ntor_tok = find_by_keyword(tokens, K_NTOR_ONION_KEY_CROSSCERT);
     /* This, and only this, is optional. */
     cc_tap_tok = find_opt_by_keyword(tokens, K_ONION_KEY_CROSSCERT);
 
@@ -648,7 +648,7 @@ router_parse_entry_from_string(const char *s, const char *end,
       goto err;
     }
 
-    IF_BUG_ONCE(! (ed_sig_tok && ed_cert_tok&& cc_nqed_hs_tok &&master_key_tok)) {
+    IF_BUG_ONCE(! (ed_sig_tok && ed_cert_tok&& cc_ntor_tok &&master_key_tok)) {
       goto err;
     }
 
@@ -696,7 +696,7 @@ router_parse_entry_from_string(const char *s, const char *end,
     }
 
     {
-      qed_hs_assert(ed_sig_tok && ed_cert_tok && cc_nqed_hs_tok);
+      qed_hs_assert(ed_sig_tok && ed_cert_tok && cc_ntor_tok);
       const int ed_cert_token_pos = smartlist_pos(tokens, ed_cert_tok);
       if (ed_cert_token_pos == -1 || router_token_pos == -1 ||
           (ed_cert_token_pos != router_token_pos + 1 &&
@@ -713,17 +713,17 @@ router_parse_entry_from_string(const char *s, const char *end,
                          "in descriptor");
         goto err;
       }
-      if (strcmp(cc_nqed_hs_tok->object_type, "ED25519 CERT")) {
+      if (strcmp(cc_ntor_tok->object_type, "ED25519 CERT")) {
         log_warn(LD_DIR, "Wrong object type on ntor-onion-key-crosscert "
                  "in descriptor");
         goto err;
       }
-      if (strcmp(cc_nqed_hs_tok->args[0], "0") &&
-          strcmp(cc_nqed_hs_tok->args[0], "1")) {
+      if (strcmp(cc_ntor_tok->args[0], "0") &&
+          strcmp(cc_ntor_tok->args[0], "1")) {
         log_warn(LD_DIR, "Bad sign bit on ntor-onion-key-crosscert");
         goto err;
       }
-      int nqed_hs_cc_sign_bit = !strcmp(cc_nqed_hs_tok->args[0], "1");
+      int ntor_cc_sign_bit = !strcmp(cc_ntor_tok->args[0], "1");
       uint8_t d256[DIGEST256_LEN];
       const char *signed_start, *signed_end;
 
@@ -744,22 +744,22 @@ router_parse_entry_from_string(const char *s, const char *end,
           goto err;
         }
       }
-      nqed_hs_cc_cert = qed_hs_cert_parse((const uint8_t*)cc_nqed_hs_tok->object_body,
-                                    cc_nqed_hs_tok->object_size);
-      if (!nqed_hs_cc_cert) {
+      ntor_cc_cert = qed_hs_cert_parse((const uint8_t*)cc_ntor_tok->object_body,
+                                    cc_ntor_tok->object_size);
+      if (!ntor_cc_cert) {
         log_warn(LD_DIR, "Couldn't parse ntor-onion-key-crosscert cert");
         goto err;
       }
-      if (nqed_hs_cc_cert->cert_type != CERT_TYPE_ONION_ID ||
-          ! ed25519_pubkey_eq(&nqed_hs_cc_cert->signed_key, &cert->signing_key)) {
+      if (ntor_cc_cert->cert_type != CERT_TYPE_ONION_ID ||
+          ! ed25519_pubkey_eq(&ntor_cc_cert->signed_key, &cert->signing_key)) {
         log_warn(LD_DIR, "Invalid contents for ntor-onion-key-crosscert cert");
         goto err;
       }
 
-      ed25519_public_key_t nqed_hs_cc_pk;
-      if (ed25519_public_key_from_curve25519_public_key(&nqed_hs_cc_pk,
+      ed25519_public_key_t ntor_cc_pk;
+      if (ed25519_public_key_from_curve25519_public_key(&ntor_cc_pk,
                                             router->onion_curve25519_pkey,
-                                            nqed_hs_cc_sign_bit)<0) {
+                                            ntor_cc_sign_bit)<0) {
         log_warn(LD_DIR, "Error converting onion key to ed25519");
         goto err;
       }
@@ -787,8 +787,8 @@ router_parse_entry_from_string(const char *s, const char *end,
         goto err;
       }
       if (qed_hs_cert_get_checkable_sig(&check[1],
-                               nqed_hs_cc_cert, &nqed_hs_cc_pk, &expires) < 0) {
-        log_err(LD_BUG, "Couldn't create 'checkable' for nqed_hs_cc_cert.");
+                               ntor_cc_cert, &ntor_cc_pk, &expires) < 0) {
+        log_err(LD_BUG, "Couldn't create 'checkable' for ntor_cc_cert.");
         goto err;
       }
 
@@ -976,7 +976,7 @@ router_parse_entry_from_string(const char *s, const char *end,
   router = NULL;
  done:
   crypto_pk_free(rsa_pubkey);
-  qed_hs_cert_free(nqed_hs_cc_cert);
+  qed_hs_cert_free(ntor_cc_cert);
   if (tokens) {
     SMARTLIST_FOREACH(tokens, directory_token_t *, t, token_clear(t));
     smartlist_free(tokens);
@@ -1061,9 +1061,9 @@ extrainfo_parse_entry_from_string(const char *s, const char *end,
   extrainfo = qed_hs_malloc_zero(sizeof(extrainfo_t));
   extrainfo->cache_info.is_extrainfo = 1;
   if (cache_copy)
-    extrainfo->cache_info.signed_descripqed_hs_body = qed_hs_memdup_nulterm(s,end-s);
-  extrainfo->cache_info.signed_descripqed_hs_len = end-s;
-  memcpy(extrainfo->cache_info.signed_descripqed_hs_digest, digest, DIGEST_LEN);
+    extrainfo->cache_info.signed_descriptor_body = qed_hs_memdup_nulterm(s,end-s);
+  extrainfo->cache_info.signed_descriptor_len = end-s;
+  memcpy(extrainfo->cache_info.signed_descriptor_digest, digest, DIGEST_LEN);
   crypto_digest256((char*)extrainfo->digest256, s, end-s, DIGEST_SHA256);
 
   qed_hs_assert(tok->n_args >= 2);

@@ -38,7 +38,7 @@
 
 #include <errno.h>     /* errno */
 
-#include "ext/qed_hs_queue.h" /* TAILQ(3) */
+#include "ext/tor_queue.h" /* TAILQ(3) */
 
 #include "ext/timeouts/timeout.h"
 

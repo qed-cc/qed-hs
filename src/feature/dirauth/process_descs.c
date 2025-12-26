@@ -35,7 +35,7 @@
 #include "feature/nodelist/torcert.h"
 #include "feature/relay/router.h"
 
-#include "core/or/qed_hs_version_st.h"
+#include "core/or/tor_version_st.h"
 #include "feature/dirauth/dirauth_options_st.h"
 #include "feature/nodelist/extrainfo_st.h"
 #include "feature/nodelist/node_st.h"
@@ -750,18 +750,18 @@ dirserv_add_descriptor(routerinfo_t *ri, const char **msg, const char *source)
   was_router_added_t r;
   routerinfo_t *ri_old;
   char *desc, *nickname;
-  const size_t desclen = ri->cache_info.signed_descripqed_hs_len +
+  const size_t desclen = ri->cache_info.signed_descriptor_len +
       ri->cache_info.annotations_len;
   const int key_pinning = dirauth_get_options()->AuthDirPinKeys;
   *msg = NULL;
 
   /* If it's too big, refuse it now. Otherwise we'll cache it all over the
    * network and it'll clog everything up. */
-  if (ri->cache_info.signed_descripqed_hs_len > MAX_DESCRIPQED_HS_UPLOAD_SIZE) {
+  if (ri->cache_info.signed_descriptor_len > MAX_DESCRIPQED_HS_UPLOAD_SIZE) {
     log_notice(LD_DIR, "Somebody attempted to publish a router descriptor '%s'"
                " (source: %s) with size %d. Either this is an attack, or the "
                "MAX_DESCRIPQED_HS_UPLOAD_SIZE (%d) constant is too low.",
-               ri->nickname, source, (int)ri->cache_info.signed_descripqed_hs_len,
+               ri->nickname, source, (int)ri->cache_info.signed_descriptor_len,
                MAX_DESCRIPQED_HS_UPLOAD_SIZE);
     *msg = "Router descriptor was too large.";
     r = ROUTER_AUTHDIR_REJECTS;
@@ -838,8 +838,8 @@ dirserv_add_descriptor(routerinfo_t *ri, const char **msg, const char *source)
   }
 
   /* Make a copy of desc, since router_add_to_routerlist might free
-   * ri and its associated signed_descripqed_hs_t. */
-  desc = qed_hs_strndup(ri->cache_info.signed_descripqed_hs_body, desclen);
+   * ri and its associated signed_descriptor_t. */
+  desc = qed_hs_strndup(ri->cache_info.signed_descriptor_body, desclen);
   nickname = qed_hs_strdup(ri->nickname);
 
   /* Tell if we're about to need to launch a test if we add this. */
@@ -871,9 +871,9 @@ dirserv_add_descriptor(routerinfo_t *ri, const char **msg, const char *source)
   return r;
  fail:
   {
-    const char *desc_digest = ri->cache_info.signed_descripqed_hs_digest;
+    const char *desc_digest = ri->cache_info.signed_descriptor_digest;
     download_status_t *dls =
-      router_get_dl_status_by_descripqed_hs_digest(desc_digest);
+      router_get_dl_status_by_descriptor_digest(desc_digest);
     if (dls) {
       log_info(LD_GENERAL, "Marking router with descriptor %s as rejected, "
                "and therefore undownloadable",
@@ -906,11 +906,11 @@ dirserv_add_extrainfo(extrainfo_t *ei, const char **msg)
 
   /* If it's too big, refuse it now. Otherwise we'll cache it all over the
    * network and it'll clog everything up. */
-  if (ei->cache_info.signed_descripqed_hs_len > MAX_EXTRAINFO_UPLOAD_SIZE) {
+  if (ei->cache_info.signed_descriptor_len > MAX_EXTRAINFO_UPLOAD_SIZE) {
     log_notice(LD_DIR, "Somebody attempted to publish an extrainfo "
                "with size %d. Either this is an attack, or the "
                "MAX_EXTRAINFO_UPLOAD_SIZE (%d) constant is too low.",
-               (int)ei->cache_info.signed_descripqed_hs_len,
+               (int)ei->cache_info.signed_descriptor_len,
                MAX_EXTRAINFO_UPLOAD_SIZE);
     *msg = "Extrainfo document was too large";
     rv = ROUTER_BAD_EI;
@@ -930,8 +930,8 @@ dirserv_add_extrainfo(extrainfo_t *ei, const char **msg)
   return ROUTER_ADDED_SUCCESSFULLY;
  fail:
   {
-    const char *d = ei->cache_info.signed_descripqed_hs_digest;
-    signed_descripqed_hs_t *sd = router_get_by_extrainfo_digest((char*)d);
+    const char *d = ei->cache_info.signed_descriptor_digest;
+    signed_descriptor_t *sd = router_get_by_extrainfo_digest((char*)d);
     if (sd) {
       log_info(LD_GENERAL, "Marking extrainfo with descriptor %s as "
                "rejected, and therefore undownloadable",

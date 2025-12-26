@@ -75,7 +75,7 @@ compute_introduce_mac(const uint8_t *encoded_cell, size_t encoded_cell_len,
  * structures.  Finally, the client public key is copied in client_pk. On
  * error, return NULL.
  **/
-static hs_nqed_hs_intro_cell_keys_t *
+static hs_ntor_intro_cell_keys_t *
 get_introduce2_key_material(const ed25519_public_key_t *auth_key,
                             const curve25519_keypair_t *enc_key,
                             size_t n_subcredentials,
@@ -83,7 +83,7 @@ get_introduce2_key_material(const ed25519_public_key_t *auth_key,
                             const uint8_t *encrypted_section,
                             curve25519_public_key_t *client_pk)
 {
-  hs_nqed_hs_intro_cell_keys_t *keys;
+  hs_ntor_intro_cell_keys_t *keys;
 
   qed_hs_assert(auth_key);
   qed_hs_assert(enc_key);
@@ -92,12 +92,12 @@ get_introduce2_key_material(const ed25519_public_key_t *auth_key,
   qed_hs_assert(encrypted_section);
   qed_hs_assert(client_pk);
 
-  keys = qed_hs_calloc(n_subcredentials, sizeof(hs_nqed_hs_intro_cell_keys_t));
+  keys = qed_hs_calloc(n_subcredentials, sizeof(hs_ntor_intro_cell_keys_t));
 
   /* First bytes of the ENCRYPTED section are the client public key. */
   memcpy(client_pk->public_key, encrypted_section, CURVE25519_PUBKEY_LEN);
 
-  if (hs_nqed_hs_service_get_introduce1_keys_multi(auth_key, enc_key, client_pk,
+  if (hs_ntor_service_get_introduce1_keys_multi(auth_key, enc_key, client_pk,
                                                 n_subcredentials,
                                                 subcredentials, keys) < 0) {
     /* Don't rely on the caller to wipe this on error. */
@@ -304,7 +304,7 @@ introduce1_encrypt_and_encode(trn_cell_introduce1_t *cell,
   uint8_t *encrypted = NULL;
   uint8_t mac[DIGEST256_LEN];
   crypto_cipher_t *cipher = NULL;
-  hs_nqed_hs_intro_cell_keys_t keys;
+  hs_ntor_intro_cell_keys_t keys;
 
   qed_hs_assert(cell);
   qed_hs_assert(enc_cell);
@@ -324,7 +324,7 @@ introduce1_encrypt_and_encode(trn_cell_introduce1_t *cell,
   qed_hs_assert(encoded_enc_cell_len > 0);
 
   /* Get the key material for the encryption. */
-  if (hs_nqed_hs_client_get_introduce1_keys(data->auth_pk, data->enc_pk,
+  if (hs_ntor_client_get_introduce1_keys(data->auth_pk, data->enc_pk,
                                          data->client_kp,
                                          data->subcredential, &keys) < 0) {
     qed_hs_assert_unreached();
@@ -865,13 +865,13 @@ handle_introduce2_encrypted_cell_pow_extension(const hs_service_t *service,
  *
  * Return NULL on failure to either produce the key material or on MAC
  * validation. Else return a newly allocated intro keys object. */
-static hs_nqed_hs_intro_cell_keys_t *
+static hs_ntor_intro_cell_keys_t *
 get_introduce2_keys_and_verify_mac(hs_cell_introduce2_data_t *data,
                                    const uint8_t *encrypted_section,
                                    size_t encrypted_section_len)
 {
-  hs_nqed_hs_intro_cell_keys_t *intro_keys = NULL;
-  hs_nqed_hs_intro_cell_keys_t *intro_keys_result = NULL;
+  hs_ntor_intro_cell_keys_t *intro_keys = NULL;
+  hs_ntor_intro_cell_keys_t *intro_keys_result = NULL;
 
   /* Build the key material out of the key material found in the cell. */
   intro_keys = get_introduce2_key_material(data->auth_pk, data->enc_kp,
@@ -916,7 +916,7 @@ get_introduce2_keys_and_verify_mac(hs_cell_introduce2_data_t *data,
 
   /* We no longer need intro_keys. */
   memwipe(intro_keys, 0,
-          sizeof(hs_nqed_hs_intro_cell_keys_t) * data->n_subcredentials);
+          sizeof(hs_ntor_intro_cell_keys_t) * data->n_subcredentials);
   qed_hs_free(intro_keys);
 
   if (safe_mem_is_zero(intro_keys_result, sizeof(*intro_keys_result))) {
@@ -983,7 +983,7 @@ hs_cell_parse_introduce2(hs_cell_introduce2_data_t *data,
   const uint8_t *encrypted_section;
   trn_cell_introduce1_t *cell = NULL;
   trn_cell_introduce_encrypted_t *enc_cell = NULL;
-  hs_nqed_hs_intro_cell_keys_t *intro_keys = NULL;
+  hs_ntor_intro_cell_keys_t *intro_keys = NULL;
 
   qed_hs_assert(data);
   qed_hs_assert(circ);
@@ -1126,7 +1126,7 @@ hs_cell_parse_introduce2(hs_cell_introduce2_data_t *data,
 
  done:
   if (intro_keys) {
-    memwipe(intro_keys, 0, sizeof(hs_nqed_hs_intro_cell_keys_t));
+    memwipe(intro_keys, 0, sizeof(hs_ntor_intro_cell_keys_t));
     qed_hs_free(intro_keys);
   }
   qed_hs_free(decrypted);

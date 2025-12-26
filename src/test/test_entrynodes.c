@@ -2989,7 +2989,7 @@ test_entry_guard_outdated_dirserver_exclusion(void *arg)
   {
     /* Now order the final md download */
     setup_full_capture_of_logs(LOG_INFO);
-    initiate_descripqed_hs_downloads(NULL, DIR_PURPOSE_FETCH_MICRODESC,
+    initiate_descriptor_downloads(NULL, DIR_PURPOSE_FETCH_MICRODESC,
                                   digests, 3, 7, 0);
 
     /* ... and check that because we failed to fetch microdescs from all our

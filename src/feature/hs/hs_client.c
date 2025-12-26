@@ -166,7 +166,7 @@ find_entry_conns(const ed25519_public_key_t *service_identity_pk)
 
 /* Cancel all descriptor fetches currently in progress. */
 static void
-cancel_descripqed_hs_fetches(void)
+cancel_descriptor_fetches(void)
 {
   smartlist_t *conns =
     connection_list_by_type_purpose(CONN_TYPE_DIR, DIR_PURPOSE_FETCH_HSDESC);
@@ -543,7 +543,7 @@ intro_circ_is_ok(const origin_circuit_t *circ)
  * given descriptor desc. Return NULL if not found. */
 const hs_desc_intro_point_t *
 find_desc_intro_point_by_ident(const hs_ident_circuit_t *ident,
-                               const hs_descripqed_hs_t *desc)
+                               const hs_descriptor_t *desc)
 {
   const hs_desc_intro_point_t *intro_point = NULL;
 
@@ -568,7 +568,7 @@ find_desc_intro_point_by_ident(const hs_ident_circuit_t *ident,
  * found. */
 static hs_desc_intro_point_t *
 find_desc_intro_point_by_legacy_id(const char *legacy_id,
-                                   const hs_descripqed_hs_t *desc)
+                                   const hs_descriptor_t *desc)
 {
   hs_desc_intro_point_t *ret_ip = NULL;
 
@@ -608,7 +608,7 @@ find_desc_intro_point_by_legacy_id(const char *legacy_id,
 int
 send_introduce1(origin_circuit_t *intro_circ,
                 origin_circuit_t *rend_circ,
-                const hs_descripqed_hs_t *desc,
+                const hs_descriptor_t *desc,
                 hs_pow_solution_t *pow_solution,
                 const hs_desc_intro_point_t *ip)
 {
@@ -696,7 +696,7 @@ consider_sending_introduce1(origin_circuit_t *intro_circ,
   }
 
   /* 1) Get descriptor from our cache. */
-  const hs_descripqed_hs_t *desc =
+  const hs_descriptor_t *desc =
     hs_cache_lookup_as_client(service_identity_pk);
   if (desc == NULL || !hs_client_any_intro_points_usable(service_identity_pk,
                                                          desc)) {
@@ -846,7 +846,7 @@ consider_sending_introduce1(origin_circuit_t *intro_circ,
 int
 hs_client_setup_intro_circ_auth_key(origin_circuit_t *circ)
 {
-  const hs_descripqed_hs_t *desc;
+  const hs_descriptor_t *desc;
   const hs_desc_intro_point_t *ip;
 
   qed_hs_assert(circ);
@@ -908,7 +908,7 @@ setup_rendezvous_circ_congestion_control(origin_circuit_t *circ)
   qed_hs_assert(circ);
 
   /* Setup congestion control parameters on the circuit. */
-  const hs_descripqed_hs_t *desc =
+  const hs_descriptor_t *desc =
     hs_cache_lookup_as_client(&circ->hs_ident->identity_pk);
   if (desc == NULL) {
     /* This is possible because between launching the circuit and the circuit
@@ -1046,7 +1046,7 @@ client_get_random_intro(const ed25519_public_key_t *service_pk)
 {
   extend_info_t *ei = NULL, *ei_excluded = NULL;
   smartlist_t *usable_ips = NULL;
-  const hs_descripqed_hs_t *desc;
+  const hs_descriptor_t *desc;
   const hs_desc_encrypted_data_t *enc_data;
   const or_options_t *options = get_options();
   /* Calculate the onion address for logging purposes */
@@ -1151,7 +1151,7 @@ intro_points_all_timed_out(const ed25519_public_key_t *service_pk)
 
   qed_hs_assert(service_pk);
 
-  const hs_descripqed_hs_t *desc = hs_cache_lookup_as_client(service_pk);
+  const hs_descriptor_t *desc = hs_cache_lookup_as_client(service_pk);
   if (BUG(!desc)) {
     /* We can't introduce without a descriptor so ending up here means somehow
      * between the introduction failure and this, the cache entry was removed
@@ -1235,7 +1235,7 @@ static int
 close_or_reextend_intro_circ(origin_circuit_t *intro_circ)
 {
   int ret = -1;
-  const hs_descripqed_hs_t *desc;
+  const hs_descriptor_t *desc;
   origin_circuit_t *rend_circ;
 
   qed_hs_assert(intro_circ);
@@ -1401,7 +1401,7 @@ handle_rendezvous2(origin_circuit_t *circ, const uint8_t *payload,
   curve25519_public_key_t server_pk;
   uint8_t auth_mac[DIGEST256_LEN] = {0};
   uint8_t handshake_info[CURVE25519_PUBKEY_LEN + sizeof(auth_mac)] = {0};
-  hs_nqed_hs_rend_cell_keys_t keys;
+  hs_ntor_rend_cell_keys_t keys;
   const hs_ident_circuit_t *ident;
 
   qed_hs_assert(circ);
@@ -1420,7 +1420,7 @@ handle_rendezvous2(origin_circuit_t *circ, const uint8_t *payload,
   memcpy(auth_mac, handshake_info + CURVE25519_PUBKEY_LEN, sizeof(auth_mac));
 
   /* Generate the handshake info. */
-  if (hs_nqed_hs_client_get_rendezvous1_keys(&ident->intro_auth_pk,
+  if (hs_ntor_client_get_rendezvous1_keys(&ident->intro_auth_pk,
                                           &ident->rendezvous_client_kp,
                                           &ident->intro_enc_pk, &server_pk,
                                           &keys) < 0) {
@@ -1430,14 +1430,14 @@ handle_rendezvous2(origin_circuit_t *circ, const uint8_t *payload,
 
   /* Critical check, make sure that the MAC matches what we got with what we
    * computed just above. */
-  if (!hs_nqed_hs_client_rendezvous2_mac_is_good(&keys, auth_mac)) {
+  if (!hs_ntor_client_rendezvous2_mac_is_good(&keys, auth_mac)) {
     log_info(LD_REND, "Invalid MAC in RENDEZVOUS2. Rejecting cell.");
     goto err;
   }
 
   /* Setup the e2e encryption on the circuit and finalize its state. */
-  if (hs_circuit_setup_e2e_rend_circ(circ, keys.nqed_hs_key_seed,
-                                     sizeof(keys.nqed_hs_key_seed), 0) < 0) {
+  if (hs_circuit_setup_e2e_rend_circ(circ, keys.ntor_key_seed,
+                                     sizeof(keys.ntor_key_seed), 0) < 0) {
     log_info(LD_REND, "Unable to setup the e2e encryption.");
     goto err;
   }
@@ -1493,7 +1493,7 @@ can_client_refetch_desc(const ed25519_public_key_t *identity_pk,
 
   /* Check if fetching a desc for this HS is useful to us right now */
   {
-    const hs_descripqed_hs_t *cached_desc = NULL;
+    const hs_descriptor_t *cached_desc = NULL;
     int has_usable_intro = false;
     int has_expired_hs_pow = false;
 
@@ -1575,7 +1575,7 @@ client_desc_has_arrived(const smartlist_t *entry_conns)
   qed_hs_assert(entry_conns);
 
   SMARTLIST_FOREACH_BEGIN(entry_conns, entry_connection_t *, entry_conn) {
-    const hs_descripqed_hs_t *desc;
+    const hs_descriptor_t *desc;
     edge_connection_t *edge_conn = ENTRY_TO_EDGE_CONN(entry_conn);
     const ed25519_public_key_t *identity_pk =
       &edge_conn->hs_ident->identity_pk;
@@ -2147,7 +2147,7 @@ hs_client_note_connection_attempt_succeeded(const edge_connection_t *conn)
 hs_desc_decode_status_t
 hs_client_decode_descriptor(const char *desc_str,
                             const ed25519_public_key_t *service_identity_pk,
-                            hs_descripqed_hs_t **desc)
+                            hs_descriptor_t **desc)
 {
   hs_desc_decode_status_t ret;
   hs_subcredential_t subcredential;
@@ -2203,7 +2203,7 @@ hs_client_decode_descriptor(const char *desc_str,
  * descriptor desc. */
 int
 hs_client_any_intro_points_usable(const ed25519_public_key_t *service_pk,
-                                  const hs_descripqed_hs_t *desc)
+                                  const hs_descriptor_t *desc)
 {
   qed_hs_assert(service_pk);
   qed_hs_assert(desc);
@@ -2710,7 +2710,7 @@ hs_client_reextend_intro_circuit(origin_circuit_t *circ)
  * them if needed but the odds are very low that an existing matching
  * introduction circuit exists at that stage. */
 void
-hs_client_close_intro_circuits_from_desc(const hs_descripqed_hs_t *desc)
+hs_client_close_intro_circuits_from_desc(const hs_descriptor_t *desc)
 {
   origin_circuit_t *ocirc = NULL;
 
@@ -2753,7 +2753,7 @@ hs_client_purge_state(void)
 {
   /* Cancel all descriptor fetches. Do this first so once done we are sure
    * that our descriptor cache won't modified. */
-  cancel_descripqed_hs_fetches();
+  cancel_descriptor_fetches();
   /* Purge the introduction point state cache. */
   hs_cache_client_intro_state_purge();
   /* Purge the descriptor cache. */

@@ -706,18 +706,18 @@ typedef struct addr_policy_t addr_policy_t;
 
 typedef struct cached_dir_t cached_dir_t;
 
-/** Enum used to remember where a signed_descripqed_hs_t is stored and how to
- * manage the memory for signed_descripqed_hs_body.  */
+/** Enum used to remember where a signed_descriptor_t is stored and how to
+ * manage the memory for signed_descriptor_body.  */
 typedef enum {
   /** The descriptor isn't stored on disk at all: the copy in memory is
    * canonical; the saved_offset field is meaningless. */
   SAVED_NOWHERE=0,
   /** The descriptor is stored in the cached_routers file: the
-   * signed_descripqed_hs_body is meaningless; the signed_descripqed_hs_len and
+   * signed_descriptor_body is meaningless; the signed_descriptor_len and
    * saved_offset are used to index into the mmaped cache file. */
   SAVED_IN_CACHE,
   /** The descriptor is stored in the cached_routers.new file: the
-   * signed_descripqed_hs_body and saved_offset fields are both set. */
+   * signed_descriptor_body and saved_offset fields are both set. */
   /* FFFF (We could also mmap the file and grow the mmap as needed, or
    * lazy-load the descriptor text by using seek and read.  We don't, for
    * now.)
@@ -767,7 +767,7 @@ typedef struct download_status_t download_status_t;
  * create any that are larger than this. */
 #define ROUTER_ANNOTATION_BUF_LEN 256
 
-typedef struct signed_descripqed_hs_t signed_descripqed_hs_t;
+typedef struct signed_descriptor_t signed_descriptor_t;
 
 /** Flags used to summarize the declared protocol versions of a relay,
  * so we don't need to parse them again and again. */
@@ -889,7 +889,7 @@ typedef enum {
 #define ONION_HANDSHAKE_TYPE_TAP  0x0000
 #define ONION_HANDSHAKE_TYPE_FAST 0x0001
 #define ONION_HANDSHAKE_TYPE_NTOR 0x0002
-#define ONION_HANDSHAKE_TYPE_NQED_HS_V3 0x0003
+#define ONION_HANDSHAKE_TYPE_NTOR_V3 0x0003
 #define MAX_ONION_HANDSHAKE_TYPE 0x0003
 
 typedef struct onion_handshake_state_t onion_handshake_state_t;

@@ -54,7 +54,7 @@ typedef struct hs_cache_client_intro_state_t {
 
 /** Descriptor representation on the directory side which is a subset of
  * information that the HSDir can decode and serve it. */
-typedef struct hs_cache_dir_descripqed_hs_t {
+typedef struct hs_cache_dir_descriptor_t {
   /** This object is indexed using the blinded pubkey located in the plaintext
    * data which is populated only once the descriptor has been successfully
    * decoded and validated. This simply points to that pubkey. */
@@ -73,7 +73,7 @@ typedef struct hs_cache_dir_descripqed_hs_t {
    * heuristic for the OOM cache cleaning. It is very large so we avoid an kind
    * of possible wrapping. */
   uint64_t n_downloaded;
-} hs_cache_dir_descripqed_hs_t;
+} hs_cache_dir_descriptor_t;
 
 /* Public API */
 
@@ -89,7 +89,7 @@ void hs_cache_free_all(void);
 void hs_cache_clean_as_dir(time_t now);
 size_t hs_cache_handle_oom(size_t min_remove_bytes);
 
-unsigned int hs_cache_get_max_descripqed_hs_size(void);
+unsigned int hs_cache_get_max_descriptor_size(void);
 
 /* Store and Lookup function. They are version agnostic that is depending on
  * the requested version of the descriptor, it will be re-routed to the
@@ -99,7 +99,7 @@ int hs_cache_lookup_as_dir(uint32_t version, const char *query,
                            const char **desc_out);
 void hs_cache_mark_dowloaded_as_dir(const hs_ident_dir_conn_t *ident);
 
-const hs_descripqed_hs_t *
+const hs_descriptor_t *
 hs_cache_lookup_as_client(const struct ed25519_public_key_t *key);
 const char *
 hs_cache_lookup_encoded_as_client(const struct ed25519_public_key_t *key);
@@ -130,7 +130,7 @@ void hs_cache_increment_allocation(size_t n);
 #include "lib/crypt_ops/crypto_ed25519.h"
 
 /** Represents a locally cached HS descriptor on a hidden service client. */
-typedef struct hs_cache_client_descripqed_hs_t {
+typedef struct hs_cache_client_descriptor_t {
   /** This object is indexed using the service identity public key */
   struct ed25519_public_key_t key;
 
@@ -143,19 +143,19 @@ typedef struct hs_cache_client_descripqed_hs_t {
    * NULL if the descriptor couldn't be decoded due to missing or bad client
    * authorization. It can be decoded later from the encoded_desc object if
    * the proper client authorization is given tor. */
-  hs_descripqed_hs_t *desc;
+  hs_descriptor_t *desc;
 
   /** Encoded descriptor in string form. Can't be NULL. */
   char *encoded_desc;
-} hs_cache_client_descripqed_hs_t;
+} hs_cache_client_descriptor_t;
 
 STATIC size_t cache_clean_v3_as_dir(time_t now, time_t global_cutoff);
 STATIC size_t cache_clean_v3_by_downloaded_as_dir(const uint64_t target,
                                            const size_t min_remove_bytes,
                                            uint64_t *next_lowest);
-STATIC hs_cache_dir_descripqed_hs_t *lookup_v3_desc_as_dir(const uint8_t *key);
+STATIC hs_cache_dir_descriptor_t *lookup_v3_desc_as_dir(const uint8_t *key);
 
-STATIC hs_cache_client_descripqed_hs_t *
+STATIC hs_cache_client_descriptor_t *
 lookup_v3_desc_as_client(const uint8_t *key);
 
 #ifdef QED_HS_UNIT_TESTS

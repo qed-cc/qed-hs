@@ -101,13 +101,13 @@ static struct timeval tv_start = { 0, 0 };
 static void
 reset_perftime(void)
 {
-  qed_hs_gettimeofday(&tv_start);
+  tor_gettimeofday(&tv_start);
 }
 static uint64_t
 perftime(void)
 {
   struct timeval now, out;
-  qed_hs_gettimeofday(&now);
+  tor_gettimeofday(&now);
   timersub(&now, &tv_start, &out);
   return ((uint64_t)out.tv_sec)*1000000000 + out.tv_usec*1000;
 }
@@ -151,15 +151,15 @@ bench_aes(void)
 }
 
 static void
-bench_onion_nqed_hs_impl(void)
+bench_onion_ntor_impl(void)
 {
   const int iters = 1<<10;
   int i;
   curve25519_keypair_t keypair1, keypair2;
   uint64_t start, end;
-  uint8_t os[NQED_HS_ONIONSKIN_LEN];
-  uint8_t or[NQED_HS_REPLY_LEN];
-  nqed_hs_handshake_state_t *state = NULL;
+  uint8_t os[NTOR_ONIONSKIN_LEN];
+  uint8_t or[NTOR_REPLY_LEN];
+  ntor_handshake_state_t *state = NULL;
   uint8_t nodeid[DIGEST_LEN];
   di_digest256_map_t *keymap = NULL;
 
@@ -174,19 +174,19 @@ bench_onion_nqed_hs_impl(void)
   reset_perftime();
   start = perftime();
   for (i = 0; i < iters; ++i) {
-    onion_skin_nqed_hs_create(nodeid, &keypair1.pubkey, &state, os);
-    nqed_hs_handshake_state_free(state);
+    onion_skin_ntor_create(nodeid, &keypair1.pubkey, &state, os);
+    ntor_handshake_state_free(state);
     state = NULL;
   }
   end = perftime();
   printf("Client-side, part 1: %f usec.\n", NANOCOUNT(start, end, iters)/1e3);
 
   state = NULL;
-  onion_skin_nqed_hs_create(nodeid, &keypair1.pubkey, &state, os);
+  onion_skin_ntor_create(nodeid, &keypair1.pubkey, &state, os);
   start = perftime();
   for (i = 0; i < iters; ++i) {
     uint8_t key_out[CPATH_KEY_MATERIAL_LEN];
-    onion_skin_nqed_hs_server_handshake(os, keymap, NULL, nodeid, or,
+    onion_skin_ntor_server_handshake(os, keymap, NULL, nodeid, or,
                                 key_out, sizeof(key_out));
   }
   end = perftime();
@@ -197,7 +197,7 @@ bench_onion_nqed_hs_impl(void)
   for (i = 0; i < iters; ++i) {
     uint8_t key_out[CPATH_KEY_MATERIAL_LEN];
     int s;
-    s = onion_skin_nqed_hs_client_handshake(state, or, key_out, sizeof(key_out),
+    s = onion_skin_ntor_client_handshake(state, or, key_out, sizeof(key_out),
                                          NULL);
     qed_hs_assert(s == 0);
   }
@@ -205,7 +205,7 @@ bench_onion_nqed_hs_impl(void)
   printf("Client-side, part 2: %f usec.\n",
          NANOCOUNT(start, end, iters)/1e3);
 
-  nqed_hs_handshake_state_free(state);
+  ntor_handshake_state_free(state);
   dimap_free(keymap, NULL);
 }
 
@@ -218,7 +218,7 @@ bench_onion_ntor(void)
     printf("Ed25519-based basepoint multiply = %s.\n",
            (ed == 0) ? "disabled" : "enabled");
     curve25519_set_impl_params(ed);
-    bench_onion_nqed_hs_impl();
+    bench_onion_ntor_impl();
   }
 }
 

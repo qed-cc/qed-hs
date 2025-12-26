@@ -51,7 +51,7 @@
  */
 
 static void clear_cached_dir(cached_dir_t *d);
-static const signed_descripqed_hs_t *get_signed_descripqed_hs_by_fp(
+static const signed_descriptor_t *get_signed_descriptor_by_fp(
                                                         const uint8_t *fp,
                                                         int extrainfo);
 
@@ -236,7 +236,7 @@ dir_split_resource_into_spoolable(const char *resource,
   return r;
 }
 
-/** As dirserv_get_routerdescs(), but instead of getting signed_descripqed_hs_t
+/** As dirserv_get_routerdescs(), but instead of getting signed_descriptor_t
  * pointers, adds copies of digests to fps_out, and doesn't use the
  * /qed-hs/server/ prefix.  For a /d/ request, adds descriptor digests; for other
  * requests, adds identity digests.
@@ -556,23 +556,23 @@ spooled_resource_lookup_body(const spooled_resource_t *spooled,
 {
   qed_hs_assert(spooled->spool_eagerly == 1);
 
-  const signed_descripqed_hs_t *sd = NULL;
+  const signed_descriptor_t *sd = NULL;
 
   switch (spooled->spool_source) {
     case DIR_SPOOL_EXTRA_BY_FP: {
-      sd = get_signed_descripqed_hs_by_fp(spooled->digest, 1);
+      sd = get_signed_descriptor_by_fp(spooled->digest, 1);
       break;
     }
     case DIR_SPOOL_SERVER_BY_FP: {
-      sd = get_signed_descripqed_hs_by_fp(spooled->digest, 0);
+      sd = get_signed_descriptor_by_fp(spooled->digest, 0);
       break;
     }
     case DIR_SPOOL_SERVER_BY_DIGEST: {
-      sd = router_get_by_descripqed_hs_digest((const char *)spooled->digest);
+      sd = router_get_by_descriptor_digest((const char *)spooled->digest);
       break;
     }
     case DIR_SPOOL_EXTRA_BY_DIGEST: {
-      sd = extrainfo_get_by_descripqed_hs_digest((const char *)spooled->digest);
+      sd = extrainfo_get_by_descriptor_digest((const char *)spooled->digest);
       break;
     }
     case DIR_SPOOL_MICRODESC: {
@@ -597,7 +597,7 @@ spooled_resource_lookup_body(const spooled_resource_t *spooled,
       /* LCOV_EXCL_STOP */
   }
 
-  /* If we get here, then we tried to set "sd" to a signed_descripqed_hs_t. */
+  /* If we get here, then we tried to set "sd" to a signed_descriptor_t. */
 
   if (sd == NULL) {
     return -1;
@@ -609,8 +609,8 @@ spooled_resource_lookup_body(const spooled_resource_t *spooled,
      * unknown bridge descriptor has shown up between then and now. */
     return -1;
   }
-  *body_out = (const uint8_t *) signed_descripqed_hs_get_body(sd);
-  *size_out = sd->signed_descripqed_hs_len;
+  *body_out = (const uint8_t *) signed_descriptor_get_body(sd);
+  *size_out = sd->signed_descriptor_len;
   if (published_out)
     *published_out = sd->published_on;
   return 0;
@@ -705,8 +705,8 @@ dirserv_spool_sort(dir_connection_t *conn)
  * its extra-info document if <b>extrainfo</b> is true. Return
  * NULL if not found or if the descriptor is older than
  * <b>publish_cutoff</b>. */
-static const signed_descripqed_hs_t *
-get_signed_descripqed_hs_by_fp(const uint8_t *fp, int extrainfo)
+static const signed_descriptor_t *
+get_signed_descriptor_by_fp(const uint8_t *fp, int extrainfo)
 {
   if (router_digest_is_me((const char *)fp)) {
     if (extrainfo)
@@ -717,7 +717,7 @@ get_signed_descripqed_hs_by_fp(const uint8_t *fp, int extrainfo)
     const routerinfo_t *ri = router_get_by_id_digest((const char *)fp);
     if (ri) {
       if (extrainfo)
-        return extrainfo_get_by_descripqed_hs_digest(
+        return extrainfo_get_by_descriptor_digest(
                                      ri->cache_info.extra_info_digest);
       else
         return &ri->cache_info;

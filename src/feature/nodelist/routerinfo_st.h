@@ -12,14 +12,14 @@
 #ifndef ROUTERINFO_ST_H
 #define ROUTERINFO_ST_H
 
-#include "feature/nodelist/signed_descripqed_hs_st.h"
+#include "feature/nodelist/signed_descriptor_st.h"
 
 struct curve25519_public_key_t;
 struct smartlist_t;
 
 /** Information about another onion router in the network. */
 struct routerinfo_t {
-  signed_descripqed_hs_t cache_info;
+  signed_descriptor_t cache_info;
   char *nickname; /**< Human-readable OR name. */
 
   /** A router's IPv4 address. */

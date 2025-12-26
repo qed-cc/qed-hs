@@ -201,7 +201,7 @@ helper_get_circ_and_stream_for_test(origin_circuit_t **circ_out,
 static void
 test_e2e_rend_circuit_setup(void *arg)
 {
-  uint8_t nqed_hs_key_seed[DIGEST256_LEN] = {0};
+  uint8_t ntor_key_seed[DIGEST256_LEN] = {0};
   origin_circuit_t *or_circ = NULL;
   int retval;
   connection_t *conn = NULL;
@@ -235,8 +235,8 @@ test_e2e_rend_circuit_setup(void *arg)
   /**********************************************/
 
   /* Setup the circuit */
-  retval = hs_circuit_setup_e2e_rend_circ(or_circ, nqed_hs_key_seed,
-                                          sizeof(nqed_hs_key_seed), 0);
+  retval = hs_circuit_setup_e2e_rend_circ(or_circ, ntor_key_seed,
+                                          sizeof(ntor_key_seed), 0);
   tt_int_op(retval, OP_EQ, 0);
 
   /**********************************************/
@@ -273,7 +273,7 @@ test_client_pick_intro(void *arg)
 {
   int ret;
   ed25519_keypair_t service_kp;
-  hs_descripqed_hs_t *desc = NULL;
+  hs_descriptor_t *desc = NULL;
 
   MOCK(networkstatus_get_reasonably_live_consensus,
        mock_networkstatus_get_reasonably_live_consensus);
@@ -326,7 +326,7 @@ test_client_pick_intro(void *arg)
     tt_int_op(ret, OP_EQ, HS_DESC_DECODE_OK);
 
     /* fetch it to make sure it works */
-    const hs_descripqed_hs_t *fetched_desc =
+    const hs_descriptor_t *fetched_desc =
       hs_cache_lookup_as_client(&service_kp.pubkey);
     tt_assert(fetched_desc);
     tt_mem_op(fetched_desc->subcredential.subcred,
@@ -448,7 +448,7 @@ test_client_pick_intro(void *arg)
   }
 
  done:
-  hs_descripqed_hs_free(desc);
+  hs_descriptor_free(desc);
 }
 
 static int
@@ -493,7 +493,7 @@ mock_connection_mark_unattached_ap_no_close(entry_connection_t *conn,
 }
 
 static void
-test_descripqed_hs_fetch(void *arg)
+test_descriptor_fetch(void *arg)
 {
   int ret;
   entry_connection_t *ec = NULL;
@@ -766,8 +766,8 @@ test_desc_has_arrived_cleanup(void *arg)
 
   int ret;
   char *desc_str = NULL;
-  hs_descripqed_hs_t *desc = NULL;
-  const hs_descripqed_hs_t *cached_desc;
+  hs_descriptor_t *desc = NULL;
+  const hs_descriptor_t *cached_desc;
   ed25519_keypair_t signing_kp;
   entry_connection_t *socks1 = NULL, *socks2 = NULL;
   hs_ident_dir_conn_t hs_dir_ident;
@@ -847,7 +847,7 @@ test_desc_has_arrived_cleanup(void *arg)
  done:
   connection_free_minimal(ENTRY_TO_CONN(socks1));
   connection_free_minimal(ENTRY_TO_CONN(socks2));
-  hs_descripqed_hs_free(desc);
+  hs_descriptor_free(desc);
   qed_hs_free(desc_str);
   hs_free_all();
 
@@ -863,14 +863,14 @@ test_close_intro_circuits_new_desc(void *arg)
   ed25519_keypair_t service_kp;
   circuit_t *circ = NULL;
   origin_circuit_t *ocirc = NULL;
-  hs_descripqed_hs_t *desc1 = NULL, *desc2 = NULL;
+  hs_descriptor_t *desc1 = NULL, *desc2 = NULL;
 
   (void) arg;
 
   hs_init();
 
   /* This is needed because of the client cache expiration timestamp is based
-   * on having a consensus. See cached_client_descripqed_hs_has_expired(). */
+   * on having a consensus. See cached_client_descriptor_has_expired(). */
   MOCK(networkstatus_get_reasonably_live_consensus,
        mock_networkstatus_get_reasonably_live_consensus);
 
@@ -896,18 +896,18 @@ test_close_intro_circuits_new_desc(void *arg)
    * decryptable. Make sure the close circuit code path is not triggered. */
   {
     char *desc_encoded = NULL;
-    uint8_t descripqed_hs_cookie[HS_DESC_DESCRIPQED_HS_COOKIE_LEN];
+    uint8_t descriptor_cookie[HS_DESC_DESCRIPQED_HS_COOKIE_LEN];
     curve25519_keypair_t client_kp;
-    hs_descripqed_hs_t *desc = NULL;
+    hs_descriptor_t *desc = NULL;
 
     tt_int_op(0, OP_EQ, curve25519_keypair_generate(&client_kp, 0));
-    crypto_rand((char *) descripqed_hs_cookie, sizeof(descripqed_hs_cookie));
+    crypto_rand((char *) descriptor_cookie, sizeof(descriptor_cookie));
 
-    desc = hs_helper_build_hs_desc_with_client_auth(descripqed_hs_cookie,
+    desc = hs_helper_build_hs_desc_with_client_auth(descriptor_cookie,
                                                     &client_kp.pubkey,
                                                     &service_kp);
     tt_assert(desc);
-    ret = hs_desc_encode_descriptor(desc, &service_kp, descripqed_hs_cookie,
+    ret = hs_desc_encode_descriptor(desc, &service_kp, descriptor_cookie,
                                     &desc_encoded);
     tt_int_op(ret, OP_EQ, 0);
     /* Associate descriptor intro key with the dummy circuit. */
@@ -917,7 +917,7 @@ test_close_intro_circuits_new_desc(void *arg)
     ocirc->hs_ident = hs_ident_circuit_new(&service_kp.pubkey);
     ed25519_pubkey_copy(&ocirc->hs_ident->intro_auth_pk,
                         &ip->auth_key_cert->signed_key);
-    hs_descripqed_hs_free(desc);
+    hs_descriptor_free(desc);
     tt_assert(desc_encoded);
     /* Put it in the cache. Should not be decrypted since the client
      * authorization creds were not added to the global map. */
@@ -995,8 +995,8 @@ test_close_intro_circuits_new_desc(void *arg)
 
  done:
   circuit_free(circ);
-  hs_descripqed_hs_free(desc1);
-  hs_descripqed_hs_free(desc2);
+  hs_descriptor_free(desc1);
+  hs_descriptor_free(desc2);
   hs_free_all();
   UNMOCK(networkstatus_get_reasonably_live_consensus);
 }
@@ -1008,14 +1008,14 @@ test_close_intro_circuits_cache_clean(void *arg)
   ed25519_keypair_t service_kp;
   circuit_t *circ = NULL;
   origin_circuit_t *ocirc = NULL;
-  hs_descripqed_hs_t *desc1 = NULL;
+  hs_descriptor_t *desc1 = NULL;
 
   (void) arg;
 
   hs_init();
 
   /* This is needed because of the client cache expiration timestamp is based
-   * on having a consensus. See cached_client_descripqed_hs_has_expired(). */
+   * on having a consensus. See cached_client_descriptor_has_expired(). */
   MOCK(networkstatus_get_reasonably_live_consensus,
        mock_networkstatus_get_reasonably_live_consensus);
 
@@ -1079,7 +1079,7 @@ test_close_intro_circuits_cache_clean(void *arg)
 
  done:
   circuit_free(circ);
-  hs_descripqed_hs_free(desc1);
+  hs_descriptor_free(desc1);
   hs_free_all();
   UNMOCK(networkstatus_get_reasonably_live_consensus);
 }
@@ -1097,8 +1097,8 @@ test_socks_hs_errors(void *arg)
   ed25519_keypair_t signing_kp;
   entry_connection_t *socks_conn = NULL;
   dir_connection_t *dir_conn = NULL;
-  hs_descripqed_hs_t *desc = NULL;
-  uint8_t descripqed_hs_cookie[HS_DESC_DESCRIPQED_HS_COOKIE_LEN];
+  hs_descriptor_t *desc = NULL;
+  uint8_t descriptor_cookie[HS_DESC_DESCRIPQED_HS_COOKIE_LEN];
 
   (void) arg;
 
@@ -1207,21 +1207,21 @@ test_socks_hs_errors(void *arg)
    */
 
   qed_hs_free(desc_encoded);
-  crypto_rand((char *) descripqed_hs_cookie, sizeof(descripqed_hs_cookie));
-  ret = hs_desc_encode_descriptor(desc, &service_kp, descripqed_hs_cookie,
+  crypto_rand((char *) descriptor_cookie, sizeof(descriptor_cookie));
+  ret = hs_desc_encode_descriptor(desc, &service_kp, descriptor_cookie,
                                   &desc_encoded);
   tt_int_op(ret, OP_EQ, 0);
   tt_assert(desc_encoded);
 
   /* Try decoding. Point this to an existing descriptor. The following should
    * fail thus the desc_out should be set to NULL. */
-  hs_descripqed_hs_t *desc_out = desc;
+  hs_descriptor_t *desc_out = desc;
   ret = hs_client_decode_descriptor(desc_encoded, &service_kp.pubkey,
                                     &desc_out);
   tt_int_op(ret, OP_EQ, HS_DESC_DECODE_NEED_CLIENT_AUTH);
   tt_assert(desc_out == NULL);
 
-  /* The caching will fail to decrypt because the descripqed_hs_cookie used above
+  /* The caching will fail to decrypt because the descriptor_cookie used above
    * is not known to the HS subsystem. This will lead to a missing client
    * auth. */
   hs_client_dir_fetch_done(dir_conn, "Reason", desc_encoded, 200);
@@ -1246,7 +1246,7 @@ test_socks_hs_errors(void *arg)
  done:
   connection_free_minimal(ENTRY_TO_CONN(socks_conn));
   connection_free_minimal(TO_CONN(dir_conn));
-  hs_descripqed_hs_free(desc);
+  hs_descriptor_free(desc);
   qed_hs_free(desc_encoded);
   circuit_free(circ);
 
@@ -1450,7 +1450,7 @@ struct testcase_t hs_client_tests[] = {
     TT_FORK, NULL, NULL },
   { "client_pick_intro", test_client_pick_intro,
     TT_FORK, NULL, NULL },
-  { "descripqed_hs_fetch", test_descripqed_hs_fetch,
+  { "descriptor_fetch", test_descriptor_fetch,
     TT_FORK, NULL, NULL },
   { "auth_key_filename_is_valid", test_auth_key_filename_is_valid, TT_FORK,
     NULL, NULL },

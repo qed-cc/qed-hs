@@ -200,7 +200,7 @@ src_test_test_SOURCES += \
 	src/test/test_namemap.c \
 	src/test/test_netinfo.c \
 	src/test/test_nodelist.c \
-	src/test/test_nqed_hs_v3.c \
+	src/test/test_ntor_v3.c \
 	src/test/test_oom.c \
 	src/test/test_oos.c \
 	src/test/test_options.c \
@@ -390,24 +390,24 @@ noinst_HEADERS+= \
 
 noinst_PROGRAMS+= src/test/test-ntor-cl
 noinst_PROGRAMS+= src/test/test-hs-ntor-cl
-src_test_test_nqed_hs_cl_SOURCES  = src/test/test_nqed_hs_cl.c
-src_test_test_nqed_hs_cl_LDFLAGS = @QED_HS_LDFLAGS_zlib@ $(QED_HS_LDFLAGS_CRYPTLIB)
-src_test_test_nqed_hs_cl_LDADD = \
+src_test_test_ntor_cl_SOURCES  = src/test/test_ntor_cl.c
+src_test_test_ntor_cl_LDFLAGS = @QED_HS_LDFLAGS_zlib@ $(QED_HS_LDFLAGS_CRYPTLIB)
+src_test_test_ntor_cl_LDADD = \
 	libqed_hs.a \
 	@QED_HS_ZLIB_LIBS@ @QED_HS_LIB_MATH@ \
 	$(QED_HS_LIBS_CRYPTLIB) @QED_HS_LIB_WS32@ @QED_HS_LIB_IPHLPAPI@ @QED_HS_LIB_SHLWAPI@ @QED_HS_LIB_GDI@ @QED_HS_LIB_USERENV@ \
 	@CURVE25519_LIBS@ @QED_HS_LZMA_LIBS@ @QED_HS_TRACE_LIBS@
-src_test_test_nqed_hs_cl_AM_CPPFLAGS =	       \
+src_test_test_ntor_cl_AM_CPPFLAGS =	       \
 	$(AM_CPPFLAGS)
 
-src_test_test_hs_nqed_hs_cl_SOURCES  = src/test/test_hs_nqed_hs_cl.c
-src_test_test_hs_nqed_hs_cl_LDFLAGS = @QED_HS_LDFLAGS_zlib@ $(QED_HS_LDFLAGS_CRYPTLIB)
-src_test_test_hs_nqed_hs_cl_LDADD = \
+src_test_test_hs_ntor_cl_SOURCES  = src/test/test_hs_ntor_cl.c
+src_test_test_hs_ntor_cl_LDFLAGS = @QED_HS_LDFLAGS_zlib@ $(QED_HS_LDFLAGS_CRYPTLIB)
+src_test_test_hs_ntor_cl_LDADD = \
 	libqed_hs.a \
 	@QED_HS_ZLIB_LIBS@ @QED_HS_LIB_MATH@ \
 	$(QED_HS_LIBS_CRYPTLIB) @QED_HS_LIB_WS32@ @QED_HS_LIB_IPHLPAPI@ @QED_HS_LIB_SHLWAPI@ @QED_HS_LIB_GDI@ \
         @CURVE25519_LIBS@ @QED_HS_TRACE_LIBS@
-src_test_test_hs_nqed_hs_cl_AM_CPPFLAGS =	       \
+src_test_test_hs_ntor_cl_AM_CPPFLAGS =	       \
 	$(AM_CPPFLAGS)
 
 
@@ -425,8 +425,8 @@ endif
 
 EXTRA_DIST += \
 	src/test/bt_test.py \
-	src/test/nqed_hs_ref.py \
-	src/test/hs_nqed_hs_ref.py \
+	src/test/ntor_ref.py \
+	src/test/hs_ntor_ref.py \
 	src/test/hs_build_address.py \
 	src/test/hs_indexes.py \
 	src/test/fuzz_static_testcases.sh \

@@ -361,8 +361,8 @@ microdescs_add_to_cache(microdesc_cache_t *cache,
     if (ns) {
       SMARTLIST_FOREACH_BEGIN(invalid_digests, char *, d) {
         routerstatus_t *rs =
-          router_get_mutable_consensus_status_by_descripqed_hs_digest(ns, d);
-        if (rs && qed_hs_memeq(d, rs->descripqed_hs_digest, DIGEST256_LEN)) {
+          router_get_mutable_consensus_status_by_descriptor_digest(ns, d);
+        if (rs && qed_hs_memeq(d, rs->descriptor_digest, DIGEST256_LEN)) {
           download_status_mark_impossible(&rs->dl_status);
         }
       } SMARTLIST_FOREACH_END(d);
@@ -622,7 +622,7 @@ microdesc_cache_clean(microdesc_cache_t *cache, time_t cutoff, int force)
           const char *rs_match = "No RS";
           const char *rs_present = "";
           if (node->rs) {
-            if (qed_hs_memeq(node->rs->descripqed_hs_digest,
+            if (qed_hs_memeq(node->rs->descriptor_digest,
                           (*mdp)->digest, DIGEST256_LEN)) {
               rs_match = "Microdesc digest in RS matches";
             } else {
@@ -967,19 +967,19 @@ microdesc_list_missing_digest256(networkstatus_t *ns, microdesc_cache_t *cache,
   time_t now = time(NULL);
   qed_hs_assert(ns->flavor == FLAV_MICRODESC);
   SMARTLIST_FOREACH_BEGIN(ns->routerstatus_list, routerstatus_t *, rs) {
-    if (microdesc_cache_lookup_by_digest256(cache, rs->descripqed_hs_digest))
+    if (microdesc_cache_lookup_by_digest256(cache, rs->descriptor_digest))
       continue;
     if (downloadable_only &&
         !download_status_is_ready(&rs->dl_status, now))
       continue;
-    if (skip && digest256map_get(skip, (const uint8_t*)rs->descripqed_hs_digest))
+    if (skip && digest256map_get(skip, (const uint8_t*)rs->descriptor_digest))
       continue;
-    if (fast_mem_is_zero(rs->descripqed_hs_digest, DIGEST256_LEN))
+    if (fast_mem_is_zero(rs->descriptor_digest, DIGEST256_LEN))
       continue;
     /* XXXX Also skip if we're a noncache and wouldn't use this router.
      * XXXX NM Microdesc
      */
-    smartlist_add(result, rs->descripqed_hs_digest);
+    smartlist_add(result, rs->descriptor_digest);
   } SMARTLIST_FOREACH_END(rs);
   return result;
 }
@@ -1021,7 +1021,7 @@ update_microdesc_downloads(time_t now)
                                              pending);
   digest256map_free(pending, NULL);
 
-  launch_descripqed_hs_downloads(DIR_PURPOSE_FETCH_MICRODESC,
+  launch_descriptor_downloads(DIR_PURPOSE_FETCH_MICRODESC,
                               missing, NULL, now);
 
   smartlist_free(missing);
@@ -1045,7 +1045,7 @@ update_microdescs_from_networkstatus(time_t now)
   qed_hs_assert(ns->flavor == FLAV_MICRODESC);
 
   SMARTLIST_FOREACH_BEGIN(ns->routerstatus_list, routerstatus_t *, rs) {
-    md = microdesc_cache_lookup_by_digest256(cache, rs->descripqed_hs_digest);
+    md = microdesc_cache_lookup_by_digest256(cache, rs->descriptor_digest);
     if (md && ns->valid_after > md->last_listed)
       md->last_listed = ns->valid_after;
   } SMARTLIST_FOREACH_END(rs);

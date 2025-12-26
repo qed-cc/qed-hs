@@ -1332,16 +1332,16 @@ test_util_time(void *arg)
   tt_int_op(-1,OP_EQ, parse_iso_time("2004-08-04x00:48:22", &t_res));
   tt_int_op(-1,OP_EQ, parse_iso_time_nospace("2004-08-04x00:48:22", &t_res));
 
-  /* Test qed_hs_gettimeofday */
+  /* Test tor_gettimeofday */
 
   end.tv_sec = 4;
   end.tv_usec = 999990;
   start.tv_sec = 1;
   start.tv_usec = 500;
 
-  qed_hs_gettimeofday(&start);
+  tor_gettimeofday(&start);
   /* now make sure time works. */
-  qed_hs_gettimeofday(&end);
+  tor_gettimeofday(&end);
   /* We might've timewarped a little. */
   tt_int_op(tv_udiff(&start, &end), OP_GE, -5000);
 

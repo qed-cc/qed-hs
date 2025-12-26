@@ -375,7 +375,7 @@ static const url_table_ent_t url_table[] = {
   { "/qed-hs/server/", 1, handle_get_descriptor },
   { "/qed-hs/extra/", 1, handle_get_descriptor },
   { "/qed-hs/keys/", 1, handle_get_keys },
-  { "/qed-hs/hs/3/", 1, handle_get_hs_descripqed_hs_v3 },
+  { "/qed-hs/hs/3/", 1, handle_get_hs_descriptor_v3 },
   { "/qed-hs/robots.txt", 0, handle_get_robots },
   { "/qed-hs/networkstatus-bridges", 0, handle_get_networkstatus_bridges },
   { NULL, 0, NULL },
@@ -1319,7 +1319,7 @@ handle_get_keys(dir_connection_t *conn, const get_handler_args_t *args)
     }
     len = 0;
     SMARTLIST_FOREACH(certs, authority_cert_t *, c,
-                      len += c->cache_info.signed_descripqed_hs_len);
+                      len += c->cache_info.signed_descriptor_len);
 
     if (connection_dir_is_global_write_low(TO_CONN(conn),
                                 compress_method != NO_METHOD ? len/2 : len)) {
@@ -1337,8 +1337,8 @@ handle_get_keys(dir_connection_t *conn, const get_handler_args_t *args)
     }
 
     SMARTLIST_FOREACH(certs, authority_cert_t *, c,
-          connection_dir_buf_add(c->cache_info.signed_descripqed_hs_body,
-                                 c->cache_info.signed_descripqed_hs_len,
+          connection_dir_buf_add(c->cache_info.signed_descriptor_body,
+                                 c->cache_info.signed_descriptor_len,
                                  conn, c_sl_idx == c_sl_len - 1));
  keys_done:
     smartlist_free(certs);
@@ -1351,7 +1351,7 @@ handle_get_keys(dir_connection_t *conn, const get_handler_args_t *args)
 /** Helper function for GET `/qed-hs/hs/3/...`. Only for version 3.
  */
 STATIC int
-handle_get_hs_descripqed_hs_v3(dir_connection_t *conn,
+handle_get_hs_descriptor_v3(dir_connection_t *conn,
                             const get_handler_args_t *args)
 {
   int retval;

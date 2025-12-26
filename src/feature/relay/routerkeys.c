@@ -1022,7 +1022,7 @@ get_master_rsa_crosscert(const uint8_t **cert_out,
  * the ntor onion key. Store the sign of the corresponding ed25519 public key
  * in *<b>sign_out</b>. */
 qed_hs_cert_t *
-make_nqed_hs_onion_key_crosscert(const curve25519_keypair_t *onion_key,
+make_ntor_onion_key_crosscert(const curve25519_keypair_t *onion_key,
       const ed25519_public_key_t *master_id_key, time_t now, time_t lifetime,
       int *sign_out)
 {

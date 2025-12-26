@@ -621,7 +621,7 @@ test_routerkeys_cross_certify_ntor(void *args)
   tt_int_op(0, OP_EQ, ed25519_public_from_base64(&master_key,
                                "IamwritingthesetestsOnARainyAfternoonin2014"));
   tt_int_op(0, OP_EQ, curve25519_keypair_generate(&onion_keys, 0));
-  cert = make_nqed_hs_onion_key_crosscert(&onion_keys,
+  cert = make_ntor_onion_key_crosscert(&onion_keys,
                                        &master_key,
                                        now, 10000,
                                        &sign);

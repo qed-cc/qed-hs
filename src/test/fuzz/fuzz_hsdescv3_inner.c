@@ -34,14 +34,14 @@ mock_rsa_ed25519_crosscert_check(const uint8_t *crosscert,
 }
 
 static size_t
-mock_decrypt_desc_layer(const hs_descripqed_hs_t *desc,
-                        const uint8_t *descripqed_hs_cookie,
+mock_decrypt_desc_layer(const hs_descriptor_t *desc,
+                        const uint8_t *descriptor_cookie,
                         bool is_superencrypted_layer,
                         char **decrypted_out)
 {
   (void)is_superencrypted_layer;
   (void)desc;
-  (void)descripqed_hs_cookie;
+  (void)descriptor_cookie;
   const size_t overhead = HS_DESC_ENCRYPTED_SALT_LEN + DIGEST256_LEN;
   const uint8_t *encrypted_blob = (is_superencrypted_layer)
     ? desc->plaintext_data.superencrypted_blob
@@ -67,7 +67,7 @@ mock_decrypt_desc_layer(const hs_descripqed_hs_t *desc,
 static const uint8_t *decrypted_data = NULL;
 static size_t decrypted_len = 0;
 static size_t
-mock_desc_decrypt_encrypted(const hs_descripqed_hs_t *desc,
+mock_desc_decrypt_encrypted(const hs_descriptor_t *desc,
                         const curve25519_secret_key_t *client_auth_sk,
                         char **decrypted_out)
 {
@@ -101,7 +101,7 @@ fuzz_main(const uint8_t *data, size_t sz)
   decrypted_data = data;
   decrypted_len = sz;
 
-  hs_descripqed_hs_t *desc = qed_hs_malloc_zero(sizeof(hs_descripqed_hs_t));
+  hs_descriptor_t *desc = qed_hs_malloc_zero(sizeof(hs_descriptor_t));
   hs_desc_encrypted_data_t *output = qed_hs_malloc_zero(sizeof(*output));
   curve25519_secret_key_t *client_auth_sk = NULL;
   hs_desc_decode_status_t status;
@@ -113,7 +113,7 @@ fuzz_main(const uint8_t *data, size_t sz)
     log_debug(LD_GENERAL, "Decoding failed");
   }
 
-  hs_descripqed_hs_free(desc);
+  hs_descriptor_free(desc);
   hs_desc_encrypted_data_free(output);
   return 0;
 }

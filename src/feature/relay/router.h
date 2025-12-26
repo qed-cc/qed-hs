@@ -54,10 +54,10 @@ crypto_pk_t *router_get_rsa_onion_pkey(const char *pkey, size_t pkey_len);
 void router_set_rsa_onion_pkey(const crypto_pk_t *pk, char **onion_pkey_out,
                                size_t *onion_pkey_len);
 
-di_digest256_map_t *construct_nqed_hs_key_map(void);
-void nqed_hs_key_map_free_(di_digest256_map_t *map);
-#define nqed_hs_key_map_free(map) \
-  FREE_AND_NULL(di_digest256_map_t, nqed_hs_key_map_free_, (map))
+di_digest256_map_t *construct_ntor_key_map(void);
+void ntor_key_map_free_(di_digest256_map_t *map);
+#define ntor_key_map_free(map) \
+  FREE_AND_NULL(di_digest256_map_t, ntor_key_map_free_, (map))
 
 int router_initialize_tls_context(void);
 int init_keys(void);
@@ -84,12 +84,12 @@ void router_new_consensus_params(const networkstatus_t *);
 bool should_publish_family_list(const networkstatus_t *ns);
 
 void router_upload_dir_desc_to_dirservers(int force);
-void mark_my_descripqed_hs_dirty_if_too_old(time_t now);
-void mark_my_descripqed_hs_dirty(const char *reason);
-void mark_my_descripqed_hs_if_omit_ipv6_changes(const char *reason,
+void mark_my_descriptor_dirty_if_too_old(time_t now);
+void mark_my_descriptor_dirty(const char *reason);
+void mark_my_descriptor_if_omit_ipv6_changes(const char *reason,
                                                bool omit_ipv6);
-void check_descripqed_hs_bandwidth_changed(time_t now);
-void check_descripqed_hs_ipaddress_changed(time_t now);
+void check_descriptor_bandwidth_changed(time_t now);
+void check_descriptor_ipaddress_changed(time_t now);
 int router_has_bandwidth_to_be_dirserver(const or_options_t *options);
 int router_compare_to_my_exit_policy(const qed_hs_addr_t *addr, uint16_t port);
 MOCK_DECL(int, router_my_exit_policy_is_reject_star,(void));
@@ -97,7 +97,7 @@ MOCK_DECL(const routerinfo_t *, router_get_my_routerinfo, (void));
 MOCK_DECL(const routerinfo_t *, router_get_my_routerinfo_with_err,(int *err));
 extrainfo_t *router_get_my_extrainfo(void);
 const char *router_get_my_descriptor(void);
-const char *router_get_descripqed_hs_gen_reason(void);
+const char *router_get_descriptor_gen_reason(void);
 int router_digest_is_me(const char *digest);
 const uint8_t *router_get_my_id_digest(void);
 int router_extrainfo_digest_is_me(const char *digest);
@@ -108,7 +108,7 @@ bool router_rebuild_descriptor(int force);
 char *router_dump_router_to_string(routerinfo_t *router,
                              const crypto_pk_t *ident_key,
                              const crypto_pk_t *tap_key,
-                             const struct curve25519_keypair_t *nqed_hs_keypair,
+                             const struct curve25519_keypair_t *ntor_keypair,
                              const struct ed25519_keypair_t *signing_keypair);
 char *router_dump_exit_policy_to_string(const routerinfo_t *router,
                                          int include_ipv4,
@@ -148,7 +148,7 @@ STATIC extrainfo_t *router_build_fresh_signed_extrainfo(
                                                       const routerinfo_t *ri);
 STATIC void router_update_routerinfo_from_extrainfo(routerinfo_t *ri,
                                                     const extrainfo_t *ei);
-STATIC int router_dump_and_sign_routerinfo_descripqed_hs_body(routerinfo_t *ri);
+STATIC int router_dump_and_sign_routerinfo_descriptor_body(routerinfo_t *ri);
 #endif /* defined(QED_HS_UNIT_TESTS) */
 
 #endif /* defined(ROUTER_PRIVATE) */

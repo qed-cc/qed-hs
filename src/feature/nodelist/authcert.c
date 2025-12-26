@@ -348,8 +348,8 @@ already_have_cert(authority_cert_t *cert)
 
   SMARTLIST_FOREACH(cl->certs, authority_cert_t *, c,
   {
-    if (qed_hs_memeq(c->cache_info.signed_descripqed_hs_digest,
-                cert->cache_info.signed_descripqed_hs_digest,
+    if (qed_hs_memeq(c->cache_info.signed_descriptor_digest,
+                cert->cache_info.signed_descriptor_digest,
                 DIGEST_LEN))
       return 1;
   });
@@ -509,8 +509,8 @@ trusted_dirs_flush_certs_to_disk(void)
     SMARTLIST_FOREACH(cl->certs, authority_cert_t *, cert,
           {
             sized_chunk_t *c = qed_hs_malloc(sizeof(sized_chunk_t));
-            c->bytes = cert->cache_info.signed_descripqed_hs_body;
-            c->len = cert->cache_info.signed_descripqed_hs_len;
+            c->bytes = cert->cache_info.signed_descriptor_body;
+            c->len = cert->cache_info.signed_descriptor_len;
             smartlist_add(chunks, c);
           });
   } DIGESTMAP_FOREACH_END;
@@ -1164,7 +1164,7 @@ authority_cert_free_(authority_cert_t *cert)
   if (!cert)
     return;
 
-  qed_hs_free(cert->cache_info.signed_descripqed_hs_body);
+  qed_hs_free(cert->cache_info.signed_descriptor_body);
   crypto_pk_free(cert->signing_key);
   crypto_pk_free(cert->identity_key);
 

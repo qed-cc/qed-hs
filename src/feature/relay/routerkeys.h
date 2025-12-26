@@ -31,7 +31,7 @@ void get_master_rsa_crosscert(const uint8_t **cert_out,
 int router_ed25519_id_is_me(const ed25519_public_key_t *id);
 
 /* These are only used by router.c */
-struct qed_hs_cert_st *make_nqed_hs_onion_key_crosscert(
+struct qed_hs_cert_st *make_ntor_onion_key_crosscert(
                                   const curve25519_keypair_t *onion_key,
                                   const ed25519_public_key_t *master_id_key,
                                   time_t now, time_t lifetime,
@@ -98,7 +98,7 @@ relay_key_is_unavailable_(void)
 
 // These can get removed once router.c becomes relay-only.
 static inline struct qed_hs_cert_st *
-make_nqed_hs_onion_key_crosscert(const curve25519_keypair_t *onion_key,
+make_ntor_onion_key_crosscert(const curve25519_keypair_t *onion_key,
                               const ed25519_public_key_t *master_id_key,
                               time_t now, time_t lifetime,
                               int *sign_out)

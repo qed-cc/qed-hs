@@ -210,19 +210,19 @@ getinfo_helper_misc(control_connection_t *conn, const char *question,
  *
  * New code should never use this; it's for backward compatibility.
  *
- * NOTE: <b>ri_body</b> is as returned by signed_descripqed_hs_get_body: it might
+ * NOTE: <b>ri_body</b> is as returned by signed_descriptor_get_body: it might
  * not be NUL-terminated. */
 static char *
 munge_extrainfo_into_routerinfo(const char *ri_body,
-                                const signed_descripqed_hs_t *ri,
-                                const signed_descripqed_hs_t *ei)
+                                const signed_descriptor_t *ri,
+                                const signed_descriptor_t *ei)
 {
   char *out = NULL, *outp;
   int i;
   const char *router_sig;
-  const char *ei_body = signed_descripqed_hs_get_body(ei);
-  size_t ri_len = ri->signed_descripqed_hs_len;
-  size_t ei_len = ei->signed_descripqed_hs_len;
+  const char *ei_body = signed_descriptor_get_body(ei);
+  size_t ri_len = ri->signed_descriptor_len;
+  size_t ei_len = ei->signed_descriptor_len;
   if (!ei_body)
     goto bail;
 
@@ -251,7 +251,7 @@ munge_extrainfo_into_routerinfo(const char *ri_body,
   return out;
  bail:
   qed_hs_free(out);
-  return qed_hs_strndup(ri_body, ri->signed_descripqed_hs_len);
+  return qed_hs_strndup(ri_body, ri->signed_descriptor_len);
 }
 
 /** Implementation helper for GETINFO: answers requests for information about
@@ -326,7 +326,7 @@ getinfo_helper_current_time(control_connection_t *control_conn,
   (void)errmsg;
 
   struct timeval now;
-  qed_hs_gettimeofday(&now);
+  tor_gettimeofday(&now);
   char timebuf[ISO_TIME_LEN+1];
 
   if (!strcmp(question, "current-time/local"))
@@ -375,7 +375,7 @@ getinfo_helper_current_consensus(consensus_flavor_t flavor,
 
 /** Helper for getinfo_helper_dir.
  *
- * Add a signed_descripqed_hs_t to <b>descs_out</b> for each router matching
+ * Add a signed_descriptor_t to <b>descs_out</b> for each router matching
  * <b>key</b>.  The key should be either
  *   - "/qed-hs/server/authority" for our own routerinfo;
  *   - "/qed-hs/server/all" for all the routerinfos we have, concatenated;
@@ -411,7 +411,7 @@ controller_get_routerdescs(smartlist_t *descs_out, const char *key,
                                          DSR_HEX|DSR_SORT_UNIQ);
     SMARTLIST_FOREACH(digests, const char *, d,
        {
-         signed_descripqed_hs_t *sd = router_get_by_descripqed_hs_digest(d);
+         signed_descriptor_t *sd = router_get_by_descriptor_digest(d);
          if (sd)
            smartlist_add(descs_out,sd);
        });
@@ -467,9 +467,9 @@ getinfo_helper_dir(control_connection_t *control_conn,
     if (node)
       ri = node->ri;
     if (ri) {
-      const char *body = signed_descripqed_hs_get_body(&ri->cache_info);
+      const char *body = signed_descriptor_get_body(&ri->cache_info);
       if (body)
-        *answer = qed_hs_strndup(body, ri->cache_info.signed_descripqed_hs_len);
+        *answer = qed_hs_strndup(body, ri->cache_info.signed_descriptor_len);
     } else if (! we_fetch_router_descriptors(get_options())) {
       /* Descriptors won't be available, provide proper error */
       *errmsg = "We fetch microdescriptors, not router "
@@ -486,9 +486,9 @@ getinfo_helper_dir(control_connection_t *control_conn,
     if (node)
       ri = node->ri;
     if (ri) {
-      const char *body = signed_descripqed_hs_get_body(&ri->cache_info);
+      const char *body = signed_descriptor_get_body(&ri->cache_info);
       if (body)
-        *answer = qed_hs_strndup(body, ri->cache_info.signed_descripqed_hs_len);
+        *answer = qed_hs_strndup(body, ri->cache_info.signed_descriptor_len);
     } else if (! we_fetch_router_descriptors(get_options())) {
       /* Descriptors won't be available, provide proper error */
       *errmsg = "We fetch microdescriptors, not router "
@@ -505,10 +505,10 @@ getinfo_helper_dir(control_connection_t *control_conn,
     if (routerlist && routerlist->routers) {
       SMARTLIST_FOREACH(routerlist->routers, const routerinfo_t *, ri,
       {
-        const char *body = signed_descripqed_hs_get_body(&ri->cache_info);
+        const char *body = signed_descriptor_get_body(&ri->cache_info);
         if (body)
           smartlist_add(sl,
-                  qed_hs_strndup(body, ri->cache_info.signed_descripqed_hs_len));
+                  qed_hs_strndup(body, ri->cache_info.signed_descriptor_len));
       });
     }
     *answer = smartlist_join_strings(sl, "", 0, NULL);
@@ -520,15 +520,15 @@ getinfo_helper_dir(control_connection_t *control_conn,
     smartlist_t *sl = smartlist_new();
     if (routerlist && routerlist->routers) {
       SMARTLIST_FOREACH_BEGIN(routerlist->routers, const routerinfo_t *, ri) {
-        const char *body = signed_descripqed_hs_get_body(&ri->cache_info);
-        signed_descripqed_hs_t *ei = extrainfo_get_by_descripqed_hs_digest(
+        const char *body = signed_descriptor_get_body(&ri->cache_info);
+        signed_descriptor_t *ei = extrainfo_get_by_descriptor_digest(
                                      ri->cache_info.extra_info_digest);
         if (ei && body) {
           smartlist_add(sl, munge_extrainfo_into_routerinfo(body,
                                                         &ri->cache_info, ei));
         } else if (body) {
           smartlist_add(sl,
-                  qed_hs_strndup(body, ri->cache_info.signed_descripqed_hs_len));
+                  qed_hs_strndup(body, ri->cache_info.signed_descriptor_len));
         }
       } SMARTLIST_FOREACH_END(ri);
     }
@@ -647,7 +647,7 @@ getinfo_helper_dir(control_connection_t *control_conn,
       ri = node->ri;
     if (ri) {
       const char *annotations =
-        signed_descripqed_hs_get_annotations(&ri->cache_info);
+        signed_descriptor_get_annotations(&ri->cache_info);
       if (annotations)
         *answer = qed_hs_strndup(annotations,
                               ri->cache_info.annotations_len);
@@ -668,14 +668,14 @@ getinfo_helper_dir(control_connection_t *control_conn,
       *errmsg = msg;
       return -1;
     }
-    SMARTLIST_FOREACH(descs, signed_descripqed_hs_t *, sd,
-                      answer_len += sd->signed_descripqed_hs_len);
+    SMARTLIST_FOREACH(descs, signed_descriptor_t *, sd,
+                      answer_len += sd->signed_descriptor_len);
     cp = *answer = qed_hs_malloc(answer_len+1);
-    SMARTLIST_FOREACH(descs, signed_descripqed_hs_t *, sd,
+    SMARTLIST_FOREACH(descs, signed_descriptor_t *, sd,
                       {
-                        memcpy(cp, signed_descripqed_hs_get_body(sd),
-                               sd->signed_descripqed_hs_len);
-                        cp += sd->signed_descripqed_hs_len;
+                        memcpy(cp, signed_descriptor_get_body(sd),
+                               sd->signed_descriptor_len);
+                        cp += sd->signed_descriptor_len;
                       });
     *cp = '\0';
     qed_hs_free(url);
@@ -699,10 +699,10 @@ getinfo_helper_dir(control_connection_t *control_conn,
     question += strlen("extra-info/digest/");
     if (strlen(question) == HEX_DIGEST_LEN) {
       char d[DIGEST_LEN];
-      signed_descripqed_hs_t *sd = NULL;
+      signed_descriptor_t *sd = NULL;
       if (base16_decode(d, sizeof(d), question, strlen(question))
                         == sizeof(d)) {
-        /* XXXX this test should move into extrainfo_get_by_descripqed_hs_digest,
+        /* XXXX this test should move into extrainfo_get_by_descriptor_digest,
          * but I don't want to risk affecting other parts of the code,
          * especially since the rules for using our own extrainfo (including
          * when it might be freed) are different from those for using one
@@ -710,12 +710,12 @@ getinfo_helper_dir(control_connection_t *control_conn,
         if (router_extrainfo_digest_is_me(d))
           sd = &(router_get_my_extrainfo()->cache_info);
         else
-          sd = extrainfo_get_by_descripqed_hs_digest(d);
+          sd = extrainfo_get_by_descriptor_digest(d);
       }
       if (sd) {
-        const char *body = signed_descripqed_hs_get_body(sd);
+        const char *body = signed_descriptor_get_body(sd);
         if (body)
-          *answer = qed_hs_strndup(body, sd->signed_descripqed_hs_len);
+          *answer = qed_hs_strndup(body, sd->signed_descriptor_len);
       }
     }
   }
@@ -970,16 +970,16 @@ getinfo_helper_downloads_desc(const char *desc_req,
    *
    * Case 1: desc_req = "descs"
    *   - Emit a list of all router descriptor digests, which we get by
-   *     calling router_get_descripqed_hs_digests(); this can return NULL
+   *     calling router_get_descriptor_digests(); this can return NULL
    *     if we have no current ns-flavor consensus.
    *
    * Case 2: desc_req = <fp>
    *   - Check on the specified fingerprint and emit its download_status_t
-   *     using router_get_dl_status_by_descripqed_hs_digest().
+   *     using router_get_dl_status_by_descriptor_digest().
    */
 
   if (strcmp(desc_req, "descs") == 0) {
-    *digest_list = router_get_descripqed_hs_digests();
+    *digest_list = router_get_descriptor_digests();
     if (!(*digest_list)) {
       *errmsg = "We don't seem to have a networkstatus-flavored consensus";
     }
@@ -991,7 +991,7 @@ getinfo_helper_downloads_desc(const char *desc_req,
     if (base16_decode(desc_digest, DIGEST_LEN,
                       desc_req, strlen(desc_req)) == DIGEST_LEN) {
       /* Okay we got a digest-shaped thing; try asking for it */
-      *dl_to_emit = router_get_dl_status_by_descripqed_hs_digest(desc_digest);
+      *dl_to_emit = router_get_dl_status_by_descriptor_digest(desc_digest);
       if (!(*dl_to_emit)) {
         *errmsg = "No such descriptor digest found";
       }
@@ -1329,16 +1329,16 @@ getinfo_helper_events(control_connection_t *control_conn,
         }
         return -1;
       }
-      size_t size = r->cache_info.signed_descripqed_hs_len + 1;
+      size_t size = r->cache_info.signed_descriptor_len + 1;
       if (e) {
-        size += e->cache_info.signed_descripqed_hs_len + 1;
+        size += e->cache_info.signed_descriptor_len + 1;
       }
-      qed_hs_assert(r->cache_info.signed_descripqed_hs_len);
+      qed_hs_assert(r->cache_info.signed_descriptor_len);
       char *descs = qed_hs_malloc(size);
       char *cp = descs;
-      memcpy(cp, signed_descripqed_hs_get_body(&r->cache_info),
-             r->cache_info.signed_descripqed_hs_len);
-      cp += r->cache_info.signed_descripqed_hs_len - 1;
+      memcpy(cp, signed_descriptor_get_body(&r->cache_info),
+             r->cache_info.signed_descriptor_len);
+      cp += r->cache_info.signed_descriptor_len - 1;
       if (e) {
         if (cp[0] == '\0') {
           cp[0] = '\n';
@@ -1346,9 +1346,9 @@ getinfo_helper_events(control_connection_t *control_conn,
           cp[1] = '\n';
           cp++;
         }
-        memcpy(cp, signed_descripqed_hs_get_body(&e->cache_info),
-               e->cache_info.signed_descripqed_hs_len);
-        cp += e->cache_info.signed_descripqed_hs_len - 1;
+        memcpy(cp, signed_descriptor_get_body(&e->cache_info),
+               e->cache_info.signed_descriptor_len);
+        cp += e->cache_info.signed_descriptor_len - 1;
       }
       if (cp[0] == '\n') {
         cp[0] = '\0';

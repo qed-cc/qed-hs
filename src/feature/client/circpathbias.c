@@ -840,7 +840,7 @@ pathbias_send_usable_probe(circuit_t *circ)
   circuit_change_purpose(circ, CIRCUIT_PURPOSE_PATH_BIAS_TESTING);
 
   /* Update timestamp for when circuit_expire_building() should kill us */
-  qed_hs_gettimeofday(&circ->timestamp_began);
+  tor_gettimeofday(&circ->timestamp_began);
 
   /* Generate a random address for the nonce */
   crypto_rand((char*)&ocirc->pathbias_probe_nonce,

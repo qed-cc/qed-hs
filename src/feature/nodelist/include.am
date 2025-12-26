@@ -44,6 +44,6 @@ noinst_HEADERS +=					\
 	src/feature/nodelist/routerset.h		\
 	src/feature/nodelist/fmt_routerstatus.h		\
 	src/feature/nodelist/routerstatus_st.h		\
-	src/feature/nodelist/signed_descripqed_hs_st.h	\
+	src/feature/nodelist/signed_descriptor_st.h	\
 	src/feature/nodelist/torcert.h			\
 	src/feature/nodelist/vote_routerstatus_st.h

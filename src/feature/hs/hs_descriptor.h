@@ -238,7 +238,7 @@ typedef struct hs_desc_plaintext_data_t {
 } hs_desc_plaintext_data_t;
 
 /** Service descriptor in its decoded form. */
-typedef struct hs_descripqed_hs_t {
+typedef struct hs_descriptor_t {
   /** Contains the plaintext part of the descriptor. */
   hs_desc_plaintext_data_t plaintext_data;
 
@@ -255,7 +255,7 @@ typedef struct hs_descripqed_hs_t {
   /** Subcredentials of a service, used by the client and service to decrypt
    * the encrypted data. */
   hs_subcredential_t subcredential;
-} hs_descripqed_hs_t;
+} hs_descriptor_t;
 
 /** Return true iff the given descriptor format version is supported. */
 static inline int
@@ -270,9 +270,9 @@ hs_desc_is_supported_version(uint32_t version)
 
 /* Public API. */
 
-void hs_descripqed_hs_free_(hs_descripqed_hs_t *desc);
-#define hs_descripqed_hs_free(desc) \
-  FREE_AND_NULL(hs_descripqed_hs_t, hs_descripqed_hs_free_, (desc))
+void hs_descriptor_free_(hs_descriptor_t *desc);
+#define hs_descriptor_free(desc) \
+  FREE_AND_NULL(hs_descriptor_t, hs_descriptor_free_, (desc))
 void hs_desc_plaintext_data_free_(hs_desc_plaintext_data_t *desc);
 #define hs_desc_plaintext_data_free(desc) \
   FREE_AND_NULL(hs_desc_plaintext_data_t, hs_desc_plaintext_data_free_, (desc))
@@ -284,28 +284,28 @@ void hs_desc_encrypted_data_free_(hs_desc_encrypted_data_t *desc);
 #define hs_desc_encrypted_data_free(desc) \
   FREE_AND_NULL(hs_desc_encrypted_data_t, hs_desc_encrypted_data_free_, (desc))
 
-void hs_descripqed_hs_clear_intro_points(hs_descripqed_hs_t *desc);
+void hs_descriptor_clear_intro_points(hs_descriptor_t *desc);
 
 MOCK_DECL(int,
-          hs_desc_encode_descriptor,(const hs_descripqed_hs_t *desc,
+          hs_desc_encode_descriptor,(const hs_descriptor_t *desc,
                                      const ed25519_keypair_t *signing_kp,
-                                     const uint8_t *descripqed_hs_cookie,
+                                     const uint8_t *descriptor_cookie,
                                      char **encoded_out));
 
 hs_desc_decode_status_t hs_desc_decode_descriptor(const char *encoded,
                               const hs_subcredential_t *subcredential,
                               const curve25519_secret_key_t *client_auth_sk,
-                              hs_descripqed_hs_t **desc_out);
+                              hs_descriptor_t **desc_out);
 hs_desc_decode_status_t hs_desc_decode_plaintext(const char *encoded,
                              hs_desc_plaintext_data_t *plaintext);
 hs_desc_decode_status_t hs_desc_decode_superencrypted(
-                                const hs_descripqed_hs_t *desc,
+                                const hs_descriptor_t *desc,
                                 hs_desc_superencrypted_data_t *desc_out);
-hs_desc_decode_status_t hs_desc_decode_encrypted(const hs_descripqed_hs_t *desc,
+hs_desc_decode_status_t hs_desc_decode_encrypted(const hs_descriptor_t *desc,
                            const curve25519_secret_key_t *client_auth_sk,
                            hs_desc_encrypted_data_t *desc_out);
 
-size_t hs_desc_obj_size(const hs_descripqed_hs_t *data);
+size_t hs_desc_obj_size(const hs_descriptor_t *data);
 size_t hs_desc_plaintext_obj_size(const hs_desc_plaintext_data_t *data);
 
 hs_desc_intro_point_t *hs_desc_intro_point_new(void);
@@ -324,14 +324,14 @@ void hs_desc_build_authorized_client(const hs_subcredential_t *subcredential,
                                      client_auth_pk,
                                      const curve25519_secret_key_t *
                                      auth_ephemeral_sk,
-                                     const uint8_t *descripqed_hs_cookie,
+                                     const uint8_t *descriptor_cookie,
                                      hs_desc_authorized_client_t *client_out);
 void hs_desc_plaintext_data_free_contents(hs_desc_plaintext_data_t *desc);
 void hs_desc_superencrypted_data_free_contents(
                                         hs_desc_superencrypted_data_t *desc);
 void hs_desc_encrypted_data_free_contents(hs_desc_encrypted_data_t *desc);
 
-bool hs_desc_supports_congestion_control(const hs_descripqed_hs_t *desc);
+bool hs_desc_supports_congestion_control(const hs_descriptor_t *desc);
 
 #ifdef HS_DESCRIPQED_HS_PRIVATE
 
@@ -343,7 +343,7 @@ STATIC size_t build_plaintext_padding(const char *plaintext,
 /* Decoding. */
 STATIC smartlist_t *decode_link_specifiers(const char *encoded);
 STATIC hs_desc_intro_point_t *decode_introduction_point(
-                                const hs_descripqed_hs_t *desc,
+                                const hs_descriptor_t *desc,
                                 const char *text);
 STATIC int encrypted_data_length_is_valid(size_t len);
 STATIC int cert_is_valid(qed_hs_cert_t *cert, uint8_t type,
@@ -352,28 +352,28 @@ STATIC int desc_sig_is_valid(const char *b64_sig,
                              const ed25519_public_key_t *signing_pubkey,
                              const char *encoded_desc, size_t encoded_len);
 
-MOCK_DECL(STATIC size_t, decrypt_desc_layer,(const hs_descripqed_hs_t *desc,
-                                             const uint8_t *descripqed_hs_cookie,
+MOCK_DECL(STATIC size_t, decrypt_desc_layer,(const hs_descriptor_t *desc,
+                                             const uint8_t *descriptor_cookie,
                                              bool is_superencrypted_layer,
                                              char **decrypted_out));
 
 STATIC hs_desc_decode_status_t desc_decode_encrypted_v3(
-                         const hs_descripqed_hs_t *desc,
+                         const hs_descriptor_t *desc,
                          const curve25519_secret_key_t *client_auth_sk,
                          hs_desc_encrypted_data_t *desc_encrypted_out);
 
 STATIC hs_desc_decode_status_t
-desc_decode_superencrypted_v3(const hs_descripqed_hs_t *desc,
+desc_decode_superencrypted_v3(const hs_descriptor_t *desc,
                               hs_desc_superencrypted_data_t *
                               desc_superencrypted_out);
 
 MOCK_DECL(STATIC size_t, desc_decrypt_encrypted,(
-                        const hs_descripqed_hs_t *desc,
+                        const hs_descriptor_t *desc,
                         const curve25519_secret_key_t *client_auth_sk,
                         char **decrypted_out));
 
 MOCK_DECL(STATIC size_t, desc_decrypt_superencrypted,(
-                        const hs_descripqed_hs_t *desc,
+                        const hs_descriptor_t *desc,
                         char **decrypted_out));
 
 #endif /* defined(HS_DESCRIPQED_HS_PRIVATE) */

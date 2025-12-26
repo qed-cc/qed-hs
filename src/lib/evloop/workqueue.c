@@ -39,7 +39,7 @@
 #include "lib/net/socket.h"
 #include "lib/thread/threads.h"
 
-#include "ext/qed_hs_queue.h"
+#include "ext/tor_queue.h"
 #include <event2/event.h>
 #include <string.h>
 

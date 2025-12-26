@@ -747,10 +747,10 @@ networkstatus_vote_find_entry_idx(networkstatus_t *ns,
                                found_out);
 }
 
-/** As router_get_consensus_status_by_descripqed_hs_digest, but does not return
+/** As router_get_consensus_status_by_descriptor_digest, but does not return
  * a const pointer. */
 MOCK_IMPL(routerstatus_t *,
-router_get_mutable_consensus_status_by_descripqed_hs_digest,(
+router_get_mutable_consensus_status_by_descriptor_digest,(
                                                  networkstatus_t *consensus,
                                                  const char *digest))
 {
@@ -763,7 +763,7 @@ router_get_mutable_consensus_status_by_descripqed_hs_digest,(
     SMARTLIST_FOREACH(consensus->routerstatus_list,
                       routerstatus_t *, rs,
      {
-       digestmap_set(m, rs->descripqed_hs_digest, rs);
+       digestmap_set(m, rs->descriptor_digest, rs);
      });
   }
   return digestmap_get(consensus->desc_digest_map, digest);
@@ -773,16 +773,16 @@ router_get_mutable_consensus_status_by_descripqed_hs_digest,(
  * <i>descriptor</i> digest in <b>consensus</b> is <b>digest</b>, or NULL if
  * no such router is known. */
 const routerstatus_t *
-router_get_consensus_status_by_descripqed_hs_digest(networkstatus_t *consensus,
+router_get_consensus_status_by_descriptor_digest(networkstatus_t *consensus,
                                                  const char *digest)
 {
-  return router_get_mutable_consensus_status_by_descripqed_hs_digest(
+  return router_get_mutable_consensus_status_by_descriptor_digest(
                                                           consensus, digest);
 }
 
 /** Return a smartlist of all router descriptor digests in a consensus */
 static smartlist_t *
-router_get_descripqed_hs_digests_in_consensus(networkstatus_t *consensus)
+router_get_descriptor_digests_in_consensus(networkstatus_t *consensus)
 {
   smartlist_t *result = smartlist_new();
   digestmap_iter_t *i;
@@ -805,13 +805,13 @@ router_get_descripqed_hs_digests_in_consensus(networkstatus_t *consensus)
 /** Return a smartlist of all router descriptor digests in the current
  * consensus */
 MOCK_IMPL(smartlist_t *,
-router_get_descripqed_hs_digests,(void))
+router_get_descriptor_digests,(void))
 {
   smartlist_t *result = NULL;
 
   if (current_ns_consensus) {
     result =
-      router_get_descripqed_hs_digests_in_consensus(current_ns_consensus);
+      router_get_descriptor_digests_in_consensus(current_ns_consensus);
   }
 
   return result;
@@ -820,12 +820,12 @@ router_get_descripqed_hs_digests,(void))
 /** Given the digest of a router descriptor, return its current download
  * status, or NULL if the digest is unrecognized. */
 MOCK_IMPL(download_status_t *,
-router_get_dl_status_by_descripqed_hs_digest,(const char *d))
+router_get_dl_status_by_descriptor_digest,(const char *d))
 {
   routerstatus_t *rs;
   if (!current_ns_consensus)
     return NULL;
-  if ((rs = router_get_mutable_consensus_status_by_descripqed_hs_digest(
+  if ((rs = router_get_mutable_consensus_status_by_descriptor_digest(
                                               current_ns_consensus, d)))
     return &rs->dl_status;
 
@@ -1600,7 +1600,7 @@ routerstatus_has_visibly_changed(const routerstatus_t *a,
   qed_hs_assert(qed_hs_memeq(a->identity_digest, b->identity_digest, DIGEST_LEN));
 
   return strcmp(a->nickname, b->nickname) ||
-         fast_memneq(a->descripqed_hs_digest, b->descripqed_hs_digest, DIGEST_LEN) ||
+         fast_memneq(a->descriptor_digest, b->descriptor_digest, DIGEST_LEN) ||
          !qed_hs_addr_eq(&a->ipv4_addr, &b->ipv4_addr) ||
          a->ipv4_orport != b->ipv4_orport ||
          a->ipv4_dirport != b->ipv4_dirport ||
@@ -1737,7 +1737,7 @@ networkstatus_copy_old_consensus_info(networkstatus_t *new_c,
     /* Okay, so we're looking at the same identity. */
     rs_new->last_dir_503_at = rs_old->last_dir_503_at;
 
-    if (qed_hs_memeq(rs_old->descripqed_hs_digest, rs_new->descripqed_hs_digest,
+    if (qed_hs_memeq(rs_old->descriptor_digest, rs_new->descriptor_digest,
                   DIGEST256_LEN)) {
       /* And the same descriptor too! */
       memcpy(&rs_new->dl_status, &rs_old->dl_status,sizeof(download_status_t));
@@ -2321,8 +2321,8 @@ routers_update_status_from_consensus_networkstatus(smartlist_t *routers,
   {
   }) {
     /* Is it the same descriptor, or only the same identity? */
-    if (qed_hs_memeq(router->cache_info.signed_descripqed_hs_digest,
-                rs->descripqed_hs_digest, DIGEST_LEN)) {
+    if (qed_hs_memeq(router->cache_info.signed_descriptor_digest,
+                rs->descriptor_digest, DIGEST_LEN)) {
       if (ns->valid_until > router->cache_info.last_listed_as_valid_until)
         router->cache_info.last_listed_as_valid_until = ns->valid_until;
     }
@@ -2345,7 +2345,7 @@ routers_update_status_from_consensus_networkstatus(smartlist_t *routers,
   router_dir_info_changed();
 }
 
-/** Given a list of signed_descripqed_hs_t, update their fields (mainly, when
+/** Given a list of signed_descriptor_t, update their fields (mainly, when
  * they were last listed) from the most recent consensus. */
 void
 signed_descs_update_status_from_consensus_networkstatus(smartlist_t *descs)
@@ -2358,12 +2358,12 @@ signed_descs_update_status_from_consensus_networkstatus(smartlist_t *descs)
     char dummy[DIGEST_LEN];
     /* instantiates the digest map. */
     memset(dummy, 0, sizeof(dummy));
-    router_get_consensus_status_by_descripqed_hs_digest(ns, dummy);
+    router_get_consensus_status_by_descriptor_digest(ns, dummy);
   }
-  SMARTLIST_FOREACH(descs, signed_descripqed_hs_t *, d,
+  SMARTLIST_FOREACH(descs, signed_descriptor_t *, d,
   {
     const routerstatus_t *rs = digestmap_get(ns->desc_digest_map,
-                                       d->signed_descripqed_hs_digest);
+                                       d->signed_descriptor_digest);
     if (rs) {
       if (ns->valid_until > d->last_listed_as_valid_until)
         d->last_listed_as_valid_until = ns->valid_until;
@@ -2411,7 +2411,7 @@ set_routerstatus_from_routerinfo(routerstatus_t *rs,
   rs->is_named = rs->is_unnamed = 0;
 
   memcpy(rs->identity_digest, node->identity, DIGEST_LEN);
-  memcpy(rs->descripqed_hs_digest, ri->cache_info.signed_descripqed_hs_digest,
+  memcpy(rs->descriptor_digest, ri->cache_info.signed_descriptor_digest,
          DIGEST_LEN);
   qed_hs_addr_copy(&rs->ipv4_addr, &ri->ipv4_addr);
   strlcpy(rs->nickname, ri->nickname, sizeof(rs->nickname));

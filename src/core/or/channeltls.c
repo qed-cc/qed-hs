@@ -1036,11 +1036,11 @@ channel_tls_time_process_cell(cell_t *cell, channel_tls_t *chan, int *time,
   struct timeval start, end;
   long time_passed;
 
-  qed_hs_gettimeofday(&start);
+  tor_gettimeofday(&start);
 
   (*func)(cell, chan);
 
-  qed_hs_gettimeofday(&end);
+  tor_gettimeofday(&end);
   time_passed = tv_udiff(&start, &end) ;
 
   if (time_passed > 10000) { /* more than 10ms */

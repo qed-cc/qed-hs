@@ -615,7 +615,7 @@ test_dir_handle_get_server_descriptors_all(void* data)
   tt_int_op(directory_handle_command_get(conn, req, NULL, 0), OP_EQ, 0);
 
   //TODO: Is this a BUG?
-  //It requires strlen(signed_descripqed_hs_len)+1 as body_len but returns a body
+  //It requires strlen(signed_descriptor_len)+1 as body_len but returns a body
   //which is smaller than that by annotation_len bytes
   fetch_from_buf_http(TO_CONN(conn)->outbuf, &header, MAX_HEADERS_SIZE,
                       &body, &body_used,
@@ -631,9 +631,9 @@ test_dir_handle_get_server_descriptors_all(void* data)
   //TODO: Is this a BUG?
   //This is what should be expected: tt_int_op(body_used, OP_EQ, strlen(body));
   tt_int_op(body_used, OP_EQ,
-            mock_routerinfo->cache_info.signed_descripqed_hs_len);
+            mock_routerinfo->cache_info.signed_descriptor_len);
 
-  tt_str_op(body, OP_EQ, mock_routerinfo->cache_info.signed_descripqed_hs_body +
+  tt_str_op(body, OP_EQ, mock_routerinfo->cache_info.signed_descriptor_body +
                          mock_routerinfo->cache_info.annotations_len);
   tt_ptr_op(conn->spool, OP_EQ, NULL);
 
@@ -710,9 +710,9 @@ test_dir_handle_get_server_descriptors_authority(void* data)
 
   /* Setup descriptor */
   long annotation_len = strstr(TEST_DESCRIPTOR, "router ") - TEST_DESCRIPTOR;
-  mock_routerinfo->cache_info.signed_descripqed_hs_body =
+  mock_routerinfo->cache_info.signed_descriptor_body =
     qed_hs_strdup(TEST_DESCRIPTOR);
-  mock_routerinfo->cache_info.signed_descripqed_hs_len =
+  mock_routerinfo->cache_info.signed_descriptor_len =
     strlen(TEST_DESCRIPTOR) - annotation_len;
   mock_routerinfo->cache_info.annotations_len = annotation_len;
   mock_routerinfo->cache_info.published_on = time(NULL);
@@ -743,7 +743,7 @@ test_dir_handle_get_server_descriptors_authority(void* data)
   done:
     UNMOCK(router_get_my_routerinfo);
     UNMOCK(connection_write_to_buf_impl_);
-    qed_hs_free(mock_routerinfo->cache_info.signed_descripqed_hs_body);
+    qed_hs_free(mock_routerinfo->cache_info.signed_descriptor_body);
     qed_hs_free(mock_routerinfo);
     connection_free_minimal(TO_CONN(conn));
     qed_hs_free(header);
@@ -776,9 +776,9 @@ test_dir_handle_get_server_descriptors_fp(void* data)
 
   /* Setup descriptor */
   long annotation_len = strstr(TEST_DESCRIPTOR, "router ") - TEST_DESCRIPTOR;
-  mock_routerinfo->cache_info.signed_descripqed_hs_body =
+  mock_routerinfo->cache_info.signed_descriptor_body =
     qed_hs_strdup(TEST_DESCRIPTOR);
-  mock_routerinfo->cache_info.signed_descripqed_hs_len =
+  mock_routerinfo->cache_info.signed_descriptor_len =
     strlen(TEST_DESCRIPTOR) - annotation_len;
   mock_routerinfo->cache_info.annotations_len = annotation_len;
   mock_routerinfo->cache_info.published_on = time(NULL);
@@ -816,7 +816,7 @@ test_dir_handle_get_server_descriptors_fp(void* data)
   done:
     UNMOCK(router_get_my_routerinfo);
     UNMOCK(connection_write_to_buf_impl_);
-    qed_hs_free(mock_routerinfo->cache_info.signed_descripqed_hs_body);
+    qed_hs_free(mock_routerinfo->cache_info.signed_descriptor_body);
     qed_hs_free(mock_routerinfo);
     connection_free_minimal(TO_CONN(conn));
     qed_hs_free(header);
@@ -842,11 +842,11 @@ test_dir_handle_get_server_descriptors_d(void* data)
 
   MOCK(connection_write_to_buf_impl_, connection_write_to_buf_mock);
 
-  /* Get one router's signed_descripqed_hs_digest */
+  /* Get one router's signed_descriptor_digest */
   routerlist_t *our_routerlist = router_get_routerlist();
   tt_int_op(smartlist_len(our_routerlist->routers), OP_GE, 1);
   routerinfo_t *router = smartlist_get(our_routerlist->routers, 0);
-  const char *hex_digest = hex_str(router->cache_info.signed_descripqed_hs_digest,
+  const char *hex_digest = hex_str(router->cache_info.signed_descriptor_digest,
                                    DIGEST_LEN);
 
   conn = new_dir_conn();
@@ -857,11 +857,11 @@ test_dir_handle_get_server_descriptors_d(void* data)
   tt_int_op(directory_handle_command_get(conn, req_header, NULL, 0), OP_EQ, 0);
 
   //TODO: Is this a BUG?
-  //It requires strlen(signed_descripqed_hs_len)+1 as body_len but returns a body
+  //It requires strlen(signed_descriptor_len)+1 as body_len but returns a body
   //which is smaller than that by annotation_len bytes
   fetch_from_buf_http(TO_CONN(conn)->outbuf, &header, MAX_HEADERS_SIZE,
                       &body, &body_used,
-                      router->cache_info.signed_descripqed_hs_len+1, 0);
+                      router->cache_info.signed_descriptor_len+1, 0);
 
   tt_assert(header);
   tt_assert(body);
@@ -873,9 +873,9 @@ test_dir_handle_get_server_descriptors_d(void* data)
   //TODO: Is this a BUG?
   //This is what should be expected:
   //tt_int_op(body_used, OP_EQ, strlen(body));
-  tt_int_op(body_used, OP_EQ, router->cache_info.signed_descripqed_hs_len);
+  tt_int_op(body_used, OP_EQ, router->cache_info.signed_descriptor_len);
 
-  tt_str_op(body, OP_EQ, router->cache_info.signed_descripqed_hs_body +
+  tt_str_op(body, OP_EQ, router->cache_info.signed_descriptor_body +
                          router->cache_info.annotations_len);
   tt_ptr_op(conn->spool, OP_EQ, NULL);
 
@@ -910,11 +910,11 @@ test_dir_handle_get_server_descriptors_busy(void* data)
   init_mock_options();
   mock_options->CountPrivateBandwidth = 1;
 
-  /* Get one router's signed_descripqed_hs_digest */
+  /* Get one router's signed_descriptor_digest */
   routerlist_t *our_routerlist = router_get_routerlist();
   tt_int_op(smartlist_len(our_routerlist->routers), OP_GE, 1);
   routerinfo_t *router = smartlist_get(our_routerlist->routers, 0);
-  const char *hex_digest = hex_str(router->cache_info.signed_descripqed_hs_digest,
+  const char *hex_digest = hex_str(router->cache_info.signed_descriptor_digest,
                                    DIGEST_LEN);
 
   conn = new_dir_conn();

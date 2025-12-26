@@ -92,7 +92,7 @@
 #include "core/or/port_cfg_st.h"
 #include "feature/nodelist/routerinfo_st.h"
 #include "feature/nodelist/routerlist_st.h"
-#include "core/or/qed_hs_version_st.h"
+#include "core/or/tor_version_st.h"
 #include "feature/dirauth/vote_microdesc_hash_st.h"
 #include "feature/nodelist/vote_routerstatus_st.h"
 
@@ -402,17 +402,17 @@ get_new_signing_key_block(const routerinfo_t *r1)
 }
 
 /* Allocate and return a new string containing an "ntor-onion-key" line for
- * the curve25519 public key nqed_hs_onion_pubkey.
+ * the curve25519 public key ntor_onion_pubkey.
  */
 static char *
-get_new_nqed_hs_onion_key_line(const curve25519_public_key_t *nqed_hs_onion_pubkey)
+get_new_ntor_onion_key_line(const curve25519_public_key_t *ntor_onion_pubkey)
 {
   char *line = NULL;
   char cert_buf[256];
 
-  qed_hs_assert(nqed_hs_onion_pubkey);
+  qed_hs_assert(ntor_onion_pubkey);
 
-  curve25519_public_to_base64(cert_buf, nqed_hs_onion_pubkey, false);
+  curve25519_public_to_base64(cert_buf, ntor_onion_pubkey, false);
   qed_hs_assert(strlen(cert_buf) > 0);
 
   qed_hs_asprintf(&line,
@@ -583,7 +583,7 @@ setup_mocks_for_fresh_descriptor(const routerinfo_t *r1,
   mocked_server_identitykey = r1->identity_pkey;
   MOCK(get_server_identity_key, mock_get_server_identity_key);
 
-  /* router_dump_and_sign_routerinfo_descripqed_hs_body() requires
+  /* router_dump_and_sign_routerinfo_descriptor_body() requires
    * get_onion_key(). Use the same one as r1.
    */
   if (rsa_onion_keypair) {
@@ -824,30 +824,30 @@ test_dir_formats_rsa_ed25519(void *arg)
                        "-----BEGIN CROSSCERT-----\n");
   smartlist_add_strdup(chunks, cert_buf);
   smartlist_add_strdup(chunks, "-----END CROSSCERT-----\n");
-  int nqed_hs_cc_sign;
+  int ntor_cc_sign;
   {
-    qed_hs_cert_t *nqed_hs_cc = NULL;
-    nqed_hs_cc = make_nqed_hs_onion_key_crosscert(&r2_onion_keypair,
+    qed_hs_cert_t *ntor_cc = NULL;
+    ntor_cc = make_ntor_onion_key_crosscert(&r2_onion_keypair,
                                           &kp1.pubkey,
                                           r2->cache_info.published_on,
                                           get_onion_key_lifetime(),
-                                          &nqed_hs_cc_sign);
-    tt_assert(nqed_hs_cc);
+                                          &ntor_cc_sign);
+    tt_assert(ntor_cc);
     base64_encode(cert_buf, sizeof(cert_buf),
-                (char*)nqed_hs_cc->encoded, nqed_hs_cc->encoded_len,
+                (char*)ntor_cc->encoded, ntor_cc->encoded_len,
                 BASE64_ENCODE_MULTILINE);
-    qed_hs_cert_free(nqed_hs_cc);
+    qed_hs_cert_free(ntor_cc);
   }
   smartlist_add_asprintf(chunks,
                "ntor-onion-key-crosscert %d\n"
                "-----BEGIN ED25519 CERT-----\n"
                "%s"
-               "-----END ED25519 CERT-----\n", nqed_hs_cc_sign, cert_buf);
+               "-----END ED25519 CERT-----\n", ntor_cc_sign, cert_buf);
 
   smartlist_add_strdup(chunks, "hidden-service-dir\n");
 
   smartlist_add(chunks, get_new_bridge_distribution_request_line(options));
-  smartlist_add(chunks, get_new_nqed_hs_onion_key_line(&r2_onion_keypair.pubkey));
+  smartlist_add(chunks, get_new_ntor_onion_key_line(&r2_onion_keypair.pubkey));
   smartlist_add_strdup(chunks, "accept *:80\nreject 18.0.0.0/8:24\n");
   smartlist_add_strdup(chunks, "tunnelled-dir-server\n");
 
@@ -976,8 +976,8 @@ test_dir_formats_rsa_ed25519(void *arg)
   CHECK_EXTRAINFO_CONSISTENCY(r2, e2);
 
   /* Test that the signed ri is parseable */
-  tt_assert(r2->cache_info.signed_descripqed_hs_body);
-  cp = r2->cache_info.signed_descripqed_hs_body;
+  tt_assert(r2->cache_info.signed_descriptor_body);
+  cp = r2->cache_info.signed_descriptor_body;
   rp2 = router_parse_entry_from_string((const char*)cp,NULL,1,0,NULL,NULL);
 
   CHECK_ROUTERINFO_CONSISTENCY(r2, rp2);
@@ -991,8 +991,8 @@ test_dir_formats_rsa_ed25519(void *arg)
   routerinfo_free(rp2);
 
   /* Test that the signed ei is parseable */
-  tt_assert(e2->cache_info.signed_descripqed_hs_body);
-  cp = e2->cache_info.signed_descripqed_hs_body;
+  tt_assert(e2->cache_info.signed_descriptor_body);
+  cp = e2->cache_info.signed_descriptor_body;
   ep2 = extrainfo_parse_entry_from_string((const char*)cp,NULL,1,NULL,NULL);
 
   CHECK_EXTRAINFO_CONSISTENCY(r2, ep2);
@@ -1104,7 +1104,7 @@ test_dir_routerinfo_parsing(void *arg)
   CHECK_FAIL(EX_RI_BAD_UPTIME, 0);
 
   CHECK_FAIL(EX_RI_BAD_BANDWIDTH3, 0);
-  CHECK_FAIL(EX_RI_BAD_NQED_HS_KEY, 0);
+  CHECK_FAIL(EX_RI_BAD_NTOR_KEY, 0);
   CHECK_FAIL(EX_RI_BAD_FINGERPRINT, 0);
   CHECK_FAIL(EX_RI_MISMATCHED_FINGERPRINT, 0);
   CHECK_FAIL(EX_RI_BAD_HAS_ACCEPT6, 0);
@@ -1260,10 +1260,10 @@ test_dir_parse_router_list(void *arg)
   tt_ptr_op(cp, OP_EQ, list + strlen(list));
 
   routerinfo_t *r = smartlist_get(dest, 0);
-  tt_mem_op(r->cache_info.signed_descripqed_hs_body, OP_EQ,
+  tt_mem_op(r->cache_info.signed_descriptor_body, OP_EQ,
             EX_RI_MINIMAL, strlen(EX_RI_MINIMAL));
   r = smartlist_get(dest, 1);
-  tt_mem_op(r->cache_info.signed_descripqed_hs_body, OP_EQ,
+  tt_mem_op(r->cache_info.signed_descriptor_body, OP_EQ,
             EX_RI_MAXIMAL, strlen(EX_RI_MAXIMAL));
 
   setup_ei_digests();
@@ -1295,10 +1295,10 @@ test_dir_parse_router_list(void *arg)
                                           1, 0, NULL, invalid));
   tt_int_op(2, OP_EQ, smartlist_len(dest));
   extrainfo_t *e = smartlist_get(dest, 0);
-  tt_mem_op(e->cache_info.signed_descripqed_hs_body, OP_EQ,
+  tt_mem_op(e->cache_info.signed_descriptor_body, OP_EQ,
             EX_EI_MAXIMAL, strlen(EX_EI_MAXIMAL));
   e = smartlist_get(dest, 1);
-  tt_mem_op(e->cache_info.signed_descripqed_hs_body, OP_EQ,
+  tt_mem_op(e->cache_info.signed_descriptor_body, OP_EQ,
             EX_EI_MINIMAL, strlen(EX_EI_MINIMAL));
 
   tt_int_op(3, OP_EQ, smartlist_len(invalid));
@@ -1474,7 +1474,7 @@ test_dir_load_routers(void *arg)
 
   setup_dls_digests();
 
-  MOCK(router_get_dl_status_by_descripqed_hs_digest, mock_router_get_dl_status);
+  MOCK(router_get_dl_status_by_descriptor_digest, mock_router_get_dl_status);
 
   update_approx_time(1412510400);
 
@@ -1501,7 +1501,7 @@ test_dir_load_routers(void *arg)
   /* "minimal" was not. */
   tt_int_op(smartlist_len(router_get_routerlist()->routers),OP_EQ,1);
   routerinfo_t *r = smartlist_get(router_get_routerlist()->routers, 0);
-  test_memeq_hex(r->cache_info.signed_descripqed_hs_digest,
+  test_memeq_hex(r->cache_info.signed_descriptor_digest,
                  "1F437798ACD1FC9CBD1C3C04DBF80F7E9F819C3F");
   tt_int_op(dls_minimal.n_download_failures, OP_EQ, 0);
   tt_int_op(dls_maximal.n_download_failures, OP_EQ, 0);
@@ -1526,7 +1526,7 @@ test_dir_load_routers(void *arg)
 
  done:
   qed_hs_free(mem_op_hex_tmp);
-  UNMOCK(router_get_dl_status_by_descripqed_hs_digest);
+  UNMOCK(router_get_dl_status_by_descriptor_digest);
   SMARTLIST_FOREACH(chunks, char *, cp, qed_hs_free(cp));
   smartlist_free(chunks);
   SMARTLIST_FOREACH(wanted, char *, cp, qed_hs_free(cp));
@@ -1537,11 +1537,11 @@ test_dir_load_routers(void *arg)
 static int mock_get_by_ei_dd_calls = 0;
 static int mock_get_by_ei_dd_unrecognized = 0;
 
-static signed_descripqed_hs_t sd_ei_minimal;
-static signed_descripqed_hs_t sd_ei_bad_nickname;
-static signed_descripqed_hs_t sd_ei_maximal;
-static signed_descripqed_hs_t sd_ei_bad_tokens;
-static signed_descripqed_hs_t sd_ei_bad_sig2;
+static signed_descriptor_t sd_ei_minimal;
+static signed_descriptor_t sd_ei_bad_nickname;
+static signed_descriptor_t sd_ei_maximal;
+static signed_descriptor_t sd_ei_bad_tokens;
+static signed_descriptor_t sd_ei_bad_sig2;
 
 static void
 setup_ei_digests(void)
@@ -1562,7 +1562,7 @@ setup_ei_digests(void)
 #undef SETUP
 }
 
-static signed_descripqed_hs_t *
+static signed_descriptor_t *
 mock_get_by_ei_desc_digest(const char *d)
 {
   ++mock_get_by_ei_dd_calls;
@@ -1582,14 +1582,14 @@ mock_get_by_ei_desc_digest(const char *d)
 #undef CHECK
 }
 
-static signed_descripqed_hs_t *
+static signed_descriptor_t *
 mock_ei_get_by_ei_digest(const char *d)
 {
-  signed_descripqed_hs_t *sd = &sd_ei_minimal;
+  signed_descriptor_t *sd = &sd_ei_minimal;
 
   if (fast_memeq(d, digest_ei_minimal, DIGEST_LEN)) {
-    sd->signed_descripqed_hs_body = (char *)EX_EI_MINIMAL;
-    sd->signed_descripqed_hs_len = sizeof(EX_EI_MINIMAL);
+    sd->signed_descriptor_body = (char *)EX_EI_MINIMAL;
+    sd->signed_descriptor_len = sizeof(EX_EI_MINIMAL);
     sd->annotations_len = 0;
     sd->saved_location = SAVED_NOWHERE;
     return sd;
@@ -1650,11 +1650,11 @@ test_dir_load_extrainfo(void *arg)
   tt_int_op(smartlist_len(mock_ei_insert_list),OP_EQ,2);
 
   extrainfo_t *e = smartlist_get(mock_ei_insert_list, 0);
-  tt_mem_op(e->cache_info.signed_descripqed_hs_digest, OP_EQ,
+  tt_mem_op(e->cache_info.signed_descriptor_digest, OP_EQ,
             digest_ei_minimal, DIGEST_LEN);
 
   e = smartlist_get(mock_ei_insert_list, 1);
-  tt_mem_op(e->cache_info.signed_descripqed_hs_digest, OP_EQ,
+  tt_mem_op(e->cache_info.signed_descriptor_digest, OP_EQ,
             digest_ei_maximal, DIGEST_LEN);
   tt_int_op(dls_minimal.n_download_failures, OP_EQ, 0);
   tt_int_op(dls_maximal.n_download_failures, OP_EQ, 0);
@@ -1704,7 +1704,7 @@ test_dir_getinfo_extra(void *arg)
                 (const char*)digest_ei_minimal, DIGEST_LEN);
   qed_hs_snprintf(buf, sizeof(buf), "extra-info/digest/%s", hexdigest);
 
-  MOCK(extrainfo_get_by_descripqed_hs_digest, mock_ei_get_by_ei_digest);
+  MOCK(extrainfo_get_by_descriptor_digest, mock_ei_get_by_ei_digest);
   r = getinfo_helper_dir(NULL, buf, &answer, &errmsg);
   tt_int_op(0, OP_EQ, r);
   tt_ptr_op(NULL, OP_EQ, errmsg);
@@ -1722,7 +1722,7 @@ test_dir_getinfo_extra(void *arg)
   tt_ptr_op(NULL, OP_EQ, answer);
 
  done:
-  UNMOCK(extrainfo_get_by_descripqed_hs_digest);
+  UNMOCK(extrainfo_get_by_descriptor_digest);
 }
 
 static void
@@ -3038,7 +3038,7 @@ vote_tweaks_for_v3ns(networkstatus_t *v, int voter, time_t now)
       smartlist_del_keeporder(v->routerstatus_list, 0);
       vote_routerstatus_free(vrs);
       vrs = smartlist_get(v->routerstatus_list, 0);
-      memset(vrs->status.descripqed_hs_digest, (int)'Z', DIGEST_LEN);
+      memset(vrs->status.descriptor_digest, (int)'Z', DIGEST_LEN);
       tt_assert(router_add_to_routerlist(
                   dir_common_generate_ri_from_rs(vrs), &msg,0,0) >= 0);
     }
@@ -3075,7 +3075,7 @@ test_vrs_for_v3ns(vote_routerstatus_t *vrs, int voter, time_t now)
                "\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3"
                "\x3\x3\x3\x3",
                DIGEST_LEN);
-    tt_mem_op(rs->descripqed_hs_digest,OP_EQ, "NNNNNNNNNNNNNNNNNNNN", DIGEST_LEN);
+    tt_mem_op(rs->descriptor_digest,OP_EQ, "NNNNNNNNNNNNNNNNNNNN", DIGEST_LEN);
     tt_assert(qed_hs_addr_eq_ipv4h(&rs->ipv4_addr, 0x99008801));
     tt_int_op(rs->ipv4_orport,OP_EQ, 443);
     tt_int_op(rs->ipv4_dirport,OP_EQ, 8000);
@@ -3097,7 +3097,7 @@ test_vrs_for_v3ns(vote_routerstatus_t *vrs, int voter, time_t now)
       tt_int_op(vrs->published_on,OP_EQ, now-1000);
       tt_str_op(rs->nickname,OP_EQ, "router1");
     }
-    tt_mem_op(rs->descripqed_hs_digest,OP_EQ, "MMMMMMMMMMMMMMMMMMMM", DIGEST_LEN);
+    tt_mem_op(rs->descriptor_digest,OP_EQ, "MMMMMMMMMMMMMMMMMMMM", DIGEST_LEN);
     tt_assert(qed_hs_addr_eq_ipv4h(&rs->ipv4_addr, 0x99009901));
     tt_int_op(rs->ipv4_orport,OP_EQ, 443);
     tt_int_op(rs->ipv4_dirport,OP_EQ, 0);
@@ -3170,7 +3170,7 @@ test_routerstatus_for_v3ns(routerstatus_t *rs, time_t now)
     tt_mem_op(rs->identity_digest,OP_EQ,
                "\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3",
                DIGEST_LEN);
-    tt_mem_op(rs->descripqed_hs_digest,OP_EQ, "NNNNNNNNNNNNNNNNNNNN", DIGEST_LEN);
+    tt_mem_op(rs->descriptor_digest,OP_EQ, "NNNNNNNNNNNNNNNNNNNN", DIGEST_LEN);
     tt_assert(!rs->is_authority);
     tt_assert(!rs->is_exit);
     tt_assert(!rs->is_fast);
@@ -3191,7 +3191,7 @@ test_routerstatus_for_v3ns(routerstatus_t *rs, time_t now)
                "\x5\x5\x5\x5\x5\x5\x5\x5\x5\x5\x5\x5\x5\x5\x5\x5\x5\x5\x5\x5",
                DIGEST_LEN);
     tt_str_op(rs->nickname,OP_EQ, "router1");
-    tt_mem_op(rs->descripqed_hs_digest,OP_EQ, "MMMMMMMMMMMMMMMMMMMM", DIGEST_LEN);
+    tt_mem_op(rs->descriptor_digest,OP_EQ, "MMMMMMMMMMMMMMMMMMMM", DIGEST_LEN);
     tt_assert(qed_hs_addr_eq_ipv4h(&rs->ipv4_addr, 0x99009901));
     tt_int_op(rs->ipv4_orport,OP_EQ, 443);
     tt_int_op(rs->ipv4_dirport,OP_EQ, 0);
@@ -4069,7 +4069,7 @@ gen_routerstatus_for_umbw(int idx, time_t now)
       vrs->published_on = now-1500;
       strlcpy(rs->nickname, "router2", sizeof(rs->nickname));
       memset(rs->identity_digest, 3, DIGEST_LEN);
-      memset(rs->descripqed_hs_digest, 78, DIGEST_LEN);
+      memset(rs->descriptor_digest, 78, DIGEST_LEN);
       qed_hs_addr_from_ipv4h(&rs->ipv4_addr, 0x99008801);
       rs->ipv4_orport = 443;
       rs->ipv4_dirport = 8000;
@@ -4094,7 +4094,7 @@ gen_routerstatus_for_umbw(int idx, time_t now)
       vrs->published_on = now-1000;
       strlcpy(rs->nickname, "router1", sizeof(rs->nickname));
       memset(rs->identity_digest, 5, DIGEST_LEN);
-      memset(rs->descripqed_hs_digest, 77, DIGEST_LEN);
+      memset(rs->descriptor_digest, 77, DIGEST_LEN);
       qed_hs_addr_from_ipv4h(&rs->ipv4_addr, 0x99009901);
       rs->ipv4_orport = 443;
       rs->ipv4_dirport = 0;
@@ -4121,7 +4121,7 @@ gen_routerstatus_for_umbw(int idx, time_t now)
       vrs->published_on = now-1000;
       strlcpy(rs->nickname, "router3", sizeof(rs->nickname));
       memset(rs->identity_digest, 0x33, DIGEST_LEN);
-      memset(rs->descripqed_hs_digest, 79, DIGEST_LEN);
+      memset(rs->descriptor_digest, 79, DIGEST_LEN);
       qed_hs_addr_from_ipv4h(&rs->ipv4_addr, 0xAA009901);
       rs->ipv4_orport = 400;
       rs->ipv4_dirport = 9999;
@@ -4147,7 +4147,7 @@ gen_routerstatus_for_umbw(int idx, time_t now)
       vrs->published_on = now-1000;
       strlcpy(rs->nickname, "router4", sizeof(rs->nickname));
       memset(rs->identity_digest, 0x34, DIGEST_LEN);
-      memset(rs->descripqed_hs_digest, 47, DIGEST_LEN);
+      memset(rs->descriptor_digest, 47, DIGEST_LEN);
       qed_hs_addr_from_ipv4h(&rs->ipv4_addr, 0xC0000203);
       rs->ipv4_orport = 500;
       rs->ipv4_dirport = 1999;
@@ -4249,7 +4249,7 @@ test_vrs_for_umbw(vote_routerstatus_t *vrs, int voter, time_t now)
                "\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3"
                "\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3",
                DIGEST_LEN);
-    tt_mem_op(rs->descripqed_hs_digest,OP_EQ, "NNNNNNNNNNNNNNNNNNNN", DIGEST_LEN);
+    tt_mem_op(rs->descriptor_digest,OP_EQ, "NNNNNNNNNNNNNNNNNNNN", DIGEST_LEN);
     tt_assert(qed_hs_addr_eq_ipv4h(&rs->ipv4_addr, 0x99008801));
     tt_int_op(rs->ipv4_orport,OP_EQ, 443);
     tt_int_op(rs->ipv4_dirport,OP_EQ, 8000);
@@ -4273,7 +4273,7 @@ test_vrs_for_umbw(vote_routerstatus_t *vrs, int voter, time_t now)
                "\x5\x5\x5\x5\x5\x5\x5\x5\x5\x5"
                "\x5\x5\x5\x5\x5\x5\x5\x5\x5\x5",
                DIGEST_LEN);
-    tt_mem_op(rs->descripqed_hs_digest,OP_EQ, "MMMMMMMMMMMMMMMMMMMM", DIGEST_LEN);
+    tt_mem_op(rs->descriptor_digest,OP_EQ, "MMMMMMMMMMMMMMMMMMMM", DIGEST_LEN);
     tt_assert(qed_hs_addr_eq_ipv4h(&rs->ipv4_addr, 0x99009901));
     tt_int_op(rs->ipv4_orport,OP_EQ, 443);
     tt_int_op(rs->ipv4_dirport,OP_EQ, 0);
@@ -4358,7 +4358,7 @@ test_routerstatus_for_umbw(routerstatus_t *rs, time_t now)
                "\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3"
                "\x3\x3\x3\x3\x3\x3\x3\x3\x3\x3",
                DIGEST_LEN);
-    tt_mem_op(rs->descripqed_hs_digest,OP_EQ, "NNNNNNNNNNNNNNNNNNNN", DIGEST_LEN);
+    tt_mem_op(rs->descriptor_digest,OP_EQ, "NNNNNNNNNNNNNNNNNNNN", DIGEST_LEN);
     tt_assert(!rs->is_authority);
     tt_assert(!rs->is_exit);
     tt_assert(!rs->is_fast);
@@ -4382,7 +4382,7 @@ test_routerstatus_for_umbw(routerstatus_t *rs, time_t now)
                "\x5\x5\x5\x5\x5\x5\x5\x5\x5\x5",
                DIGEST_LEN);
     tt_str_op(rs->nickname,OP_EQ, "router1");
-    tt_mem_op(rs->descripqed_hs_digest,OP_EQ, "MMMMMMMMMMMMMMMMMMMM", DIGEST_LEN);
+    tt_mem_op(rs->descriptor_digest,OP_EQ, "MMMMMMMMMMMMMMMMMMMM", DIGEST_LEN);
     tt_assert(qed_hs_addr_eq_ipv4h(&rs->ipv4_addr, 0x99009901));
     tt_int_op(rs->ipv4_orport,OP_EQ, 443);
     tt_int_op(rs->ipv4_dirport,OP_EQ, 0);
@@ -4484,7 +4484,7 @@ test_dir_fmt_control_ns(void *arg)
   memset(&rs, 0, sizeof(rs));
   strlcpy(rs.nickname, "TetsuoMilk", sizeof(rs.nickname));
   memcpy(rs.identity_digest, "Stately, plump Buck ", DIGEST_LEN);
-  memcpy(rs.descripqed_hs_digest, "Mulligan came up fro", DIGEST_LEN);
+  memcpy(rs.descriptor_digest, "Mulligan came up fro", DIGEST_LEN);
   qed_hs_addr_from_ipv4h(&rs.ipv4_addr, 0x20304050);
   rs.ipv4_orport = 9001;
   rs.ipv4_dirport = 9002;

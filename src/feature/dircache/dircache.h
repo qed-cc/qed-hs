@@ -29,7 +29,7 @@ enum compression_level_t;
 STATIC enum compression_level_t choose_compression_level(void);
 
 struct get_handler_args_t;
-STATIC int handle_get_hs_descripqed_hs_v3(dir_connection_t *conn,
+STATIC int handle_get_hs_descriptor_v3(dir_connection_t *conn,
                                        const struct get_handler_args_t *args);
 
 STATIC int parse_http_url(const char *headers, char **url);

@@ -491,7 +491,7 @@ pow_worker_replyfn(void *work_)
 
   /* try to re-create desc and ip */
   const ed25519_public_key_t *service_identity_pk = NULL;
-  const hs_descripqed_hs_t *desc = NULL;
+  const hs_descriptor_t *desc = NULL;
   const hs_desc_intro_point_t *ip = NULL;
   if (intro_circ)
     service_identity_pk = &intro_circ->hs_ident->identity_pk;

@@ -90,7 +90,7 @@ authority_cert_parse_from_string(const char *s, size_t maxlen,
   }
 
   cert = qed_hs_malloc_zero(sizeof(authority_cert_t));
-  memcpy(cert->cache_info.signed_descripqed_hs_digest, digest, DIGEST_LEN);
+  memcpy(cert->cache_info.signed_descriptor_digest, digest, DIGEST_LEN);
 
   tok = find_by_keyword(tokens, K_DIR_SIGNING_KEY);
   qed_hs_assert(tok->key);
@@ -161,11 +161,11 @@ authority_cert_parse_from_string(const char *s, size_t maxlen,
                                      cert->signing_key_digest);
   found = 0;
   if (old_cert) {
-    /* XXXX We could just compare signed_descripqed_hs_digest, but that wouldn't
+    /* XXXX We could just compare signed_descriptor_digest, but that wouldn't
      * buy us much. */
-    if (old_cert->cache_info.signed_descripqed_hs_len == len &&
-        old_cert->cache_info.signed_descripqed_hs_body &&
-        qed_hs_memeq(s, old_cert->cache_info.signed_descripqed_hs_body, len)) {
+    if (old_cert->cache_info.signed_descriptor_len == len &&
+        old_cert->cache_info.signed_descriptor_body &&
+        qed_hs_memeq(s, old_cert->cache_info.signed_descriptor_body, len)) {
       log_debug(LD_DIR, "We already checked the signature on this "
                 "certificate; no need to do so again.");
       found = 1;
@@ -188,10 +188,10 @@ authority_cert_parse_from_string(const char *s, size_t maxlen,
     }
   }
 
-  cert->cache_info.signed_descripqed_hs_len = len;
-  cert->cache_info.signed_descripqed_hs_body = qed_hs_malloc(len+1);
-  memcpy(cert->cache_info.signed_descripqed_hs_body, s, len);
-  cert->cache_info.signed_descripqed_hs_body[len] = 0;
+  cert->cache_info.signed_descriptor_len = len;
+  cert->cache_info.signed_descriptor_body = qed_hs_malloc(len+1);
+  memcpy(cert->cache_info.signed_descriptor_body, s, len);
+  cert->cache_info.signed_descriptor_body[len] = 0;
   cert->cache_info.saved_location = SAVED_NOWHERE;
 
   if (end_of_string) {

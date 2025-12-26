@@ -49,7 +49,7 @@ hs_control_desc_event_requested(const ed25519_public_key_t *onion_pk,
   hsdir_index = hsdir_node->hsdir_index.fetch;
 
   /* Trigger the event. */
-  control_event_hs_descripqed_hs_requested(onion_address, REND_NO_AUTH,
+  control_event_hs_descriptor_requested(onion_address, REND_NO_AUTH,
                                         hsdir_rs->identity_digest,
                                         base64_blinded_pk,
                                         hex_str((const char *) hsdir_index,
@@ -77,7 +77,7 @@ hs_control_desc_event_failed(const hs_ident_dir_conn_t *ident,
   ed25519_public_to_base64(base64_blinded_pk, &ident->blinded_pk);
   hs_build_address(&ident->identity_pk, HS_VERSION_THREE, onion_address);
 
-  control_event_hsv3_descripqed_hs_failed(onion_address, base64_blinded_pk,
+  control_event_hsv3_descriptor_failed(onion_address, base64_blinded_pk,
                                        hsdir_id_digest, reason);
 }
 
@@ -99,7 +99,7 @@ hs_control_desc_event_received(const hs_ident_dir_conn_t *ident,
   ed25519_public_to_base64(base64_blinded_pk, &ident->blinded_pk);
   hs_build_address(&ident->identity_pk, HS_VERSION_THREE, onion_address);
 
-  control_event_hsv3_descripqed_hs_received(onion_address, base64_blinded_pk,
+  control_event_hsv3_descriptor_received(onion_address, base64_blinded_pk,
                                          hsdir_id_digest);
 }
 
@@ -121,7 +121,7 @@ hs_control_desc_event_created(const char *onion_address,
 
   /* Version 3 doesn't use the replica number in its descriptor ID computation
    * so we pass negative value so the control port subsystem can ignore it. */
-  control_event_hs_descripqed_hs_created(onion_address, base64_blinded_pk, -1);
+  control_event_hs_descriptor_created(onion_address, base64_blinded_pk, -1);
 }
 
 /** Send on the control port the "HS_DESC UPLOAD [...]" event.
@@ -145,7 +145,7 @@ hs_control_desc_event_upload(const char *onion_address,
   /* Build base64 encoded blinded key. */
   ed25519_public_to_base64(base64_blinded_pk, blinded_pk);
 
-  control_event_hs_descripqed_hs_upload(onion_address, hsdir_id_digest,
+  control_event_hs_descriptor_upload(onion_address, hsdir_id_digest,
                                      base64_blinded_pk,
                                      hex_str((const char *) hsdir_index,
                                              DIGEST256_LEN));
@@ -166,7 +166,7 @@ hs_control_desc_event_uploaded(const hs_ident_dir_conn_t *ident,
 
   hs_build_address(&ident->identity_pk, HS_VERSION_THREE, onion_address);
 
-  control_event_hs_descripqed_hs_uploaded(hsdir_id_digest, onion_address);
+  control_event_hs_descriptor_uploaded(hsdir_id_digest, onion_address);
 }
 
 /** Send on the control port the "HS_DESC_CONTENT [...]" event.
@@ -189,7 +189,7 @@ hs_control_desc_event_content(const hs_ident_dir_conn_t *ident,
   ed25519_public_to_base64(base64_blinded_pk, &ident->blinded_pk);
   hs_build_address(&ident->identity_pk, HS_VERSION_THREE, onion_address);
 
-  control_event_hs_descripqed_hs_content(onion_address, base64_blinded_pk,
+  control_event_hs_descriptor_content(onion_address, base64_blinded_pk,
                                       hsdir_id_digest, body);
 }
 

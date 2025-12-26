@@ -61,18 +61,18 @@ MOCK_DECL(download_status_t *,
   networkstatus_get_dl_status_by_flavor_running,
   (consensus_flavor_t flavor));
 
-MOCK_DECL(smartlist_t *, router_get_descripqed_hs_digests, (void));
-MOCK_DECL(download_status_t *,router_get_dl_status_by_descripqed_hs_digest,
+MOCK_DECL(smartlist_t *, router_get_descriptor_digests, (void));
+MOCK_DECL(download_status_t *,router_get_dl_status_by_descriptor_digest,
           (const char *d));
 
 const routerstatus_t *router_get_consensus_status_by_id(const char *digest);
 routerstatus_t *router_get_mutable_consensus_status_by_id(
                                    const char *digest);
-const routerstatus_t *router_get_consensus_status_by_descripqed_hs_digest(
+const routerstatus_t *router_get_consensus_status_by_descriptor_digest(
                                    networkstatus_t *consensus,
                                    const char *digest);
 MOCK_DECL(routerstatus_t *,
-          router_get_mutable_consensus_status_by_descripqed_hs_digest,
+          router_get_mutable_consensus_status_by_descriptor_digest,
           (networkstatus_t *consensus, const char *digest));
 int we_want_to_fetch_flavor(const or_options_t *options, int flavor);
 int we_want_to_fetch_unknown_auth_certs(const or_options_t *options);

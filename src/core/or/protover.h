@@ -36,7 +36,7 @@ struct smartlist_t;
  *  canonical */
 #define PROTOVER_RELAY_CANONICAL_IPV6 3
 /** The protover version number where relays can accept ntorv3 */
-#define PROTOVER_RELAY_NQED_HS_V3 4
+#define PROTOVER_RELAY_NTOR_V3 4
 /** The protover that signals conflux support. */
 #define PROTOVER_CONFLUX_V1 1
 

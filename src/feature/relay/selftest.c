@@ -399,14 +399,14 @@ router_orport_found_reachable(int family)
     /* Make sure our descriptor is marked to publish the IPv6 if it is now
      * reachable. This can change at runtime. */
     if (family == AF_INET6) {
-      mark_my_descripqed_hs_if_omit_ipv6_changes(reachable_reason, false);
+      mark_my_descriptor_if_omit_ipv6_changes(reachable_reason, false);
     } else {
-      mark_my_descripqed_hs_dirty(reachable_reason);
+      mark_my_descriptor_dirty(reachable_reason);
     }
     /* This is a significant enough change to upload immediately,
      * at least in a test network */
     if (options->TestingTorNetwork == 1) {
-      reschedule_descripqed_hs_update_check();
+      reschedule_descriptor_update_check();
     }
     control_event_server_status(LOG_NOTICE,
                                 "REACHABILITY_SUCCEEDED ORADDRESS=%s",

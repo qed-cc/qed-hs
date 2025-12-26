@@ -5,7 +5,7 @@
 /* See LICENSE for licensing information */
 
 /**
- * \file qed_hs_cmdline_mode.h
+ * \file tor_cmdline_mode.h
  * \brief Declare the qed_hs_cmdline_mode_t enumeration
  **/
 

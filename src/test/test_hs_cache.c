@@ -39,7 +39,7 @@ static char query_b64[256];
 
 /* Build an HSDir query using a ed25519 public key. */
 static const char *
-helper_get_hsdir_query(const hs_descripqed_hs_t *desc)
+helper_get_hsdir_query(const hs_descriptor_t *desc)
 {
   ed25519_public_to_base64(query_b64, &desc->plaintext_data.blinded_pubkey);
   return query_b64;
@@ -60,7 +60,7 @@ test_directory(void *arg)
   char *desc1_str = NULL;
   const char *desc_out;
   ed25519_keypair_t signing_kp1;
-  hs_descripqed_hs_t *desc1 = NULL;
+  hs_descriptor_t *desc1 = NULL;
 
   (void) arg;
 
@@ -101,7 +101,7 @@ test_directory(void *arg)
     ed25519_keypair_t signing_kp_zero;
     ret = ed25519_keypair_generate(&signing_kp_zero, 0);
     tt_int_op(ret, OP_EQ, 0);
-    hs_descripqed_hs_t *desc_zero_lifetime;
+    hs_descriptor_t *desc_zero_lifetime;
     desc_zero_lifetime = hs_helper_build_hs_desc_with_ip(&signing_kp_zero);
     tt_assert(desc_zero_lifetime);
     desc_zero_lifetime->plaintext_data.revision_counter = 1;
@@ -129,7 +129,7 @@ test_directory(void *arg)
     /* Cleanup our entire cache. */
     oom_size = hs_cache_handle_oom(1);
     tt_int_op(oom_size, OP_GE, 1);
-    hs_descripqed_hs_free(desc_zero_lifetime);
+    hs_descriptor_free(desc_zero_lifetime);
     qed_hs_free(desc_zero_lifetime_str);
   }
 
@@ -171,7 +171,7 @@ test_directory(void *arg)
   }
 
  done:
-  hs_descripqed_hs_free(desc1);
+  hs_descriptor_free(desc1);
   qed_hs_free(desc1_str);
 }
 
@@ -181,7 +181,7 @@ test_clean_as_dir(void *arg)
   size_t ret;
   char *desc1_str = NULL;
   time_t now = time(NULL);
-  hs_descripqed_hs_t *desc1 = NULL;
+  hs_descriptor_t *desc1 = NULL;
   ed25519_keypair_t signing_kp1;
 
   (void) arg;
@@ -220,7 +220,7 @@ test_clean_as_dir(void *arg)
   tt_int_op(ret, OP_EQ, 0);
 
  done:
-  hs_descripqed_hs_free(desc1);
+  hs_descriptor_free(desc1);
   qed_hs_free(desc1_str);
 }
 
@@ -229,7 +229,7 @@ test_clean_oom_as_dir(void *arg)
 {
   size_t ret;
   char *desc1_str = NULL, *desc2_str = NULL;
-  hs_descripqed_hs_t *desc1 = NULL, *desc2 = NULL;
+  hs_descriptor_t *desc1 = NULL, *desc2 = NULL;
   ed25519_keypair_t signing_kp1, signing_kp2;
 
   (void) arg;
@@ -256,7 +256,7 @@ test_clean_oom_as_dir(void *arg)
 
   /* Set the downloaded count to 42 for the second one. */
   dir_set_downloaded(&desc2->plaintext_data.blinded_pubkey, 42);
-  const hs_cache_dir_descripqed_hs_t *entry =
+  const hs_cache_dir_descriptor_t *entry =
     lookup_v3_desc_as_dir(desc2->plaintext_data.blinded_pubkey.pubkey);
   tt_u64_op(entry->n_downloaded, OP_EQ, 42);
 
@@ -273,8 +273,8 @@ test_clean_oom_as_dir(void *arg)
   tt_assert(entry);
 
  done:
-  hs_descripqed_hs_free(desc1);
-  hs_descripqed_hs_free(desc2);
+  hs_descriptor_free(desc1);
+  hs_descriptor_free(desc2);
   qed_hs_free(desc1_str);
   qed_hs_free(desc2_str);
 }
@@ -347,7 +347,7 @@ static void
 test_upload_and_download_hs_desc(void *arg)
 {
   int retval;
-  hs_descripqed_hs_t *published_desc = NULL;
+  hs_descriptor_t *published_desc = NULL;
 
   char *published_desc_str = NULL;
   char *received_desc_str = NULL;
@@ -406,7 +406,7 @@ test_upload_and_download_hs_desc(void *arg)
  done:
   qed_hs_free(received_desc_str);
   qed_hs_free(published_desc_str);
-  hs_descripqed_hs_free(published_desc);
+  hs_descriptor_free(published_desc);
 }
 
 /* Test that HSDirs reject outdated descriptors based on their revision
@@ -419,12 +419,12 @@ test_hsdir_revision_counter_check(void *arg)
 
   ed25519_keypair_t signing_kp;
 
-  hs_descripqed_hs_t *published_desc = NULL;
+  hs_descriptor_t *published_desc = NULL;
   char *published_desc_str = NULL;
 
   hs_subcredential_t subcredential;
   char *received_desc_str = NULL;
-  hs_descripqed_hs_t *received_desc = NULL;
+  hs_descriptor_t *received_desc = NULL;
 
   (void) arg;
 
@@ -470,7 +470,7 @@ test_hsdir_revision_counter_check(void *arg)
     /* Check that the revision counter is correct */
     tt_u64_op(received_desc->plaintext_data.revision_counter, OP_EQ, 42);
 
-    hs_descripqed_hs_free(received_desc);
+    hs_descriptor_free(received_desc);
     received_desc = NULL;
     qed_hs_free(received_desc_str);
   }
@@ -505,8 +505,8 @@ test_hsdir_revision_counter_check(void *arg)
   }
 
  done:
-  hs_descripqed_hs_free(published_desc);
-  hs_descripqed_hs_free(received_desc);
+  hs_descriptor_free(published_desc);
+  hs_descriptor_free(received_desc);
   qed_hs_free(received_desc_str);
   qed_hs_free(published_desc_str);
 }
@@ -527,7 +527,7 @@ test_client_cache(void *arg)
 {
   int retval;
   ed25519_keypair_t signing_kp;
-  hs_descripqed_hs_t *published_desc = NULL;
+  hs_descriptor_t *published_desc = NULL;
   char *published_desc_str = NULL;
   hs_subcredential_t wanted_subcredential;
   response_handler_args_t *args = NULL;
@@ -592,7 +592,7 @@ test_client_cache(void *arg)
                        &mock_ns.valid_until);
 
     /* fetch the descriptor and make sure it's there */
-    const hs_descripqed_hs_t *cached_desc = NULL;
+    const hs_descriptor_t *cached_desc = NULL;
     cached_desc = hs_cache_lookup_as_client(&signing_kp.pubkey);
     tt_assert(cached_desc);
     tt_mem_op(cached_desc->subcredential.subcred,
@@ -609,14 +609,14 @@ test_client_cache(void *arg)
     parse_rfc1123_time("Sat, 27 Oct 1985 15:00:00 UTC",
                        &mock_ns.valid_until);
 
-    const hs_descripqed_hs_t *cached_desc = NULL;
+    const hs_descriptor_t *cached_desc = NULL;
     cached_desc = hs_cache_lookup_as_client(&signing_kp.pubkey);
     tt_assert(!cached_desc);
   }
 
  done:
   qed_hs_free(args);
-  hs_descripqed_hs_free(published_desc);
+  hs_descriptor_free(published_desc);
   qed_hs_free(published_desc_str);
   if (conn) {
     qed_hs_free(conn->hs_ident);
@@ -630,11 +630,11 @@ test_client_cache_decrypt(void *arg)
 {
   int ret;
   char *desc_encoded = NULL;
-  uint8_t descripqed_hs_cookie[HS_DESC_DESCRIPQED_HS_COOKIE_LEN];
+  uint8_t descriptor_cookie[HS_DESC_DESCRIPQED_HS_COOKIE_LEN];
   curve25519_keypair_t client_kp;
   ed25519_keypair_t service_kp;
-  hs_descripqed_hs_t *desc = NULL;
-  const hs_descripqed_hs_t *search_desc;
+  hs_descriptor_t *desc = NULL;
+  const hs_descriptor_t *search_desc;
   const char *search_desc_encoded;
 
   (void) arg;
@@ -659,13 +659,13 @@ test_client_cache_decrypt(void *arg)
     tt_int_op(ret, OP_EQ, 0);
     ret = curve25519_keypair_generate(&client_kp, 0);
     tt_int_op(ret, OP_EQ, 0);
-    crypto_rand((char *) descripqed_hs_cookie, sizeof(descripqed_hs_cookie));
+    crypto_rand((char *) descriptor_cookie, sizeof(descriptor_cookie));
 
-    desc = hs_helper_build_hs_desc_with_client_auth(descripqed_hs_cookie,
+    desc = hs_helper_build_hs_desc_with_client_auth(descriptor_cookie,
                                                     &client_kp.pubkey,
                                                     &service_kp);
     tt_assert(desc);
-    ret = hs_desc_encode_descriptor(desc, &service_kp, descripqed_hs_cookie,
+    ret = hs_desc_encode_descriptor(desc, &service_kp, descriptor_cookie,
                                     &desc_encoded);
     tt_int_op(ret, OP_EQ, 0);
   }
@@ -693,7 +693,7 @@ test_client_cache_decrypt(void *arg)
   tt_mem_op(search_desc_encoded, OP_EQ, desc_encoded, strlen(desc_encoded));
 
  done:
-  hs_descripqed_hs_free(desc);
+  hs_descriptor_free(desc);
   qed_hs_free(desc_encoded);
 
   hs_free_all();
@@ -706,7 +706,7 @@ test_client_cache_remove(void *arg)
 {
   int ret;
   ed25519_keypair_t service_kp;
-  hs_descripqed_hs_t *desc1 = NULL;
+  hs_descriptor_t *desc1 = NULL;
 
   (void) arg;
 
@@ -748,7 +748,7 @@ test_client_cache_remove(void *arg)
   tt_assert(!hs_cache_lookup_as_client(&service_kp.pubkey));
 
  done:
-  hs_descripqed_hs_free(desc1);
+  hs_descriptor_free(desc1);
   hs_free_all();
 
   UNMOCK(networkstatus_get_reasonably_live_consensus);

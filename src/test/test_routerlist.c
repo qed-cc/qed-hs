@@ -80,7 +80,7 @@ mock_get_from_dirserver(uint8_t dir_purpose, uint8_t router_purpose,
 }
 
 static void
-test_routerlist_initiate_descripqed_hs_downloads(void *arg)
+test_routerlist_initiate_descriptor_downloads(void *arg)
 {
   const char *prose = "unhurried and wise, we perceive.";
   smartlist_t *digests = smartlist_new();
@@ -91,7 +91,7 @@ test_routerlist_initiate_descripqed_hs_downloads(void *arg)
   }
 
   MOCK(directory_get_from_dirserver, mock_get_from_dirserver);
-  initiate_descripqed_hs_downloads(NULL, DIR_PURPOSE_FETCH_MICRODESC,
+  initiate_descriptor_downloads(NULL, DIR_PURPOSE_FETCH_MICRODESC,
                                 digests, 3, 7, 0);
   UNMOCK(directory_get_from_dirserver);
 
@@ -109,7 +109,7 @@ test_routerlist_initiate_descripqed_hs_downloads(void *arg)
 static int count = 0;
 
 static void
-mock_initiate_descripqed_hs_downloads(const routerstatus_t *source,
+mock_initiate_descriptor_downloads(const routerstatus_t *source,
                                    int purpose, smartlist_t *digests,
                                    int lo, int hi, int pds_flags)
 {
@@ -123,7 +123,7 @@ mock_initiate_descripqed_hs_downloads(const routerstatus_t *source,
 }
 
 static void
-test_routerlist_launch_descripqed_hs_downloads(void *arg)
+test_routerlist_launch_descriptor_downloads(void *arg)
 {
   smartlist_t *downloadable = smartlist_new();
   time_t now = time(NULL);
@@ -137,11 +137,11 @@ test_routerlist_launch_descripqed_hs_downloads(void *arg)
     smartlist_add(downloadable, cp);
   }
 
-  MOCK(initiate_descripqed_hs_downloads, mock_initiate_descripqed_hs_downloads);
-  launch_descripqed_hs_downloads(DIR_PURPOSE_FETCH_MICRODESC, downloadable,
+  MOCK(initiate_descriptor_downloads, mock_initiate_descriptor_downloads);
+  launch_descriptor_downloads(DIR_PURPOSE_FETCH_MICRODESC, downloadable,
                               NULL, now);
   tt_int_op(3, OP_EQ, count);
-  UNMOCK(initiate_descripqed_hs_downloads);
+  UNMOCK(initiate_descriptor_downloads);
 
  done:
   SMARTLIST_FOREACH(downloadable, char *, cp1, qed_hs_free(cp1));
@@ -782,8 +782,8 @@ test_warn_early_consensus(void *arg)
     (char *)(arg) }
 
 struct testcase_t routerlist_tests[] = {
-  NODE(initiate_descripqed_hs_downloads, 0),
-  NODE(launch_descripqed_hs_downloads, 0),
+  NODE(initiate_descriptor_downloads, 0),
+  NODE(launch_descriptor_downloads, 0),
   NODE(router_is_already_dir_fetching, TT_FORK),
   ROUTER(pick_directory_server_impl, TT_FORK),
   { "directory_guard_fetch_with_no_dirinfo",

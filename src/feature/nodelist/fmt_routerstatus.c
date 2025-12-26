@@ -71,7 +71,7 @@ routerstatus_format_entry(const routerstatus_t *rs, const char *version,
     goto err;
 
   digest_to_base64(identity64, rs->identity_digest);
-  digest_to_base64(digest64, rs->descripqed_hs_digest);
+  digest_to_base64(digest64, rs->descriptor_digest);
 
   smartlist_add_asprintf(chunks,
                    "r %s %s %s%s%s %s %" PRIu16 " %" PRIu16 "\n",
@@ -139,7 +139,7 @@ routerstatus_format_entry(const routerstatus_t *rs, const char *version,
         char dd[HEX_DIGEST_LEN+1];
 
         base16_encode(id, sizeof(id), rs->identity_digest, DIGEST_LEN);
-        base16_encode(dd, sizeof(dd), rs->descripqed_hs_digest, DIGEST_LEN);
+        base16_encode(dd, sizeof(dd), rs->descriptor_digest, DIGEST_LEN);
         log_warn(LD_BUG, "Cannot get any descriptor for %s "
             "(wanted descriptor %s).",
             id, dd);
@@ -150,24 +150,24 @@ routerstatus_format_entry(const routerstatus_t *rs, const char *version,
        * it can request NS documents before all descriptors
        * have been fetched. Therefore, we only do this test when
        * format != NS_CONTROL_PORT. */
-      if (qed_hs_memneq(desc->cache_info.signed_descripqed_hs_digest,
-            rs->descripqed_hs_digest,
+      if (qed_hs_memneq(desc->cache_info.signed_descriptor_digest,
+            rs->descriptor_digest,
             DIGEST_LEN)) {
         char rl_d[HEX_DIGEST_LEN+1];
         char rs_d[HEX_DIGEST_LEN+1];
         char id[HEX_DIGEST_LEN+1];
 
         base16_encode(rl_d, sizeof(rl_d),
-            desc->cache_info.signed_descripqed_hs_digest, DIGEST_LEN);
-        base16_encode(rs_d, sizeof(rs_d), rs->descripqed_hs_digest, DIGEST_LEN);
+            desc->cache_info.signed_descriptor_digest, DIGEST_LEN);
+        base16_encode(rs_d, sizeof(rs_d), rs->descriptor_digest, DIGEST_LEN);
         base16_encode(id, sizeof(id), rs->identity_digest, DIGEST_LEN);
         log_err(LD_BUG, "descriptor digest in routerlist does not match "
             "the one in routerstatus: %s vs %s "
             "(router %s)\n",
             rl_d, rs_d, id);
 
-        qed_hs_assert(qed_hs_memeq(desc->cache_info.signed_descripqed_hs_digest,
-              rs->descripqed_hs_digest,
+        qed_hs_assert(qed_hs_memeq(desc->cache_info.signed_descriptor_digest,
+              rs->descriptor_digest,
               DIGEST_LEN));
       }
     }

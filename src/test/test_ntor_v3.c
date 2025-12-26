@@ -4,12 +4,12 @@
 /* See LICENSE for licensing information */
 
 #include "orconfig.h"
-#define ONION_NQED_HS_V3_PRIVATE
+#define ONION_NTOR_V3_PRIVATE
 #include "core/or/or.h"
 #include "test/test.h"
 #include "lib/crypt_ops/crypto_curve25519.h"
 #include "lib/crypt_ops/crypto_ed25519.h"
-#include "core/crypto/onion_nqed_hs_v3.h"
+#include "core/crypto/onion_ntor_v3.h"
 #include "core/crypto/onion_crypto.h"
 #include "core/or/extend_info_st.h"
 #include "core/or/crypt_path_st.h"
@@ -211,14 +211,14 @@ run_full_handshake(circuit_params_t *serv_params_in,
                   relay_onion_key.pubkey.public_key,
                   &relay_onion_key);
 
-  onionskin_len = onion_skin_create(ONION_HANDSHAKE_TYPE_NQED_HS_V3, &info,
+  onionskin_len = onion_skin_create(ONION_HANDSHAKE_TYPE_NTOR_V3, &info,
                     &handshake_state, onionskin,
                     sizeof(onionskin));
   tt_int_op(onionskin_len, OP_NE, -1);
 
   server_keys.junk_keypair = &handshake_state.u.ntor3->client_keypair;
 
-  reply_len = onion_skin_server_handshake(ONION_HANDSHAKE_TYPE_NQED_HS_V3,
+  reply_len = onion_skin_server_handshake(ONION_HANDSHAKE_TYPE_NTOR_V3,
                               onionskin, onionskin_len,
                               &server_keys, serv_params_in,
                               serv_reply, sizeof(serv_reply),
@@ -226,7 +226,7 @@ run_full_handshake(circuit_params_t *serv_params_in,
                               rend_nonce, serv_params_out);
   tt_int_op(reply_len, OP_NE, -1);
 
-  tt_int_op(onion_skin_client_handshake(ONION_HANDSHAKE_TYPE_NQED_HS_V3,
+  tt_int_op(onion_skin_client_handshake(ONION_HANDSHAKE_TYPE_NTOR_V3,
                               &handshake_state,
                               serv_reply, reply_len,
                               client_keys, sizeof(client_keys),
@@ -307,7 +307,7 @@ test_ntor3_handshake(void *arg)
   return;
 }
 
-struct testcase_t nqed_hs_v3_tests[] = {
+struct testcase_t ntor_v3_tests[] = {
   { "testvecs", test_ntor3_testvecs, 0, NULL, NULL, },
   { "handshake_negtotiation", test_ntor3_handshake, 0, NULL, NULL, },
   END_OF_TESTCASES,

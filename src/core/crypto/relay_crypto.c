@@ -15,7 +15,7 @@
 #include "app/config/config.h"
 #include "lib/crypt_ops/crypto_cipher.h"
 #include "lib/crypt_ops/crypto_util.h"
-#include "core/crypto/hs_ntor.h" // for HS_NQED_HS_KEY_EXPANSION_KDF_OUT_LEN
+#include "core/crypto/hs_ntor.h" // for HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN
 #include "core/or/relay.h"
 #include "core/crypto/relay_crypto.h"
 #include "core/or/sendme.h"
@@ -285,7 +285,7 @@ relay_crypto_clear(relay_crypto_t *crypto)
  *
  * If <b>is_hs_v3</b> is set, this cpath will be used for next gen hidden
  * service circuits and <b>key_data</b> must be at least
- * HS_NQED_HS_KEY_EXPANSION_KDF_OUT_LEN bytes in length.
+ * HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN bytes in length.
  *
  * If <b>is_hs_v3</b> is not set, key_data must contain CPATH_KEY_MATERIAL_LEN
  * bytes, which are used as follows:
@@ -314,7 +314,7 @@ relay_crypto_init(relay_crypto_t *crypto,
              crypto->f_digest || crypto->b_digest));
 
   /* Basic key size validation */
-  if (is_hs_v3 && BUG(key_data_len != HS_NQED_HS_KEY_EXPANSION_KDF_OUT_LEN)) {
+  if (is_hs_v3 && BUG(key_data_len != HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN)) {
     goto err;
   } else if (!is_hs_v3 && BUG(key_data_len != CPATH_KEY_MATERIAL_LEN)) {
     goto err;
